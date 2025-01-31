@@ -14,7 +14,10 @@ class Cartridge {
 		Cartridge(SupaNES* supaNes);
 		~Cartridge();
 
-		bool LoadROM(const char* filepath);
+		bool LoadROM(const char* filepath, uint16_t* excVectors);
+
+		uint8_t ReadRom(uint32_t address);
+		void WriteRom(uint32_t address, uint8_t value);
 
 	private:
 		bool CheckCartridgeType(const uint8_t* cartType);

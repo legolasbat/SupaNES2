@@ -9,7 +9,7 @@ Cartridge::Cartridge(SupaNES* supaNes) {
 	memory = supaNes;
 }
 
-bool Cartridge::LoadROM(const char* filepath) {
+bool Cartridge::LoadROM(const char* filepath, uint16_t* excVectors) {
 	FILE* file = fopen(filepath, "rb");
 	
 	if(file == NULL){
@@ -144,12 +144,12 @@ bool Cartridge::LoadROM(const char* filepath) {
 	fread(&checksums, sizeof(uint32_t), 1, file);
 
 	// Interrupt Vectors
-	uint16_t vectors[16];
-	fread(&vectors, sizeof(uint16_t), 16, file);
+	fread(excVectors, sizeof(uint16_t), 16, file);
 
 	for (int i = 0; i < 16; i++) {
-		printf("Vector %d: 0x%04x\n", i, vectors[i]);
+		printf("Vector %d: 0x%04x\n", i, excVectors[i]);
 	}
+	//TODO: Load Vectors in memory
 
 	ROM = (uint8_t*)malloc(sizeof(uint8_t) * romSizeByte);
 	fseek(file, offset, SEEK_SET);
@@ -259,6 +259,50 @@ bool Cartridge::CheckRegion(const uint8_t* region){
 		break;
 	}
 	return true;
+}
+
+uint8_t Cartridge::ReadRom(uint32_t address) {
+	uint8_t bank = (address & 0x00FF0000) >> 16;
+	uint8_t page = (address & 0x0000FF00) >> 8;
+
+	uint8_t value = 0;
+
+	// Check bank range
+	if (bank != 0x7E && bank != 0x7F) {
+		// Check page range
+		// Check top half
+		if (page >= 0x80) {
+			// ROM
+			if (bank >= 0x80) {
+				//TODO: ROM Mirror
+			}
+			// Mirror ROM
+			else {
+				value = ROM[(((address & 0xFF8000) - 0x8000) / 2) + (address & 0x7FFF)];
+			}
+		}
+		// Check bottom half
+		else if (page < 0x80) {
+			// SRAM 2Q
+			if (bank >= 0x40 && bank < 0x7E) {
+				//TODO: Read SRAM 2Q
+			}
+			// ROM bottom half 4Q
+			else if (bank >= 0xC0 && bank < 0xF0) {
+				//TODO: Read ROM Mirror Q4
+			}
+			// SRAM 4Q
+			else if (bank >= 0xF0) {
+				//TODO: Read SRAM 4Q
+			}
+		}
+	}
+
+	return value;
+}
+
+void Cartridge::WriteRom(uint32_t address, uint8_t value) {
+	//TODO: Cartridge SRAM
 }
 
 Cartridge::~Cartridge() {

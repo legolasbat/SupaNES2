@@ -68,6 +68,11 @@ int main(int argc, char* argv[]) {
 
 		MenuBar(as);
 
+		// SupaNes clock
+		if(as->supaNES->RomLoaded) {
+			as->supaNES->Clock();
+		}
+
 		// Render
 		ImGui::Render();
 		SDL_SetRenderDrawColor(as->renderer, 255, 0, 0, 255);
