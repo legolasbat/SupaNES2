@@ -3,9 +3,15 @@
 #include <backends/imgui_impl_sdlrenderer3.h>
 #include <SDL3/SDL.h>
 
+#include "SDL3/SDL_dialog.h"
+#include "SDL3/SDL_error.h"
+#include "SDL3/SDL_log.h"
+#include "SupaNES.h"
+
 typedef struct {
 	SDL_Window* window;
 	SDL_Renderer* renderer;
+	SupaNES* supaNES;
 } AppState;
 
 // Main loop bool
@@ -17,6 +23,7 @@ bool BG2Selected = true;
 bool BG3Selected = true;
 bool BG4Selected = true;
 
+void SDLCALL openFileCallback(void* userdata, const char* const* filelist, int filter);
 void HandleEvents(AppState* appstate);
 void MenuBar(AppState* appstate);
 
@@ -47,6 +54,8 @@ int main(int argc, char* argv[]) {
 
 	ImGui_ImplSDL3_InitForSDLRenderer(as->window, as->renderer);
 	ImGui_ImplSDLRenderer3_Init(as->renderer);
+
+	as->supaNES = new SupaNES();
 
 	// Main Loop
 	while(!done) {
@@ -100,7 +109,7 @@ void MenuBar(AppState* appstate) {
 	if (ImGui::BeginMainMenuBar()) {
 		if (ImGui::BeginMenu("File")) {
 			if (ImGui::MenuItem("Load ROM")) {
-				// TODO: Open File Explorer and load ROM
+				SDL_ShowOpenFileDialog(&openFileCallback, appstate, appstate->window, NULL, 0, NULL, false);
 			}
 			if (ImGui::MenuItem("Exit")) {
 				done = true;
@@ -134,4 +143,26 @@ void MenuBar(AppState* appstate) {
 		}
 		ImGui::EndMainMenuBar();
 	}
+}
+
+
+void SDLCALL openFileCallback(void* userdata, const char* const* filelist, int filter) {
+	if (!filelist) {
+		SDL_Log("An error occured: %s\n", SDL_GetError());
+		return;
+	}
+	else if (!*filelist) {
+		SDL_Log("No file selected.\n");
+		return;
+	}
+
+	SDL_Log("Selected file: %s\n", *filelist);
+
+	AppState* as = (AppState*)userdata;
+	if (!as->supaNES->InsertROM(*filelist)) {
+		SDL_Log("Fail to load cartridge.\n");
+		return;
+	}
+
+	SDL_Log("Cartridge loaded.\n");
 }

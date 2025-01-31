@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.16)
-project(hello)
+project(SupaNES2)
 
 # set the output directory for built objects.
 # This make sure that the dynamic library goes into the build directory automatically.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(vendors/SDL EXCLUDE_FROM_ALL)
 
@@ -27,7 +29,7 @@ add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES})
 
 target_include_directories(${PROJECT_NAME}
 	PRIVATE
-	${PROJECT_SOUCE_DIR}/include
+	${PROJECT_SOURCE_DIR}/include
 )
 
 # Link to the actual SDL3 library.
