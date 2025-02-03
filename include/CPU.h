@@ -9,7 +9,7 @@
 #define DFlag 0x08	// Unused
 #define IFlag 0x04
 #define ZFlag 0x02
-#define CFlag 0x01	// Also the emulation flag
+#define CFlag 0x01
 
 class SupaNES;
 
@@ -42,7 +42,7 @@ class CPU {
 
 			// Processor Status
 			uint8_t P;
-		} registers;
+		} regs;
 
 		CPU(SupaNES* supaNes);
 		
@@ -50,7 +50,11 @@ class CPU {
 
 		void SetExcVectors(uint16_t vectors[16]);
 
+		void Debug();
+
 	private:
+		
+		bool emulationMode;
 
 		struct ExcVectors{
 			uint16_t COPVector;
@@ -62,4 +66,18 @@ class CPU {
 		} excVectors;
 
 		uint8_t ReadMemory(uint32_t address, bool isLong);
+
+		struct Instruction {
+			char name[4];
+			uint8_t (CPU::*execute)(void);
+			uint8_t (CPU::*addressMode)(void);
+			uint8_t cycles;
+		};
+		Instruction opTable[0x100];
+
+		// Addressing Modes
+		uint8_t IMP();
+
+		// OPCODES
+		uint8_t NOP();
 };
