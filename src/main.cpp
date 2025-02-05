@@ -102,8 +102,19 @@ void HandleEvents(AppState* appstate) {
 	SDL_Event event;
 	while (SDL_PollEvent(&event)) {
 		ImGui_ImplSDL3_ProcessEvent(&event);
+		if (event.type == SDL_EVENT_KEY_DOWN) {
+			switch(event.key.scancode) {
+				case SDL_SCANCODE_Q:
+					done = true;
+					break;
 
-		if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_QUIT) {
+				case SDL_SCANCODE_T:
+					const char* testFile = "/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/ADC/CPUADC.sfc";
+					appstate->supaNES->InsertROM(testFile);
+					break;
+			}
+		}
+		if (event.type == SDL_EVENT_QUIT) {
 			done = true;
 		}
 	}

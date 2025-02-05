@@ -2,14 +2,14 @@
 
 #include <stdint.h>
 
-#define NFlag 0x80
-#define VFlag 0x40
-#define MFlag 0x20
-#define XFlag 0x10	// Break flag in emulation mode only
-#define DFlag 0x08	// Unused
-#define IFlag 0x04
-#define ZFlag 0x02
-#define CFlag 0x01
+#define NFlag 0x80	// Negative flag
+#define VFlag 0x40	// Overflow flag
+#define MFlag 0x20	// Accumulator size flag (0=16bit, 1=8bit)
+#define XFlag 0x10	// Index size flag. Break flag in emulation mode only
+#define DFlag 0x08	// Unused. Decimal flag
+#define IFlag 0x04	// IRQ Disable flag
+#define ZFlag 0x02	// Zero flag
+#define CFlag 0x01	// Carry flag
 
 class SupaNES;
 
@@ -22,11 +22,16 @@ class CPU {
 			// Program Counter
 			uint16_t PC;
 
+			union HLReg {
+				uint16_t HL;
+				uint8_t L;
+			};
+
 			// Accumulator
-			uint16_t A;
+			HLReg A;
 
 			// Index
-			uint16_t X, Y;
+			HLReg X, Y;
 
 			// Stack Pointer
 			uint16_t SP;
@@ -49,6 +54,9 @@ class CPU {
 		int Clock();
 
 		void SetExcVectors(uint16_t vectors[16]);
+		
+		uint8_t ReadCPU(uint32_t address);
+		void WriteCPU(uint32_t address, uint8_t value);
 
 		void Debug();
 
@@ -65,19 +73,87 @@ class CPU {
 			uint16_t ResetVector;
 		} excVectors;
 
-		uint8_t ReadMemory(uint32_t address, bool isLong);
-
+		uint8_t ReadMemory(uint32_t address);
+		void WriteMemory(uint32_t address, uint8_t value);
+		
+		enum class AddMode {
+			Implied,
+			Immediate,
+			Absolute,
+			AbsoluteLong,
+			AbsoluteIndexedX,
+			DirectPage
+		};
+		
 		struct Instruction {
 			char name[4];
 			uint8_t (CPU::*execute)(void);
-			uint8_t (CPU::*addressMode)(void);
+			AddMode addMode;
 			uint8_t cycles;
 		};
 		Instruction opTable[0x100];
+		
+		uint8_t opcode;
+		uint16_t fetched;
+		uint32_t fetchAddress;
+
+		void SetFlag(uint8_t flag, bool state);
+		
+		void CheckNFlag8Bits(uint8_t value);
+		void CheckZFlag8Bits(uint8_t value);
+		void CheckNFlag16Bits(uint16_t value);
+		void CheckZFlag16Bits(uint16_t value);
+
+		uint8_t PullStack();
+		void PushStack(uint8_t value);
 
 		// Addressing Modes
-		uint8_t IMP();
+		uint8_t FetchValue(AddMode addMode, bool is16Bits);
+		uint8_t WriteValue(AddMode addMode, uint16_t value, bool is16Bits);
+
+		uint8_t IMP(bool is16Bits);
+		uint8_t IMM(bool is16Bits);
+		uint8_t ABS();
+		uint8_t ABSLong();
+		uint8_t ABSIndexX();
+		uint8_t DirectPage();
 
 		// OPCODES
+		uint8_t ADC();
+		uint8_t AND();
+		uint8_t BEQ();
+		uint8_t BIT();
+		uint8_t BNE();
+		uint8_t BPL();
+		uint8_t BRA();
+		uint8_t BRK();
+		uint8_t CLC();
+		uint8_t CMP();
+		uint8_t CPX();
+		uint8_t DEX();
+		uint8_t DEY();
+		uint8_t INX();
+		uint8_t JML();
+		uint8_t JSR();
+		uint8_t LDA();
+		uint8_t LDX();
+		uint8_t LDY();
+		uint8_t LSR();
 		uint8_t NOP();
+		uint8_t PHK();
+		uint8_t PHP();
+		uint8_t PLA();
+		uint8_t PLB();
+		uint8_t REP();
+		uint8_t RTS();
+		uint8_t SEI();
+		uint8_t SEP();
+		uint8_t STA();
+		uint8_t STX();
+		uint8_t STY();
+		uint8_t STZ();
+		uint8_t TCD();
+		uint8_t TXS();
+		uint8_t XCE();
+		uint8_t XXX();
 };
