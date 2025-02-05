@@ -86,7 +86,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x35] = {"AND", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x36] = {"ROL", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x37] = {"AND", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0x38] = {"SEC", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0x38] = {"SEC", &CPU::SEC, AddMode::Implied, 2};
 	opTable[0x39] = {"AND", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x3A] = {"DEC", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x3B] = {"TSC", &CPU::XXX, AddMode::Implied, 2};
@@ -134,21 +134,21 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x62] = {"PER", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x63] = {"ADC", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x64] = {"STZ", &CPU::XXX, AddMode::Implied, 3};
-	opTable[0x65] = {"ADC", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0x65] = {"ADC", &CPU::ADC, AddMode::DirectPage, 3};
 	opTable[0x66] = {"ROR", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0x67] = {"ADC", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x67] = {"ADC", &CPU::ADC, AddMode::DirectPageIndirectLong, 6};
 	opTable[0x68] = {"PLA", &CPU::PLA, AddMode::Implied, 4};
 	opTable[0x69] = {"ADC", &CPU::ADC, AddMode::Immediate, 2};
 	opTable[0x6A] = {"ROR", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x6B] = {"RTL", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x6C] = {"JMP", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0x6D] = {"ADC", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x6D] = {"ADC", &CPU::ADC, AddMode::Absolute, 4};
 	opTable[0x6E] = {"ROR", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0x6F] = {"ADC", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x6F] = {"ADC", &CPU::ADC, AddMode::AbsoluteLong, 5};
 
 	opTable[0x70] = {"BVS", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x71] = {"ADC", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0x72] = {"ADC", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x72] = {"ADC", &CPU::ADC, AddMode::DirectPageIndirect, 5};
 	opTable[0x73] = {"ADC", &CPU::XXX, AddMode::Implied, 7};
 	opTable[0x74] = {"STZ", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x75] = {"ADC", &CPU::XXX, AddMode::Implied, 4};
@@ -169,7 +169,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x83] = {"STA", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x84] = {"STY", &CPU::XXX, AddMode::Implied, 3};
 	opTable[0x85] = {"STA", &CPU::STA, AddMode::DirectPage, 3};
-	opTable[0x86] = {"STX", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0x86] = {"STX", &CPU::STX, AddMode::DirectPage, 3};
 	opTable[0x87] = {"STA", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x88] = {"DEY", &CPU::DEY, AddMode::Implied, 2};
 	opTable[0x89] = {"BIT", &CPU::XXX, AddMode::Implied, 2};
@@ -203,7 +203,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xA3] = {"LDA", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0xA4] = {"LDY", &CPU::XXX, AddMode::Implied, 3};
 	opTable[0xA5] = {"LDA", &CPU::LDA, AddMode::DirectPage, 3};
-	opTable[0xA6] = {"LDX", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0xA6] = {"LDX", &CPU::LDX, AddMode::DirectPage, 3};
 	opTable[0xA7] = {"LDA", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0xA8] = {"TAY", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0xA9] = {"LDA", &CPU::LDA, AddMode::Immediate, 2};
@@ -277,7 +277,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xE9] = {"SBC", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0xEA] = {"NOP", &CPU::NOP, AddMode::Implied, 2};
 	opTable[0xEB] = {"XBA", &CPU::XXX, AddMode::Implied, 3};
-	opTable[0xEC] = {"CPX", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0xEC] = {"CPX", &CPU::CPX, AddMode::Absolute, 4};
 	opTable[0xED] = {"SBC", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0xEE] = {"INC", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0xEF] = {"SBC", &CPU::XXX, AddMode::Implied, 5};
@@ -333,7 +333,7 @@ void CPU::SetExcVectors(uint16_t vectors[16]) {
 	regs.PC = excVectors.ResetVector;
 }
 
-uint8_t nmi = 0x42;
+uint8_t nmi = 0xC2;
 uint8_t CPU::ReadCPU(uint32_t address) {
 	uint8_t value = 0;
 
@@ -377,64 +377,85 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 	//TODO: CPU Writting
 }
 
+bool enableLog = true;
 FILE* logfile = nullptr;
-
+int logfileMaxSize = 22845;
+int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && false) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/ADC/TestADC.txt", "w");
-	printf("%02x%04x", regs.PB, regs.PC);
-	printf(" A:%04x", regs.A.HL);
-	printf(" X:%04x", regs.X.HL);
-	printf(" Y:%04x", regs.Y.HL);
-	printf(" S:%04x", regs.SP);
-	printf(" D:%04x", regs.DP);
-	printf(" DB:%02x ", regs.DB);
-	
-	if (regs.P & NFlag) {
-		printf("N");
-	} else {
-		printf("n");
-	}
-	if (regs.P & VFlag) {
-		printf("V");
-	} else {
-		printf("v");
-	}
-	if (emulationMode) {
-		printf("1B");
-	} else {
-		if (regs.P & MFlag) {
-			printf("M");
-		} else {
-			printf("m");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/ADC/TestADC.txt", "w");
+	if (logfile) {
+		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
+				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
+				(regs.P & NFlag) ? "N" : "n",
+				(regs.P & VFlag) ? "V" : "v",
+				emulationMode ? "1" : (regs.P & MFlag) ? "M" : "m",
+				emulationMode ? "B" : (regs.P & XFlag) ? "X" : "x",
+				(regs.P & DFlag) ? "D" : "d",
+				(regs.P & IFlag) ? "I" : "i",
+				(regs.P & ZFlag) ? "Z" : "z",
+				(regs.P & CFlag) ? "C" : "c",
+				opcode);
+		logfileLineCount++;
+		if (logfileLineCount >= logfileMaxSize) {
+			fclose(logfile);
+			assert(false);
 		}
-		if (regs.P & XFlag) {
-			printf("X");
+	} else {
+		printf("%02x%04x", regs.PB, regs.PC);
+		printf(" A:%04x", regs.A.HL);
+		printf(" X:%04x", regs.X.HL);
+		printf(" Y:%04x", regs.Y.HL);
+		printf(" S:%04x", regs.SP);
+		printf(" D:%04x", regs.DP);
+		printf(" DB:%02x ", regs.DB);
+		
+		if (regs.P & NFlag) {
+			printf("N");
 		} else {
-			printf("x");
+			printf("n");
 		}
-	}
-	if (regs.P & DFlag) {
-		printf("D");
-	} else {
-		printf("d");
-	}
-	if (regs.P & IFlag) {
-		printf("I");
-	} else {
-		printf("i");
-	}
-	if (regs.P & ZFlag) {
-		printf("Z");
-	} else {
-		printf("z");
-	}
-	if (regs.P & CFlag) {
-		printf("C");
-	} else {
-		printf("c");
-	}
+		if (regs.P & VFlag) {
+			printf("V");
+		} else {
+			printf("v");
+		}
+		if (emulationMode) {
+			printf("1B");
+		} else {
+			if (regs.P & MFlag) {
+				printf("M");
+			} else {
+				printf("m");
+			}
+			if (regs.P & XFlag) {
+				printf("X");
+			} else {
+				printf("x");
+			}
+		}
+		if (regs.P & DFlag) {
+			printf("D");
+		} else {
+			printf("d");
+		}
+		if (regs.P & IFlag) {
+			printf("I");
+		} else {
+			printf("i");
+		}
+		if (regs.P & ZFlag) {
+			printf("Z");
+		} else {
+			printf("z");
+		}
+		if (regs.P & CFlag) {
+			printf("C");
+		} else {
+			printf("c");
+		}
 
-	printf("\n");
+		printf("\n");
+	}
 }
 
 void CPU::SetFlag(uint8_t flag, bool state) {
@@ -450,7 +471,7 @@ void CPU::CheckNFlag8Bits(uint8_t value) {
 }
 
 void CPU::CheckZFlag8Bits(uint8_t value) {
-	SetFlag(ZFlag, value);
+	SetFlag(ZFlag, !value);
 }
 
 void CPU::CheckNFlag16Bits(uint16_t value) {
@@ -458,7 +479,7 @@ void CPU::CheckNFlag16Bits(uint16_t value) {
 }
 
 void CPU::CheckZFlag16Bits(uint16_t value) {
-	SetFlag(ZFlag, value);
+	SetFlag(ZFlag, !value);
 }
 
 uint8_t CPU::PullStack() {
@@ -481,39 +502,46 @@ uint8_t CPU::FetchValue(AddMode addMode, bool is16Bits) {
 			return IMM(is16Bits);
 			break;
 
-		case AddMode::Absolute: {
+		case AddMode::Absolute:
+		{
 			uint8_t extraCycles = ABS();
 			uint32_t fullAddress = (regs.DB << 16) | fetchAddress;
 			fetched = ReadMemory(fullAddress);
 			if (is16Bits) {
+				extraCycles++;
 				fetched |= ReadMemory(fullAddress + 1) << 8;
 			}
 			return extraCycles;
 			break;
 		}
 
-		case AddMode::AbsoluteLong: {
+		case AddMode::AbsoluteLong:
+		{
 			uint8_t extraCycles = ABSLong();
 			fetched = ReadMemory(fetchAddress);
 			if (is16Bits) {
+				extraCycles++;
 				fetched |= ReadMemory(fetchAddress + 1) << 8;
 			}
 			return extraCycles;
 			break;
 		}
 
-		case AddMode::AbsoluteIndexedX: {
+		case AddMode::AbsoluteIndexedX:
+		{
 			uint8_t extraCycles = ABSIndexX();
 			uint32_t fullAddress = (regs.DB << 16) | fetchAddress;
 			fetched = ReadMemory(fullAddress);
 			if (is16Bits) {
+				extraCycles++;
 				fetched |= ReadMemory(fullAddress + 1) << 8;
 			}
 			return extraCycles;
 			break;
 		}
 
-		case AddMode::DirectPage: {
+		case AddMode::DirectPage:
+		{
 			uint8_t extraCycles = DirectPage();
 			
 			fetched = ReadMemory(fetchAddress);
@@ -525,6 +553,28 @@ uint8_t CPU::FetchValue(AddMode addMode, bool is16Bits) {
 			break;
 		}
 
+		case AddMode::DirectPageIndirect:
+		{
+			uint8_t extraCycles = DirectPageIndirect();
+			fetched = ReadMemory(fetchAddress);
+			if (is16Bits) {
+				extraCycles++;
+				fetched |= ReadMemory((fetchAddress + 1) & 0xFFFFFF) << 8;
+			}
+			return extraCycles;
+		}
+		
+		case AddMode::DirectPageIndirectLong:
+		{
+			uint8_t extraCycles = DirectPageIndirectLong();
+			fetched = ReadMemory(fetchAddress);
+			if (is16Bits) {
+				extraCycles++;
+				fetched |= ReadMemory((fetchAddress + 1) & 0xFFFFFF) << 8;
+			}
+			return extraCycles;
+		}
+
 		default:
 			return 0;
 	}
@@ -533,7 +583,8 @@ uint8_t CPU::FetchValue(AddMode addMode, bool is16Bits) {
 
 uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 	switch (addMode) {
-		case AddMode::Implied: {
+		case AddMode::Implied:
+		{
 			if (is16Bits) {
 				regs.A.HL = value;
 			} else {
@@ -541,7 +592,8 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 			}
 			return 0;
 		}
-		case AddMode::Absolute: {
+		case AddMode::Absolute:
+		{
 			uint8_t extraCycles = ABS();
 			uint32_t fullAddress = (regs.DB << 16) | fetchAddress;
 			WriteMemory(fullAddress, value);
@@ -553,7 +605,8 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 			break;
 		}
 
-		case AddMode::AbsoluteLong: {
+		case AddMode::AbsoluteLong:
+		{
 			uint8_t extraCycles = ABSLong();
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
@@ -564,12 +617,36 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 			break;
 		}
 
-		case AddMode::DirectPage: {
+		case AddMode::DirectPage:
+		{
 			uint8_t extraCycles = DirectPage();
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
 				extraCycles++;
 				WriteMemory((fetchAddress + 1) & 0xFFFF, value >> 8);
+			}
+			return extraCycles;
+			break;
+		}
+		
+		case AddMode::DirectPageIndirect:
+		{
+			uint8_t extraCycles = DirectPageIndirect();
+			WriteMemory(fetchAddress, value);
+			if (is16Bits) {
+				extraCycles++;
+				WriteMemory((fetchAddress + 1) & 0xFFFFFF, value >>8);
+			}
+			return extraCycles;
+			break;
+		}
+		case AddMode::DirectPageIndirectLong:
+		{
+			uint8_t extraCycles = DirectPageIndirectLong();
+			WriteMemory(fetchAddress, value);
+			if (is16Bits) {
+				extraCycles++;
+				WriteMemory((fetchAddress + 1) & 0xFFFFFF, value >> 8);
 			}
 			return extraCycles;
 			break;
@@ -594,6 +671,7 @@ uint8_t CPU::IMM(bool is16Bits) {
 	
 	if (is16Bits) {
 		fetched |= ReadMemory((regs.PB << 16) | regs.PC++) << 8;
+		return 1;
 	}
 
 	return 0;
@@ -634,35 +712,109 @@ uint8_t CPU::DirectPage() {
 	return (regs.DP & 0xFF) ? 1 : 0;
 }
 
+uint8_t CPU::DirectPageIndirect() {
+	uint8_t directPageOffset = ReadMemory((regs.PB << 16) | regs.PC++);
+
+	uint16_t indirectAddress = regs.DP + directPageOffset;
+
+	fetchAddress = ReadMemory(indirectAddress);
+	fetchAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+	return (regs.DP & 0xFF) ? 1 : 0;
+}
+
+uint8_t CPU::DirectPageIndirectLong() {
+	uint8_t directPageOffset = ReadMemory((regs.PB << 16) | regs.PC++);
+
+	uint16_t indirectAddress = regs.DP + directPageOffset;
+
+	fetchAddress = ReadMemory(indirectAddress);
+	fetchAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+	fetchAddress |= ReadMemory((indirectAddress + 2) & 0xFFFF) << 16;
+	return (regs.DP & 0xFF) ? 1 : 0;
+}
+
 // Opcodes
 
 uint8_t CPU::ADC() {
 	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & MFlag));
 	
-	assert(!(regs.P & DFlag));	// No Decimal Mode
-
 	uint8_t carry = (regs.P & CFlag) ? 1 : 0;
 	if (regs.P & MFlag) {
-		uint8_t result = regs.A.L + fetched + carry;
-		CheckNFlag8Bits(result);
-		CheckZFlag8Bits(result);
+		// Decimal Mode
+		if (regs.P & DFlag) {
+			uint16_t result = (regs.A.L & 0x0F) + (fetched & 0x0F) + carry;
+			if (result > 0x09) {
+				result += 0x06;
+			}
+			carry = (result > 0x0F) ? 1 : 0;
 
-		SetFlag(CFlag, result < regs.A.L);
+			result = (regs.A.L & 0xF0) + (fetched & 0xF0) + (carry << 4) + (result & 0x0F);
+			SetFlag(VFlag, (int8_t)result < -128 || result > 127);
+			if (result > 0x9F) {
+				result += 0x60;
+			}
 
-		SetFlag(VFlag, (int8_t)result < -128 || result > 127);
+			CheckNFlag8Bits(result);
+			CheckZFlag8Bits(result);
+			SetFlag(CFlag, (uint8_t)result < regs.A.L);
 
-		regs.A.L = result;
+			regs.A.L = result;
+
+		} else {
+			uint8_t result = regs.A.L + fetched + carry;
+			CheckNFlag8Bits(result);
+			CheckZFlag8Bits(result);
+
+			SetFlag(CFlag, result < regs.A.L);
+
+			SetFlag(VFlag, (int8_t)result < -128 || result > 127);
+
+			regs.A.L = result;
+		}
 	} else {
-		extraCycles++;
-		uint16_t result = regs.A.HL + fetched + carry;
-		CheckNFlag16Bits(result);
-		CheckZFlag16Bits(result);
+		// Decimal Mode
+		if (regs.P & DFlag) {
+			uint32_t result = (regs.A.HL & 0x000F) + (fetched & 0x000F) + carry;
+			if (result > 0x0009) {
+				result += 0x0006;
+			}
+			carry = (result > 0x000F) ? 1 : 0;
 
-		SetFlag(CFlag, result < regs.A.HL);
+			result = (regs.A.HL & 0x00F0) + (fetched & 0x00F0) + (carry << 4) + (result & 0x000F);
+			if (result > 0x009F) {
+				result += 0x0060;
+			}
+			carry = (result > 0x00FF) ? 1 : 0;
 
-		SetFlag(VFlag, (int16_t)result < -32768 || result > 32767);
+			result = (regs.A.HL & 0x0F00) + (fetched & 0x0F00) + (carry << 8) + (result & 0x00FF);
+			if (result > 0x09FF) {
+				result += 0x0600;
+			}
+			carry = (result > 0x0FFF) ? 1 : 0;
 
-		regs.A.HL = result;
+			result = (regs.A.HL & 0xF000) + (fetched & 0xF000) + (carry << 12) + (result & 0x0FFF);
+			SetFlag(VFlag, (int16_t)result < -32768 || result > 32767);
+			if (result > 0x9FFF) {
+				result += 0x6000;
+			}
+
+			CheckNFlag16Bits(result);
+			CheckZFlag16Bits(result);
+			SetFlag(CFlag, (uint16_t)result < regs.A.HL);
+
+			regs.A.HL = result;
+
+		} else {
+			uint16_t result = regs.A.HL + fetched + carry;
+			CheckNFlag16Bits(result);
+			CheckZFlag16Bits(result);
+
+			SetFlag(CFlag, result < regs.A.HL);
+
+			SetFlag(VFlag, (int16_t)result < -32768 || result > 32767);
+
+			regs.A.HL = result;
+		}
 	}
 
 	return extraCycles;
@@ -676,7 +828,6 @@ uint8_t CPU::AND() {
 		CheckNFlag8Bits(regs.A.L);
 		CheckZFlag8Bits(regs.A.L);
 	} else {
-		extraCycles++;
 		regs.A.HL = regs.A.HL & fetched;
 		CheckNFlag16Bits(regs.A.HL);
 		CheckZFlag16Bits(regs.A.HL);
@@ -718,7 +869,6 @@ uint8_t CPU::BIT() {
 		CheckZFlag8Bits(result);
 	} else {
 		CheckZFlag16Bits(result);
-		extraCycles++;
 	}
 	return extraCycles;
 }
@@ -804,7 +954,6 @@ uint8_t CPU::CPX() {
 	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & XFlag));
 
 	if (!(regs.P & XFlag)) {
-		extraCycles++;
 		CheckNFlag16Bits(regs.X.HL - fetched);
 		SetFlag(ZFlag, regs.X.HL == fetched);
 		
@@ -889,7 +1038,6 @@ uint8_t CPU::JSR() {
 
 uint8_t CPU::LDA() {
 	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & MFlag));
-	extraCycles += (regs.P & MFlag) ? 0 : 1;
 
 	if (regs.P & MFlag) {
 		regs.A.L = fetched;
@@ -905,7 +1053,6 @@ uint8_t CPU::LDA() {
 
 uint8_t CPU::LDX() {
 	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & XFlag));
-	extraCycles += (regs.P & XFlag) ? 0 : 1;
 	
 	if (regs.P & XFlag) {
 		regs.X.L = fetched;
@@ -921,7 +1068,6 @@ uint8_t CPU::LDX() {
 
 uint8_t CPU::LDY() {
 	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & XFlag));
-	extraCycles += (regs.P & XFlag) ? 0 : 1;
 	
 	if (regs.P & XFlag) {
 		regs.Y.L = fetched;
@@ -941,7 +1087,7 @@ uint8_t CPU::LSR() {
 	SetFlag(NFlag, false);
 	SetFlag(CFlag, fetched & 0x01);
 	fetched = fetched >> 1;
-	SetFlag(ZFlag, fetched);
+	SetFlag(ZFlag, !fetched);
 
 	extraCycles += WriteValue(opTable[opcode].addMode, fetched, !(regs.P & MFlag));
 
@@ -993,6 +1139,11 @@ uint8_t CPU::RTS() {
 	regs.PC = PullStack();
 	regs.PC |= PullStack() << 8;
 
+	return 0;
+}
+
+uint8_t CPU::SEC() {
+	SetFlag(CFlag, true);
 	return 0;
 }
 
@@ -1051,7 +1202,6 @@ uint8_t CPU::STY() {
 
 uint8_t CPU::STZ() {
 	uint8_t extraCycles = WriteValue(opTable[opcode].addMode, 0, !(regs.P & MFlag));
-	
 	return extraCycles;
 }
 

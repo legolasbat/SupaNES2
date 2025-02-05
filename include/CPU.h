@@ -82,7 +82,9 @@ class CPU {
 			Absolute,
 			AbsoluteLong,
 			AbsoluteIndexedX,
-			DirectPage
+			DirectPage,
+			DirectPageIndirect,
+			DirectPageIndirectLong
 		};
 		
 		struct Instruction {
@@ -117,6 +119,8 @@ class CPU {
 		uint8_t ABSLong();
 		uint8_t ABSIndexX();
 		uint8_t DirectPage();
+		uint8_t DirectPageIndirect();
+		uint8_t DirectPageIndirectLong();
 
 		// OPCODES
 		uint8_t ADC();
@@ -146,6 +150,7 @@ class CPU {
 		uint8_t PLB();
 		uint8_t REP();
 		uint8_t RTS();
+		uint8_t SEC();
 		uint8_t SEI();
 		uint8_t SEP();
 		uint8_t STA();
