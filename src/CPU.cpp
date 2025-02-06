@@ -1115,9 +1115,15 @@ uint8_t CPU::AND() {
 uint8_t CPU::ASL() {
 	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & MFlag));
 	
-	SetFlag(NFlag, false);
-	SetFlag(CFlag, fetched & 0x01);
-	fetched = fetched >> 1;
+	if (regs.P & MFlag) {
+		SetFlag(CFlag, fetched & 0x80);
+		fetched = fetched << 1;
+		SetFlag(NFlag, fetched & 0x80);
+	} else {
+		SetFlag(CFlag, fetched & 0x8000);
+		fetched = fetched << 1;
+		SetFlag(NFlag, fetched & 0x8000);
+	}
 	SetFlag(ZFlag, !fetched);
 
 	extraCycles += WriteValue(opTable[opcode].addMode, fetched, !(regs.P & MFlag));
