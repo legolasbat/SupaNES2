@@ -33,7 +33,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x03] = {"ORA", &CPU::ORA, AddMode::StackRelative, 4};
 	opTable[0x04] = {"TSB", &CPU::XXX, AddMode::Implied, 5};
 	opTable[0x05] = {"ORA", &CPU::XXX, AddMode::Implied, 3};
-	opTable[0x06] = {"ASL", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x06] = {"ASL", &CPU::ASL, AddMode::DirectPage, 5};
 	opTable[0x07] = {"ORA", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x08] = {"PHP", &CPU::PHP, AddMode::Implied, 3};
 	opTable[0x09] = {"ORA", &CPU::XXX, AddMode::Implied, 2};
@@ -41,7 +41,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x0B] = {"PHD", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x0C] = {"TSB", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x0D] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0x0E] = {"ASL", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x0E] = {"ASL", &CPU::ASL, AddMode::Absolute, 6};
 	opTable[0x0F] = {"ORA", &CPU::XXX, AddMode::Implied, 5};
 
 	opTable[0x10] = {"BPL", &CPU::BPL, AddMode::Implied, 2};
@@ -50,7 +50,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x13] = {"ORA", &CPU::XXX, AddMode::Implied, 7};
 	opTable[0x14] = {"TRB", &CPU::XXX, AddMode::Implied, 5};
 	opTable[0x15] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0x16] = {"ASL", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x16] = {"ASL", &CPU::ASL, AddMode::DirectPageIndexedX, 6};
 	opTable[0x17] = {"ORA", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x18] = {"CLC", &CPU::CLC, AddMode::Implied, 2};
 	opTable[0x19] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
@@ -58,7 +58,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x1B] = {"TCS", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x1C] = {"TRB", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x1D] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0x1E] = {"ASL", &CPU::XXX, AddMode::Implied, 7};
+	opTable[0x1E] = {"ASL", &CPU::ASL, AddMode::AbsoluteIndexedX, 7};
 	opTable[0x1F] = {"ORA", &CPU::XXX, AddMode::Implied, 5};
 
 	opTable[0x20] = {"JSR", &CPU::JSR, AddMode::Absolute, 6};
@@ -664,7 +664,7 @@ uint8_t CPU::FetchValue(AddMode addMode, bool is16Bits) {
 }
 
 
-uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
+uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits, bool read) {
 	switch (addMode) {
 		case AddMode::Implied:
 		{
@@ -678,7 +678,10 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 
 		case AddMode::Absolute:
 		{
-			uint8_t extraCycles = ABS();
+			uint8_t extraCycles = 0;
+			if (!read) {
+				extraCycles = ABS();
+			}
 			uint32_t fullAddress = (regs.DB << 16) | fetchAddress;
 			WriteMemory(fullAddress, value);
 			if (is16Bits) {
@@ -690,7 +693,10 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 
 		case AddMode::AbsoluteLong:
 		{
-			uint8_t extraCycles = ABSLong();
+			uint8_t extraCycles = 0;
+			if (!read) {
+				extraCycles = ABSLong();
+			}
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
 				extraCycles++;
@@ -701,7 +707,10 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 
 		case AddMode::AbsoluteLongIndexedX:
 		{
-			uint8_t extraCycles = ABSLongIndexX();
+			uint8_t extraCycles = 0;
+			if (!read) {
+				extraCycles = ABSLongIndexX();
+			}
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
 				extraCycles++;
@@ -712,7 +721,10 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 
 		case AddMode::AbsoluteIndexedX:
 		{
-			uint8_t extraCycles = ABSIndexX();
+			uint8_t extraCycles = 0;
+			if (!read) {
+				extraCycles = ABSIndexX();
+			}
 			uint32_t fullAddress = (regs.DB << 16) | fetchAddress;
 			WriteMemory(fullAddress, value);
 			if (is16Bits) {
@@ -724,7 +736,10 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 
 		case AddMode::AbsoluteIndexedY:
 		{
-			uint8_t extraCycles = ABSIndexY();
+			uint8_t extraCycles = 0;
+			if (!read) {
+				extraCycles = ABSIndexY();
+			}
 			uint32_t fullAddress = (regs.DB << 16) | fetchAddress;
 			WriteMemory(fullAddress, value);
 			if (is16Bits) {
@@ -736,7 +751,10 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 
 		case AddMode::DirectPage:
 		{
-			uint8_t extraCycles = DirectPage();
+			uint8_t extraCycles = 0;
+			if (!read) {
+				extraCycles = DirectPage();
+			}
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
 				extraCycles++;
@@ -747,8 +765,10 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 
 		case AddMode::DirectPageIndexedX:
 		{
-			uint8_t extraCycles = DirectPage();
-
+			uint8_t extraCycles = 0;
+			if (!read) {
+				extraCycles = DirectPage();
+			}
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
 				extraCycles++;
@@ -759,7 +779,10 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 		
 		case AddMode::DirectPageIndirect:
 		{
-			uint8_t extraCycles = DirectPageIndirect();
+			uint8_t extraCycles = 0;
+			if (!read) {
+				extraCycles = DirectPageIndirect();
+			}
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
 				extraCycles++;
@@ -770,7 +793,10 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 
 		case AddMode::DirectPageIndirectX:
 		{
-			uint8_t extraCycles = DirectPageIndirectX();
+			uint8_t extraCycles = 0;
+			if (!read) {
+				extraCycles = DirectPageIndirectX();
+			}
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
 				extraCycles++;
@@ -781,7 +807,10 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 
 		case AddMode::DirectPageIndirectIndexedY:
 		{
-			uint8_t extraCycles = DirectPageIndirectIndexedY();
+			uint8_t extraCycles = 0;
+			if (!read) {
+				extraCycles = DirectPageIndirectIndexedY();
+			}
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
 				extraCycles++;
@@ -792,7 +821,10 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 
 		case AddMode::DirectPageIndirectLong:
 		{
-			uint8_t extraCycles = DirectPageIndirectLong();
+			uint8_t extraCycles = 0;
+			if (!read) {
+				extraCycles = DirectPageIndirectLong();
+			}
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
 				extraCycles++;
@@ -803,7 +835,10 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 
 		case AddMode::DirectPageIndirectLongIndexedY:
 		{
-			uint8_t extraCycles = DirectPageIndirectLongIndexedY();
+			uint8_t extraCycles = 0;
+			if (!read) {
+				extraCycles = DirectPageIndirectLongIndexedY();
+			}
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
 				extraCycles++;
@@ -814,7 +849,10 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 
 		case AddMode::StackRelative:
 		{
-			uint8_t extraCycles = StackRel();
+			uint8_t extraCycles = 0;
+			if (!read) {
+				extraCycles = StackRel();
+			}
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
 				extraCycles++;
@@ -825,7 +863,10 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 
 		case AddMode::StackRelativeIndirectIndexedY:
 		{
-			uint8_t extraCycles = StackRelativeIndirectIndexedY();
+			uint8_t extraCycles = 0;
+			if (!read) {
+				extraCycles = StackRelativeIndirectIndexedY();
+			}
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
 				WriteMemory((fetchAddress + 1) & 0xFFFFFF, value >> 8);
@@ -1119,14 +1160,15 @@ uint8_t CPU::ASL() {
 		SetFlag(CFlag, fetched & 0x80);
 		fetched = fetched << 1;
 		SetFlag(NFlag, fetched & 0x80);
+		SetFlag(ZFlag, !(fetched & 0xFF));
 	} else {
 		SetFlag(CFlag, fetched & 0x8000);
 		fetched = fetched << 1;
 		SetFlag(NFlag, fetched & 0x8000);
+		SetFlag(ZFlag, !(fetched & 0xFFFF));
 	}
-	SetFlag(ZFlag, !fetched);
 
-	extraCycles += WriteValue(opTable[opcode].addMode, fetched, !(regs.P & MFlag));
+	extraCycles += WriteValue(opTable[opcode].addMode, fetched, !(regs.P & MFlag), true);
 
 	return extraCycles;}
 
@@ -1387,9 +1429,13 @@ uint8_t CPU::LSR() {
 	SetFlag(NFlag, false);
 	SetFlag(CFlag, fetched & 0x01);
 	fetched = fetched >> 1;
-	SetFlag(ZFlag, !fetched);
+	if (regs.P & MFlag) {
+		SetFlag(ZFlag, !(fetched & 0xFF));
+	} else {
+		SetFlag(ZFlag, !(fetched & 0xFFFF));
+	}
 
-	extraCycles += WriteValue(opTable[opcode].addMode, fetched, !(regs.P & MFlag));
+	extraCycles += WriteValue(opTable[opcode].addMode, fetched, !(regs.P & MFlag), true);
 
 	return extraCycles;
 }
