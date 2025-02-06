@@ -518,7 +518,7 @@ uint8_t CPU::FetchValue(AddMode addMode, bool is16Bits) {
 			fetched = ReadMemory(fetchAddress);
 			if (is16Bits) {
 				extraCycles++;
-				fetched |= ReadMemory(fetchAddress + 1) << 8;
+				fetched |= ReadMemory((fetchAddress + 1) & 0xFFFFFF) << 8;
 			}
 			return extraCycles;
 		}
@@ -694,7 +694,42 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
 				extraCycles++;
-				WriteMemory(fetchAddress, value >> 8);
+				WriteMemory((fetchAddress + 1) & 0xFFFFFF, value >> 8);
+			}
+			return extraCycles;
+		}
+
+		case AddMode::AbsoluteLongIndexedX:
+		{
+			uint8_t extraCycles = ABSLongIndexX();
+			WriteMemory(fetchAddress, value);
+			if (is16Bits) {
+				extraCycles++;
+				WriteMemory((fetchAddress + 1) & 0xFFFFFF, value >> 8);
+			}
+			return extraCycles;
+		}
+
+		case AddMode::AbsoluteIndexedX:
+		{
+			uint8_t extraCycles = ABSIndexX();
+			uint32_t fullAddress = (regs.DB << 16) | fetchAddress;
+			WriteMemory(fullAddress, value);
+			if (is16Bits) {
+				extraCycles++;
+				WriteMemory((fullAddress + 1) & 0xFFFFFF, value >> 8);
+			}
+			return extraCycles;
+		}
+
+		case AddMode::AbsoluteIndexedY:
+		{
+			uint8_t extraCycles = ABSIndexY();
+			uint32_t fullAddress = (regs.DB << 16) | fetchAddress;
+			WriteMemory(fullAddress, value);
+			if (is16Bits) {
+				extraCycles++;
+				WriteMemory((fullAddress + 1) & 0xFFFFFF, value >> 8);
 			}
 			return extraCycles;
 		}
@@ -709,6 +744,18 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 			}
 			return extraCycles;
 		}
+
+		case AddMode::DirectPageIndexedX:
+		{
+			uint8_t extraCycles = DirectPage();
+
+			WriteMemory(fetchAddress, value);
+			if (is16Bits) {
+				extraCycles++;
+				WriteMemory((fetchAddress + 1) & 0xFFFF, value >> 8);
+			}
+			return extraCycles;
+		}
 		
 		case AddMode::DirectPageIndirect:
 		{
@@ -716,7 +763,29 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
 				extraCycles++;
-				WriteMemory((fetchAddress + 1) & 0xFFFFFF, value >>8);
+				WriteMemory((fetchAddress + 1) & 0xFFFFFF, value >> 8);
+			}
+			return extraCycles;
+		}
+
+		case AddMode::DirectPageIndirectX:
+		{
+			uint8_t extraCycles = DirectPageIndirectX();
+			WriteMemory(fetchAddress, value);
+			if (is16Bits) {
+				extraCycles++;
+				WriteMemory((fetchAddress + 1) & 0xFFFFFF, value >> 8);
+			}
+			return extraCycles;
+		}
+
+		case AddMode::DirectPageIndirectIndexedY:
+		{
+			uint8_t extraCycles = DirectPageIndirectIndexedY();
+			WriteMemory(fetchAddress, value);
+			if (is16Bits) {
+				extraCycles++;
+				WriteMemory((fetchAddress + 1) & 0xFFFFFF, value >> 8);
 			}
 			return extraCycles;
 		}
@@ -727,6 +796,38 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
 				extraCycles++;
+				WriteMemory((fetchAddress + 1) & 0xFFFFFF, value >> 8);
+			}
+			return extraCycles;
+		}
+
+		case AddMode::DirectPageIndirectLongIndexedY:
+		{
+			uint8_t extraCycles = DirectPageIndirectLongIndexedY();
+			WriteMemory(fetchAddress, value);
+			if (is16Bits) {
+				extraCycles++;
+				WriteMemory((fetchAddress + 1) & 0xFFFFFF, value >> 8);
+			}
+			return extraCycles;
+		}
+
+		case AddMode::StackRelative:
+		{
+			uint8_t extraCycles = StackRel();
+			WriteMemory(fetchAddress, value);
+			if (is16Bits) {
+				extraCycles++;
+				WriteMemory((fetchAddress + 1) & 0xFFFF, value >> 8);
+			}
+			return extraCycles;
+		}
+
+		case AddMode::StackRelativeIndirectIndexedY:
+		{
+			uint8_t extraCycles = StackRelativeIndirectIndexedY();
+			WriteMemory(fetchAddress, value);
+			if (is16Bits) {
 				WriteMemory((fetchAddress + 1) & 0xFFFFFF, value >> 8);
 			}
 			return extraCycles;
