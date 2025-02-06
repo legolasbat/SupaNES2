@@ -62,38 +62,38 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x1F] = {"ORA", &CPU::XXX, AddMode::Implied, 5};
 
 	opTable[0x20] = {"JSR", &CPU::JSR, AddMode::Absolute, 6};
-	opTable[0x21] = {"AND", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x21] = {"AND", &CPU::AND, AddMode::DirectPageIndirectX, 6};
 	opTable[0x22] = {"JSL", &CPU::XXX, AddMode::Implied, 8};
-	opTable[0x23] = {"AND", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x23] = {"AND", &CPU::AND, AddMode::StackRelative, 4};
 	opTable[0x24] = {"BIT", &CPU::BIT, AddMode::DirectPage, 3};
-	opTable[0x25] = {"AND", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0x25] = {"AND", &CPU::AND, AddMode::DirectPage, 3};
 	opTable[0x26] = {"ROL", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0x27] = {"AND", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x27] = {"AND", &CPU::AND, AddMode::DirectPageIndirectLong, 6};
 	opTable[0x28] = {"PLP", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x29] = {"AND", &CPU::AND, AddMode::Immediate, 2};
 	opTable[0x2A] = {"ROL", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x2B] = {"PLD", &CPU::XXX, AddMode::Implied, 5};
 	opTable[0x2C] = {"BIT", &CPU::BIT, AddMode::Absolute, 4};
-	opTable[0x2D] = {"AND", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x2D] = {"AND", &CPU::AND, AddMode::Absolute, 4};
 	opTable[0x2E] = {"ROL", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0x2F] = {"AND", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x2F] = {"AND", &CPU::AND, AddMode::AbsoluteLong, 5};
 
 	opTable[0x30] = {"BMI", &CPU::XXX, AddMode::Implied, 2};
-	opTable[0x31] = {"AND", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0x32] = {"AND", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0x33] = {"AND", &CPU::XXX, AddMode::Implied, 7};
+	opTable[0x31] = {"AND", &CPU::AND, AddMode::DirectPageIndirectIndexedY, 5};
+	opTable[0x32] = {"AND", &CPU::AND, AddMode::DirectPageIndirect, 5};
+	opTable[0x33] = {"AND", &CPU::AND, AddMode::StackRelativeIndirectIndexedY, 7};
 	opTable[0x34] = {"BIT", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0x35] = {"AND", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x35] = {"AND", &CPU::AND, AddMode::DirectPageIndexedX, 4};
 	opTable[0x36] = {"ROL", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0x37] = {"AND", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x37] = {"AND", &CPU::AND, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0x38] = {"SEC", &CPU::SEC, AddMode::Implied, 2};
-	opTable[0x39] = {"AND", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x39] = {"AND", &CPU::AND, AddMode::AbsoluteIndexedY, 4};
 	opTable[0x3A] = {"DEC", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x3B] = {"TSC", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x3C] = {"BIT", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0x3D] = {"AND", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x3D] = {"AND", &CPU::AND, AddMode::AbsoluteIndexedX, 4};
 	opTable[0x3E] = {"ROL", &CPU::XXX, AddMode::Implied, 7};
-	opTable[0x3F] = {"AND", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x3F] = {"AND", &CPU::AND, AddMode::AbsoluteLongIndexedX, 5};
 
 	opTable[0x40] = {"RTI", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x41] = {"EOR", &CPU::XXX, AddMode::Implied, 6};
@@ -222,7 +222,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xB5] = {"LDA", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0xB6] = {"LDX", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0xB7] = {"LDA", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0xB8] = {"CLV", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0xB8] = {"CLV", &CPU::CLV, AddMode::Implied, 2};
 	opTable[0xB9] = {"LDA", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0xBA] = {"TSX", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0xBB] = {"TYX", &CPU::XXX, AddMode::Implied, 2};
@@ -1104,6 +1104,11 @@ uint8_t CPU::BRK() {
 
 uint8_t CPU::CLC() {
 	SetFlag(CFlag, false);
+	return 0;
+}
+
+uint8_t CPU::CLV() {
+	SetFlag(VFlag, false);
 	return 0;
 }
 

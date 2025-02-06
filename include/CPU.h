@@ -148,6 +148,7 @@ class CPU {
 		uint8_t BRA();
 		uint8_t BRK();
 		uint8_t CLC();
+		uint8_t CLV();
 		uint8_t CMP();
 		uint8_t CPX();
 		uint8_t DEX();
