@@ -81,10 +81,18 @@ class CPU {
 			Immediate,
 			Absolute,
 			AbsoluteLong,
+			AbsoluteLongIndexedX,
 			AbsoluteIndexedX,
+			AbsoluteIndexedY,
 			DirectPage,
+			DirectPageIndexedX,
 			DirectPageIndirect,
-			DirectPageIndirectLong
+			DirectPageIndirectX,
+			DirectPageIndirectIndexedY,
+			DirectPageIndirectLong,
+			DirectPageIndirectLongIndexedY,
+			StackRelative,
+			StackRelativeIndirectIndexedY
 		};
 		
 		struct Instruction {
@@ -117,10 +125,18 @@ class CPU {
 		uint8_t IMM(bool is16Bits);
 		uint8_t ABS();
 		uint8_t ABSLong();
+		uint8_t ABSLongIndexX();
 		uint8_t ABSIndexX();
+		uint8_t ABSIndexY();
 		uint8_t DirectPage();
+		uint8_t DirectPageIndexedX();
 		uint8_t DirectPageIndirect();
+		uint8_t DirectPageIndirectX();
+		uint8_t DirectPageIndirectIndexedY();
 		uint8_t DirectPageIndirectLong();
+		uint8_t DirectPageIndirectLongIndexedY();
+		uint8_t StackRel();
+		uint8_t StackRelativeIndirectIndexedY();
 
 		// OPCODES
 		uint8_t ADC();
@@ -144,8 +160,11 @@ class CPU {
 		uint8_t LDY();
 		uint8_t LSR();
 		uint8_t NOP();
+		uint8_t ORA();
+		uint8_t PHA();
 		uint8_t PHK();
 		uint8_t PHP();
+		uint8_t PHX();
 		uint8_t PLA();
 		uint8_t PLB();
 		uint8_t REP();

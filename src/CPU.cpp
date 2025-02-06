@@ -30,7 +30,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x00] = {"BRK", &CPU::BRK, AddMode::Implied, 7};
 	opTable[0x01] = {"ORA", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x02] = {"COP", &CPU::XXX, AddMode::Implied, 7};
-	opTable[0x03] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x03] = {"ORA", &CPU::ORA, AddMode::StackRelative, 4};
 	opTable[0x04] = {"TSB", &CPU::XXX, AddMode::Implied, 5};
 	opTable[0x05] = {"ORA", &CPU::XXX, AddMode::Implied, 3};
 	opTable[0x06] = {"ASL", &CPU::XXX, AddMode::Implied, 5};
@@ -103,7 +103,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x45] = {"EOR", &CPU::XXX, AddMode::Implied, 3};
 	opTable[0x46] = {"LSR", &CPU::XXX, AddMode::Implied, 5};
 	opTable[0x47] = {"EOR", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0x48] = {"PHA", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0x48] = {"PHA", &CPU::PHA, AddMode::Implied, 3};
 	opTable[0x49] = {"EOR", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x4A] = {"LSR", &CPU::LSR, AddMode::Implied, 2};
 	opTable[0x4B] = {"PHK", &CPU::PHK, AddMode::Implied, 3};
@@ -130,9 +130,9 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x5F] = {"EOR", &CPU::XXX, AddMode::Implied, 5};
 
 	opTable[0x60] = {"RTS", &CPU::RTS, AddMode::Implied, 6};
-	opTable[0x61] = {"ADC", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x61] = {"ADC", &CPU::ADC, AddMode::DirectPageIndirectX, 6};
 	opTable[0x62] = {"PER", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0x63] = {"ADC", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x63] = {"ADC", &CPU::ADC, AddMode::StackRelative, 4};
 	opTable[0x64] = {"STZ", &CPU::XXX, AddMode::Implied, 3};
 	opTable[0x65] = {"ADC", &CPU::ADC, AddMode::DirectPage, 3};
 	opTable[0x66] = {"ROR", &CPU::XXX, AddMode::Implied, 5};
@@ -147,21 +147,21 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x6F] = {"ADC", &CPU::ADC, AddMode::AbsoluteLong, 5};
 
 	opTable[0x70] = {"BVS", &CPU::XXX, AddMode::Implied, 2};
-	opTable[0x71] = {"ADC", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x71] = {"ADC", &CPU::ADC, AddMode::DirectPageIndirectIndexedY, 5};
 	opTable[0x72] = {"ADC", &CPU::ADC, AddMode::DirectPageIndirect, 5};
-	opTable[0x73] = {"ADC", &CPU::XXX, AddMode::Implied, 7};
+	opTable[0x73] = {"ADC", &CPU::ADC, AddMode::StackRelativeIndirectIndexedY, 7};
 	opTable[0x74] = {"STZ", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0x75] = {"ADC", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x75] = {"ADC", &CPU::ADC, AddMode::DirectPageIndexedX, 4};
 	opTable[0x76] = {"ROR", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0x77] = {"ADC", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x77] = {"ADC", &CPU::ADC, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0x78] = {"SEI", &CPU::SEI, AddMode::Implied, 2};
-	opTable[0x79] = {"ADC", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x79] = {"ADC", &CPU::ADC, AddMode::AbsoluteIndexedY, 4};
 	opTable[0x7A] = {"PLY", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x7B] = {"TDC", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x7C] = {"JMP", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0x7D] = {"ADC", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x7D] = {"ADC", &CPU::ADC, AddMode::AbsoluteIndexedX, 4};
 	opTable[0x7E] = {"ROR", &CPU::XXX, AddMode::Implied, 7};
-	opTable[0x7F] = {"ADC", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x7F] = {"ADC", &CPU::ADC, AddMode::AbsoluteLongIndexedX, 5};
 
 	opTable[0x80] = {"BRA", &CPU::BRA, AddMode::Implied, 3};
 	opTable[0x81] = {"STA", &CPU::XXX, AddMode::Implied, 6};
@@ -258,7 +258,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xD7] = {"CMP", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0xD8] = {"CLD", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0xD9] = {"CMP", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0xDA] = {"PHX", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0xDA] = {"PHX", &CPU::PHX, AddMode::Implied, 3};
 	opTable[0xDB] = {"STP", &CPU::XXX, AddMode::Implied, 3};
 	opTable[0xDC] = {"JML", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0xDD] = {"CMP", &CPU::XXX, AddMode::Implied, 4};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 22845;
+int logfileMaxSize = 13447;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/ADC/TestADC.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/AND/TestAND.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -496,11 +496,9 @@ uint8_t CPU::FetchValue(AddMode addMode, bool is16Bits) {
 	switch (addMode) {
 		case AddMode::Implied:
 			return IMP(is16Bits);
-			break;
 
 		case AddMode::Immediate:
 			return IMM(is16Bits);
-			break;
 
 		case AddMode::Absolute:
 		{
@@ -512,7 +510,6 @@ uint8_t CPU::FetchValue(AddMode addMode, bool is16Bits) {
 				fetched |= ReadMemory(fullAddress + 1) << 8;
 			}
 			return extraCycles;
-			break;
 		}
 
 		case AddMode::AbsoluteLong:
@@ -524,7 +521,17 @@ uint8_t CPU::FetchValue(AddMode addMode, bool is16Bits) {
 				fetched |= ReadMemory(fetchAddress + 1) << 8;
 			}
 			return extraCycles;
-			break;
+		}
+
+		case AddMode::AbsoluteLongIndexedX:
+		{
+			uint8_t extraCycles = ABSLongIndexX();
+			fetched = ReadMemory(fetchAddress);
+			if (is16Bits) {
+				extraCycles++;
+				fetched |= ReadMemory(fetchAddress + 1) << 8;
+			}
+			return extraCycles;
 		}
 
 		case AddMode::AbsoluteIndexedX:
@@ -537,7 +544,18 @@ uint8_t CPU::FetchValue(AddMode addMode, bool is16Bits) {
 				fetched |= ReadMemory(fullAddress + 1) << 8;
 			}
 			return extraCycles;
-			break;
+		}
+
+		case AddMode::AbsoluteIndexedY:
+		{
+			uint8_t extraCycles = ABSIndexY();
+			uint32_t fullAddress = (regs.DB << 16) | fetchAddress;
+			fetched = ReadMemory(fullAddress);
+			if (is16Bits) {
+				extraCycles++;
+				fetched |= ReadMemory(fullAddress + 1) << 8;
+			}
+			return extraCycles;
 		}
 
 		case AddMode::DirectPage:
@@ -550,7 +568,18 @@ uint8_t CPU::FetchValue(AddMode addMode, bool is16Bits) {
 				fetched |= ReadMemory((fetchAddress + 1) & 0xFFFF) << 8;
 			}
 			return extraCycles;
-			break;
+		}
+
+		case AddMode::DirectPageIndexedX:
+		{
+			uint8_t extraCycles = DirectPage();
+			
+			fetched = ReadMemory(fetchAddress);
+			if (is16Bits) {
+				extraCycles++;
+				fetched |= ReadMemory((fetchAddress + 1) & 0xFFFF) << 8;
+			}
+			return extraCycles;
 		}
 
 		case AddMode::DirectPageIndirect:
@@ -564,12 +593,66 @@ uint8_t CPU::FetchValue(AddMode addMode, bool is16Bits) {
 			return extraCycles;
 		}
 		
+		case AddMode::DirectPageIndirectX:
+		{
+			uint8_t extraCycles = DirectPageIndirectX();
+			fetched = ReadMemory(fetchAddress);
+			if (is16Bits) {
+				extraCycles++;
+				fetched |= ReadMemory((fetchAddress + 1) & 0xFFFFFF) << 8;
+			}
+			return extraCycles;
+		}
+
+		case AddMode::DirectPageIndirectIndexedY:
+		{
+			uint8_t extraCycles = DirectPageIndirectIndexedY();
+			fetched = ReadMemory(fetchAddress);
+			if (is16Bits) {
+				extraCycles++;
+				fetched |= ReadMemory((fetchAddress + 1) & 0xFFFFFF) << 8;
+			}
+			return extraCycles;
+		}
+
 		case AddMode::DirectPageIndirectLong:
 		{
 			uint8_t extraCycles = DirectPageIndirectLong();
 			fetched = ReadMemory(fetchAddress);
 			if (is16Bits) {
 				extraCycles++;
+				fetched |= ReadMemory((fetchAddress + 1) & 0xFFFFFF) << 8;
+			}
+			return extraCycles;
+		}
+		
+		case AddMode::DirectPageIndirectLongIndexedY:
+		{
+			uint8_t extraCycles = DirectPageIndirectLongIndexedY();
+			fetched = ReadMemory(fetchAddress);
+			if (is16Bits) {
+				extraCycles++;
+				fetched |= ReadMemory((fetchAddress + 1) & 0xFFFFFF) << 8;
+			}
+			return extraCycles;
+		}
+
+		case AddMode::StackRelative:
+		{
+			uint8_t extraCycles = StackRel();
+			fetched = ReadMemory(fetchAddress);
+			if (is16Bits) {
+				extraCycles++;
+				fetched |= ReadMemory((fetchAddress + 1) & 0xFFFF) << 8;
+			}
+			return extraCycles;
+		}
+
+		case AddMode::StackRelativeIndirectIndexedY:
+		{
+			uint8_t extraCycles = StackRelativeIndirectIndexedY();
+			fetched = ReadMemory(fetchAddress);
+			if (is16Bits) {
 				fetched |= ReadMemory((fetchAddress + 1) & 0xFFFFFF) << 8;
 			}
 			return extraCycles;
@@ -602,7 +685,6 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 				WriteMemory(fullAddress + 1, value >> 8);
 			}
 			return extraCycles;
-			break;
 		}
 
 		case AddMode::AbsoluteLong:
@@ -614,7 +696,6 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 				WriteMemory(fetchAddress, value >> 8);
 			}
 			return extraCycles;
-			break;
 		}
 
 		case AddMode::DirectPage:
@@ -626,7 +707,6 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 				WriteMemory((fetchAddress + 1) & 0xFFFF, value >> 8);
 			}
 			return extraCycles;
-			break;
 		}
 		
 		case AddMode::DirectPageIndirect:
@@ -638,7 +718,6 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 				WriteMemory((fetchAddress + 1) & 0xFFFFFF, value >>8);
 			}
 			return extraCycles;
-			break;
 		}
 		case AddMode::DirectPageIndirectLong:
 		{
@@ -649,7 +728,6 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 				WriteMemory((fetchAddress + 1) & 0xFFFFFF, value >> 8);
 			}
 			return extraCycles;
-			break;
 		}
 
 		default:
@@ -692,6 +770,16 @@ uint8_t CPU::ABSLong() {
 	return 0;
 }
 
+uint8_t CPU::ABSLongIndexX() {
+	fetchAddress = ReadMemory((regs.PB << 16) | regs.PC++);
+	fetchAddress |= ReadMemory((regs.PB << 16) | regs.PC++) << 8;
+	fetchAddress |= ReadMemory((regs.PB << 16) | regs.PC++) << 16;
+	
+	fetchAddress += regs.X.HL;
+
+	return 0;
+}
+
 uint8_t CPU::ABSIndexX() {
 	fetchAddress = ReadMemory((regs.PB << 16) | regs.PC++);
 	fetchAddress |= ReadMemory((regs.PB << 16) | regs.PC++) << 8;
@@ -705,10 +793,30 @@ uint8_t CPU::ABSIndexX() {
 	return extraCycles;
 }
 
+uint8_t CPU::ABSIndexY() {
+	fetchAddress = ReadMemory((regs.PB << 16) | regs.PC++);
+	fetchAddress |= ReadMemory((regs.PB << 16) | regs.PC++) << 8;
+	
+	uint8_t extraCycles = 0;
+	if (!(regs.P & XFlag) || ((fetchAddress & 0xFF00) != ((fetchAddress + regs.Y.HL) & 0xFF00))) {
+		extraCycles++;
+	}
+	fetchAddress += regs.Y.HL;
+
+	return extraCycles;
+}
+
 uint8_t CPU::DirectPage() {
 	uint8_t directPageOffset = ReadMemory((regs.PB << 16) | regs.PC++);
 
 	fetchAddress = regs.DP + directPageOffset;
+	return (regs.DP & 0xFF) ? 1 : 0;
+}
+
+uint8_t CPU::DirectPageIndexedX() {
+	uint8_t directPageOffset = ReadMemory((regs.PB << 16) | regs.PC++);
+
+	fetchAddress = regs.DP + directPageOffset + regs.X.HL;
 	return (regs.DP & 0xFF) ? 1 : 0;
 }
 
@@ -722,6 +830,33 @@ uint8_t CPU::DirectPageIndirect() {
 	return (regs.DP & 0xFF) ? 1 : 0;
 }
 
+uint8_t CPU::DirectPageIndirectX() {
+	uint8_t directPageOffset = ReadMemory((regs.PB << 16) | regs.PC++);
+
+	uint16_t indirectAddress = regs.DP + directPageOffset + regs.X.HL;
+
+	fetchAddress = ReadMemory(indirectAddress);
+	fetchAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+	return (regs.DP & 0xFF) ? 1 : 0;
+}
+
+uint8_t CPU::DirectPageIndirectIndexedY() {
+	uint8_t directPageOffset = ReadMemory((regs.PB << 16) | regs.PC++);
+	
+	uint16_t indirectAddress = regs.DP + directPageOffset;
+
+	fetchAddress = ReadMemory(indirectAddress);
+	fetchAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+
+	uint8_t extraCycles = 0;
+	if (!(regs.P & XFlag) || ((fetchAddress & 0xFF00) != ((fetchAddress + regs.Y.HL) & 0xFF00))) {
+		extraCycles++;
+	}
+	fetchAddress += regs.Y.HL;
+
+	return extraCycles + (regs.DP & 0xFF) ? 1 : 0;
+}
+
 uint8_t CPU::DirectPageIndirectLong() {
 	uint8_t directPageOffset = ReadMemory((regs.PB << 16) | regs.PC++);
 
@@ -731,6 +866,45 @@ uint8_t CPU::DirectPageIndirectLong() {
 	fetchAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
 	fetchAddress |= ReadMemory((indirectAddress + 2) & 0xFFFF) << 16;
 	return (regs.DP & 0xFF) ? 1 : 0;
+}
+
+uint8_t CPU::DirectPageIndirectLongIndexedY() {
+	uint8_t directPageOffset = ReadMemory((regs.PB << 16) | regs.PC++);
+	
+	uint16_t indirectAddress = regs.DP + directPageOffset;
+
+	fetchAddress = ReadMemory(indirectAddress);
+	fetchAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+	fetchAddress |= ReadMemory((indirectAddress + 2) & 0xFFFF) << 16;
+
+	fetchAddress += regs.Y.HL;
+
+	return (regs.DP & 0xFF) ? 1 : 0;
+}
+
+uint8_t CPU::StackRel() {
+	fetchAddress = ReadMemory((regs.PB << 16) | regs.PC++);
+	fetchAddress += regs.SP;
+	fetchAddress &= 0xFFFF;
+
+	return 0;
+}
+
+uint8_t CPU::StackRelativeIndirectIndexedY() {
+	uint16_t indirectAddress = ReadMemory((regs.PB << 16) | regs.PC++);
+	indirectAddress += regs.SP;
+	indirectAddress &= 0xFFFF;
+
+	fetchAddress = ReadMemory(indirectAddress);
+	fetchAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+
+	fetchAddress |= regs.DB << 16;
+
+	fetchAddress += regs.Y.HL;
+
+	fetchAddress &= 0xFFFFFF;
+
+	return 0;
 }
 
 // Opcodes
@@ -1098,6 +1272,35 @@ uint8_t CPU::NOP() {
 	return 0;
 }
 
+uint8_t CPU::ORA() {
+	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & MFlag));
+
+	if (regs.P & MFlag) {
+		regs.A.L |= fetched;
+
+		CheckNFlag8Bits(regs.A.L);
+		CheckZFlag8Bits(regs.A.L);
+	} else {
+		regs.A.HL |= fetched;
+
+		CheckNFlag16Bits(regs.A.HL);
+		CheckZFlag16Bits(regs.A.HL);
+	}
+
+	return extraCycles;
+}
+
+uint8_t CPU::PHA() {
+	uint8_t extraCycles = 0;
+	if (!(regs.P & MFlag)) {
+		extraCycles++;
+		PushStack(regs.A.HL >> 8);
+	}
+	PushStack(regs.A.L);
+
+	return extraCycles;
+}
+
 uint8_t CPU::PHK() {
 	PushStack(regs.PB);
 	return 0;
@@ -1106,6 +1309,18 @@ uint8_t CPU::PHK() {
 uint8_t CPU::PHP() {
 	PushStack(regs.P);
 	return 0;
+}
+
+uint8_t CPU::PHX() {
+	uint8_t extraCycles = 0;
+	if (!(regs.P & XFlag)) {
+		extraCycles++;
+		PushStack(regs.X.HL >> 8);
+	}
+	PushStack(regs.X.L);
+
+	return extraCycles;
+
 }
 
 uint8_t CPU::PLA() {

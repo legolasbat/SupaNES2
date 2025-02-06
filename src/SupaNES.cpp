@@ -12,6 +12,10 @@ SupaNES::SupaNES() {
 
 	memoryBank = 0;
 	memoryPage = 0;
+
+	for (int i = 0; i < 0x20000; i++) {
+		WRAM[i] = 0;
+	}
 }
 
 int SupaNES::Clock() {
