@@ -141,6 +141,7 @@ class CPU {
 		// OPCODES
 		uint8_t ADC();
 		uint8_t AND();
+		uint8_t ASL();
 		uint8_t BEQ();
 		uint8_t BIT();
 		uint8_t BNE();

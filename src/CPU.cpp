@@ -37,7 +37,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x07] = {"ORA", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x08] = {"PHP", &CPU::PHP, AddMode::Implied, 3};
 	opTable[0x09] = {"ORA", &CPU::XXX, AddMode::Implied, 2};
-	opTable[0x0A] = {"ASL", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0x0A] = {"ASL", &CPU::ASL, AddMode::Implied, 2};
 	opTable[0x0B] = {"PHD", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x0C] = {"TSB", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x0D] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 13447;
+int logfileMaxSize = 5498;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/AND/TestAND.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/ASL/TestASL.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -507,7 +507,7 @@ uint8_t CPU::FetchValue(AddMode addMode, bool is16Bits) {
 			fetched = ReadMemory(fullAddress);
 			if (is16Bits) {
 				extraCycles++;
-				fetched |= ReadMemory(fullAddress + 1) << 8;
+				fetched |= ReadMemory((fullAddress + 1) & 0xFFFFFF) << 8;
 			}
 			return extraCycles;
 		}
@@ -675,6 +675,7 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 			}
 			return 0;
 		}
+
 		case AddMode::Absolute:
 		{
 			uint8_t extraCycles = ABS();
@@ -682,7 +683,7 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 			WriteMemory(fullAddress, value);
 			if (is16Bits) {
 				extraCycles++;
-				WriteMemory(fullAddress + 1, value >> 8);
+				WriteMemory((fullAddress + 1) & 0xFFFFFF, value >> 8);
 			}
 			return extraCycles;
 		}
@@ -719,6 +720,7 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits) {
 			}
 			return extraCycles;
 		}
+
 		case AddMode::DirectPageIndirectLong:
 		{
 			uint8_t extraCycles = DirectPageIndirectLong();
@@ -1008,6 +1010,18 @@ uint8_t CPU::AND() {
 	}
 	return extraCycles;
 }
+
+uint8_t CPU::ASL() {
+	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & MFlag));
+	
+	SetFlag(NFlag, false);
+	SetFlag(CFlag, fetched & 0x01);
+	fetched = fetched >> 1;
+	SetFlag(ZFlag, !fetched);
+
+	extraCycles += WriteValue(opTable[opcode].addMode, fetched, !(regs.P & MFlag));
+
+	return extraCycles;}
 
 uint8_t CPU::BEQ() {
 	int8_t offset = ReadMemory((regs.PB << 16) | regs.PC++);
