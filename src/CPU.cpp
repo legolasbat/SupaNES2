@@ -56,7 +56,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x19] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x1A] = {"INC", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x1B] = {"TCS", &CPU::XXX, AddMode::Implied, 2};
-	opTable[0x1C] = {"TRB", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x1C] = {"TRB", &CPU::TRB, AddMode::Absolute, 6};
 	opTable[0x1D] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x1E] = {"ASL", &CPU::ASL, AddMode::AbsoluteIndexedX, 7};
 	opTable[0x1F] = {"ORA", &CPU::XXX, AddMode::Implied, 5};
@@ -82,7 +82,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x31] = {"AND", &CPU::AND, AddMode::DirectPageIndirectIndexedY, 5};
 	opTable[0x32] = {"AND", &CPU::AND, AddMode::DirectPageIndirect, 5};
 	opTable[0x33] = {"AND", &CPU::AND, AddMode::StackRelativeIndirectIndexedY, 7};
-	opTable[0x34] = {"BIT", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x34] = {"BIT", &CPU::BIT, AddMode::DirectPageIndexedX, 4};
 	opTable[0x35] = {"AND", &CPU::AND, AddMode::DirectPageIndexedX, 4};
 	opTable[0x36] = {"ROL", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x37] = {"AND", &CPU::AND, AddMode::DirectPageIndirectLongIndexedY, 6};
@@ -90,7 +90,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x39] = {"AND", &CPU::AND, AddMode::AbsoluteIndexedY, 4};
 	opTable[0x3A] = {"DEC", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x3B] = {"TSC", &CPU::XXX, AddMode::Implied, 2};
-	opTable[0x3C] = {"BIT", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x3C] = {"BIT", &CPU::BIT, AddMode::AbsoluteIndexedX, 4};
 	opTable[0x3D] = {"AND", &CPU::AND, AddMode::AbsoluteIndexedX, 4};
 	opTable[0x3E] = {"ROL", &CPU::XXX, AddMode::Implied, 7};
 	opTable[0x3F] = {"AND", &CPU::AND, AddMode::AbsoluteLongIndexedX, 5};
@@ -172,7 +172,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x86] = {"STX", &CPU::STX, AddMode::DirectPage, 3};
 	opTable[0x87] = {"STA", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x88] = {"DEY", &CPU::DEY, AddMode::Implied, 2};
-	opTable[0x89] = {"BIT", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0x89] = {"BIT", &CPU::BIT, AddMode::Immediate, 2};
 	opTable[0x8A] = {"TXA", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x8B] = {"PHB", &CPU::XXX, AddMode::Implied, 3};
 	opTable[0x8C] = {"STY", &CPU::STY, AddMode::Absolute, 4};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 5498;
+int logfileMaxSize = 8637;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/ASL/TestASL.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/BIT/TestBIT.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -1599,6 +1599,22 @@ uint8_t CPU::TCD() {
 	CheckZFlag16Bits(regs.DP);
 
 	return 0;
+}
+
+uint8_t CPU::TRB() {
+	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & MFlag));
+
+	uint16_t result = fetched & ~regs.A.HL;
+
+	if (regs.P & MFlag) {
+		CheckZFlag8Bits(result);
+	} else {
+		CheckZFlag16Bits(result);
+	}
+
+	extraCycles += WriteValue(opTable[opcode].addMode, result, !(regs.P & MFlag), true);
+
+	return extraCycles;
 }
 
 uint8_t CPU::TXS() {

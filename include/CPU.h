@@ -179,6 +179,7 @@ class CPU {
 		uint8_t STY();
 		uint8_t STZ();
 		uint8_t TCD();
+		uint8_t TRB();
 		uint8_t TXS();
 		uint8_t XCE();
 		uint8_t XXX();
