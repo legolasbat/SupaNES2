@@ -167,7 +167,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x81] = {"STA", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x82] = {"BRL", &CPU::BRL, AddMode::Implied, 4};
 	opTable[0x83] = {"STA", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0x84] = {"STY", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0x84] = {"STY", &CPU::STY, AddMode::DirectPage, 3};
 	opTable[0x85] = {"STA", &CPU::STA, AddMode::DirectPage, 3};
 	opTable[0x86] = {"STX", &CPU::STX, AddMode::DirectPage, 3};
 	opTable[0x87] = {"STA", &CPU::XXX, AddMode::Implied, 6};
@@ -231,45 +231,45 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xBE] = {"LDX", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0xBF] = {"LDA", &CPU::XXX, AddMode::Implied, 5};
 
-	opTable[0xC0] = {"CPY", &CPU::XXX, AddMode::Implied, 2};
-	opTable[0xC1] = {"CMP", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0xC0] = {"CPY", &CPU::CPY, AddMode::Immediate, 2};
+	opTable[0xC1] = {"CMP", &CPU::CMP, AddMode::DirectPageIndirectX, 6};
 	opTable[0xC2] = {"REP", &CPU::REP, AddMode::Immediate, 3};
-	opTable[0xC3] = {"CMP", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0xC4] = {"CPY", &CPU::XXX, AddMode::Implied, 3};
-	opTable[0xC5] = {"CMP", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0xC3] = {"CMP", &CPU::CMP, AddMode::StackRelative, 4};
+	opTable[0xC4] = {"CPY", &CPU::CPY, AddMode::DirectPage, 3};
+	opTable[0xC5] = {"CMP", &CPU::CMP, AddMode::DirectPage, 3};
 	opTable[0xC6] = {"DEC", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0xC7] = {"CMP", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0xC7] = {"CMP", &CPU::CMP, AddMode::DirectPageIndirectLong, 6};
 	opTable[0xC8] = {"INY", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0xC9] = {"CMP", &CPU::CMP, AddMode::Immediate, 2};
 	opTable[0xCA] = {"DEX", &CPU::DEX, AddMode::Implied, 2};
 	opTable[0xCB] = {"WAI", &CPU::XXX, AddMode::Implied, 3};
-	opTable[0xCC] = {"CPY", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0xCC] = {"CPY", &CPU::CPY, AddMode::Absolute, 4};
 	opTable[0xCD] = {"CMP", &CPU::CMP, AddMode::Absolute, 4};
 	opTable[0xCE] = {"DEC", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0xCF] = {"CMP", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0xCF] = {"CMP", &CPU::CMP, AddMode::AbsoluteLong, 5};
 
 	opTable[0xD0] = {"BNE", &CPU::BNE, AddMode::Implied, 2};
-	opTable[0xD1] = {"CMP", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0xD2] = {"CMP", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0xD3] = {"CMP", &CPU::XXX, AddMode::Implied, 7};
+	opTable[0xD1] = {"CMP", &CPU::CMP, AddMode::DirectPageIndirectIndexedY, 5};
+	opTable[0xD2] = {"CMP", &CPU::CMP, AddMode::DirectPageIndirect, 5};
+	opTable[0xD3] = {"CMP", &CPU::CMP, AddMode::StackRelativeIndirectIndexedY, 7};
 	opTable[0xD4] = {"PEI", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0xD5] = {"CMP", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0xD5] = {"CMP", &CPU::CMP, AddMode::DirectPageIndexedX, 4};
 	opTable[0xD6] = {"DEC", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0xD7] = {"CMP", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0xD7] = {"CMP", &CPU::CMP, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0xD8] = {"CLD", &CPU::XXX, AddMode::Implied, 2};
-	opTable[0xD9] = {"CMP", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0xD9] = {"CMP", &CPU::CMP, AddMode::AbsoluteIndexedY, 4};
 	opTable[0xDA] = {"PHX", &CPU::PHX, AddMode::Implied, 3};
 	opTable[0xDB] = {"STP", &CPU::XXX, AddMode::Implied, 3};
 	opTable[0xDC] = {"JML", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0xDD] = {"CMP", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0xDD] = {"CMP", &CPU::CMP, AddMode::AbsoluteIndexedX, 4};
 	opTable[0xDE] = {"DEC", &CPU::XXX, AddMode::Implied, 7};
-	opTable[0xDF] = {"CMP", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0xDF] = {"CMP", &CPU::CMP, AddMode::AbsoluteLongIndexedX, 5};
 
 	opTable[0xE0] = {"CPX", &CPU::CPX, AddMode::Immediate, 2};
 	opTable[0xE1] = {"SBC", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0xE2] = {"SEP", &CPU::SEP, AddMode::Immediate, 3};
 	opTable[0xE3] = {"SBC", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0xE4] = {"CPX", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0xE4] = {"CPX", &CPU::CPX, AddMode::DirectPage, 3};
 	opTable[0xE5] = {"SBC", &CPU::XXX, AddMode::Implied, 3};
 	opTable[0xE6] = {"INC", &CPU::XXX, AddMode::Implied, 5};
 	opTable[0xE7] = {"SBC", &CPU::XXX, AddMode::Implied, 6};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 2851;
+int logfileMaxSize = 17913;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/BRA/TestBRA.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/CMP/TestCMP.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -1389,6 +1389,24 @@ uint8_t CPU::CPX() {
 		SetFlag(ZFlag, regs.X.L == fetched);
 
 		SetFlag(CFlag, regs.X.L >= fetched);
+	}
+
+	return extraCycles;
+}
+
+uint8_t CPU::CPY() {
+	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & XFlag));
+
+	if (!(regs.P & XFlag)) {
+		CheckNFlag16Bits(regs.Y.HL - fetched);
+		SetFlag(ZFlag, regs.Y.HL == fetched);
+		
+		SetFlag(CFlag, regs.Y.HL >= fetched);
+	} else {
+		CheckNFlag8Bits(regs.Y.L - fetched);
+		SetFlag(ZFlag, regs.Y.L == fetched);
+
+		SetFlag(CFlag, regs.Y.L >= fetched);
 	}
 
 	return extraCycles;
