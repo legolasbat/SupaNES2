@@ -96,38 +96,38 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x3F] = {"AND", &CPU::AND, AddMode::AbsoluteLongIndexedX, 5};
 
 	opTable[0x40] = {"RTI", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0x41] = {"EOR", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x41] = {"EOR", &CPU::EOR, AddMode::DirectPageIndirectX, 6};
 	opTable[0x42] = {"WDM", &CPU::XXX, AddMode::Implied, 2};	// Unused
-	opTable[0x43] = {"EOR", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x43] = {"EOR", &CPU::EOR, AddMode::StackRelative, 4};
 	opTable[0x44] = {"MVP", &CPU::XXX, AddMode::Implied, 0};
-	opTable[0x45] = {"EOR", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0x45] = {"EOR", &CPU::EOR, AddMode::DirectPage, 3};
 	opTable[0x46] = {"LSR", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0x47] = {"EOR", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x47] = {"EOR", &CPU::EOR, AddMode::DirectPageIndirectLong, 6};
 	opTable[0x48] = {"PHA", &CPU::PHA, AddMode::Implied, 3};
-	opTable[0x49] = {"EOR", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0x49] = {"EOR", &CPU::EOR, AddMode::Immediate, 2};
 	opTable[0x4A] = {"LSR", &CPU::LSR, AddMode::Implied, 2};
 	opTable[0x4B] = {"PHK", &CPU::PHK, AddMode::Implied, 3};
 	opTable[0x4C] = {"JMP", &CPU::XXX, AddMode::Implied, 3};
-	opTable[0x4D] = {"EOR", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x4D] = {"EOR", &CPU::EOR, AddMode::Absolute, 4};
 	opTable[0x4E] = {"LSR", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0x4F] = {"EOR", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x4F] = {"EOR", &CPU::EOR, AddMode::AbsoluteLong, 5};
 
 	opTable[0x50] = {"BVC", &CPU::BVC, AddMode::Implied, 2};
-	opTable[0x51] = {"EOR", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0x52] = {"EOR", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0x53] = {"EOR", &CPU::XXX, AddMode::Implied, 7};
+	opTable[0x51] = {"EOR", &CPU::EOR, AddMode::DirectPageIndirectIndexedY, 5};
+	opTable[0x52] = {"EOR", &CPU::EOR, AddMode::DirectPageIndirect, 5};
+	opTable[0x53] = {"EOR", &CPU::EOR, AddMode::StackRelativeIndirectIndexedY, 7};
 	opTable[0x54] = {"MVN", &CPU::XXX, AddMode::Implied, 0};
-	opTable[0x55] = {"EOR", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x55] = {"EOR", &CPU::EOR, AddMode::DirectPageIndexedX, 4};
 	opTable[0x56] = {"LSR", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0x57] = {"EOR", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x57] = {"EOR", &CPU::EOR, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0x58] = {"CLI", &CPU::XXX, AddMode::Implied, 2};
-	opTable[0x59] = {"EOR", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x59] = {"EOR", &CPU::EOR, AddMode::AbsoluteIndexedY, 4};
 	opTable[0x5A] = {"PHY", &CPU::XXX, AddMode::Implied, 3};
 	opTable[0x5B] = {"TCD", &CPU::TCD, AddMode::Implied, 2};
 	opTable[0x5C] = {"JML", &CPU::JML, AddMode::AbsoluteLong, 4};
-	opTable[0x5D] = {"EOR", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x5D] = {"EOR", &CPU::EOR, AddMode::AbsoluteIndexedX, 4};
 	opTable[0x5E] = {"LSR", &CPU::XXX, AddMode::Implied, 7};
-	opTable[0x5F] = {"EOR", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x5F] = {"EOR", &CPU::EOR, AddMode::AbsoluteLongIndexedX, 5};
 
 	opTable[0x60] = {"RTS", &CPU::RTS, AddMode::Implied, 6};
 	opTable[0x61] = {"ADC", &CPU::ADC, AddMode::DirectPageIndirectX, 6};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 7083;
+int logfileMaxSize = 13447;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/DEC/TestDEC.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/EOR/TestEOR.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -1454,6 +1454,22 @@ uint8_t CPU::DEY() {
 		CheckZFlag8Bits(regs.Y.L);
 	}
 	return 0;
+}
+
+uint8_t CPU::EOR() {
+	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & MFlag));
+
+	if (regs.P & MFlag) {
+		regs.A.L = regs.A.L ^ fetched;
+		CheckNFlag8Bits(regs.A.L);
+		CheckZFlag8Bits(regs.A.L);
+	} else {
+		regs.A.HL = regs.A.HL ^ fetched;
+		CheckNFlag16Bits(regs.A.HL);
+		CheckZFlag16Bits(regs.A.HL);
+	}
+	return extraCycles;
+
 }
 
 uint8_t CPU::INX() {

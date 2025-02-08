@@ -162,6 +162,7 @@ class CPU {
 		uint8_t DEC();
 		uint8_t DEX();
 		uint8_t DEY();
+		uint8_t EOR();
 		uint8_t INX();
 		uint8_t JML();
 		uint8_t JSR();
