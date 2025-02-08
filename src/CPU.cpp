@@ -88,7 +88,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x37] = {"AND", &CPU::AND, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0x38] = {"SEC", &CPU::SEC, AddMode::Implied, 2};
 	opTable[0x39] = {"AND", &CPU::AND, AddMode::AbsoluteIndexedY, 4};
-	opTable[0x3A] = {"DEC", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0x3A] = {"DEC", &CPU::DEC, AddMode::Implied, 2};
 	opTable[0x3B] = {"TSC", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x3C] = {"BIT", &CPU::BIT, AddMode::AbsoluteIndexedX, 4};
 	opTable[0x3D] = {"AND", &CPU::AND, AddMode::AbsoluteIndexedX, 4};
@@ -237,7 +237,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xC3] = {"CMP", &CPU::CMP, AddMode::StackRelative, 4};
 	opTable[0xC4] = {"CPY", &CPU::CPY, AddMode::DirectPage, 3};
 	opTable[0xC5] = {"CMP", &CPU::CMP, AddMode::DirectPage, 3};
-	opTable[0xC6] = {"DEC", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0xC6] = {"DEC", &CPU::DEC, AddMode::DirectPage, 5};
 	opTable[0xC7] = {"CMP", &CPU::CMP, AddMode::DirectPageIndirectLong, 6};
 	opTable[0xC8] = {"INY", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0xC9] = {"CMP", &CPU::CMP, AddMode::Immediate, 2};
@@ -245,7 +245,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xCB] = {"WAI", &CPU::XXX, AddMode::Implied, 3};
 	opTable[0xCC] = {"CPY", &CPU::CPY, AddMode::Absolute, 4};
 	opTable[0xCD] = {"CMP", &CPU::CMP, AddMode::Absolute, 4};
-	opTable[0xCE] = {"DEC", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0xCE] = {"DEC", &CPU::DEC, AddMode::Absolute, 6};
 	opTable[0xCF] = {"CMP", &CPU::CMP, AddMode::AbsoluteLong, 5};
 
 	opTable[0xD0] = {"BNE", &CPU::BNE, AddMode::Implied, 2};
@@ -254,7 +254,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xD3] = {"CMP", &CPU::CMP, AddMode::StackRelativeIndirectIndexedY, 7};
 	opTable[0xD4] = {"PEI", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0xD5] = {"CMP", &CPU::CMP, AddMode::DirectPageIndexedX, 4};
-	opTable[0xD6] = {"DEC", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0xD6] = {"DEC", &CPU::DEC, AddMode::DirectPageIndexedX, 6};
 	opTable[0xD7] = {"CMP", &CPU::CMP, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0xD8] = {"CLD", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0xD9] = {"CMP", &CPU::CMP, AddMode::AbsoluteIndexedY, 4};
@@ -262,7 +262,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xDB] = {"STP", &CPU::XXX, AddMode::Implied, 3};
 	opTable[0xDC] = {"JML", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0xDD] = {"CMP", &CPU::CMP, AddMode::AbsoluteIndexedX, 4};
-	opTable[0xDE] = {"DEC", &CPU::XXX, AddMode::Implied, 7};
+	opTable[0xDE] = {"DEC", &CPU::DEC, AddMode::AbsoluteIndexedX, 7};
 	opTable[0xDF] = {"CMP", &CPU::CMP, AddMode::AbsoluteLongIndexedX, 5};
 
 	opTable[0xE0] = {"CPX", &CPU::CPX, AddMode::Immediate, 2};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 17913;
+int logfileMaxSize = 7083;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/CMP/TestCMP.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/DEC/TestDEC.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -1408,6 +1408,24 @@ uint8_t CPU::CPY() {
 
 		SetFlag(CFlag, regs.Y.L >= fetched);
 	}
+
+	return extraCycles;
+}
+
+uint8_t CPU::DEC() {
+	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & MFlag));
+
+	fetched--;
+
+	if (regs.P & MFlag) {
+		CheckNFlag8Bits(fetched);
+		CheckZFlag8Bits(fetched);
+	} else {
+		CheckNFlag16Bits(fetched);
+		CheckZFlag16Bits(fetched);
+	}
+
+	extraCycles += WriteValue(opTable[opcode].addMode, fetched, !(regs.P & MFlag), true);
 
 	return extraCycles;
 }

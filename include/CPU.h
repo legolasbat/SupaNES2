@@ -159,6 +159,7 @@ class CPU {
 		uint8_t CMP();
 		uint8_t CPX();
 		uint8_t CPY();
+		uint8_t DEC();
 		uint8_t DEX();
 		uint8_t DEY();
 		uint8_t INX();
