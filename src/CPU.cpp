@@ -31,7 +31,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x01] = {"ORA", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x02] = {"COP", &CPU::XXX, AddMode::Implied, 7};
 	opTable[0x03] = {"ORA", &CPU::ORA, AddMode::StackRelative, 4};
-	opTable[0x04] = {"TSB", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x04] = {"TSB", &CPU::TSB, AddMode::DirectPage, 5};
 	opTable[0x05] = {"ORA", &CPU::XXX, AddMode::Implied, 3};
 	opTable[0x06] = {"ASL", &CPU::ASL, AddMode::DirectPage, 5};
 	opTable[0x07] = {"ORA", &CPU::XXX, AddMode::Implied, 6};
@@ -39,7 +39,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x09] = {"ORA", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x0A] = {"ASL", &CPU::ASL, AddMode::Implied, 2};
 	opTable[0x0B] = {"PHD", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0x0C] = {"TSB", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x0C] = {"TSB", &CPU::TSB, AddMode::Absolute, 6};
 	opTable[0x0D] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x0E] = {"ASL", &CPU::ASL, AddMode::Absolute, 6};
 	opTable[0x0F] = {"ORA", &CPU::XXX, AddMode::Implied, 5};
@@ -48,7 +48,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x11] = {"ORA", &CPU::XXX, AddMode::Implied, 5};
 	opTable[0x12] = {"ORA", &CPU::XXX, AddMode::Implied, 5};
 	opTable[0x13] = {"ORA", &CPU::XXX, AddMode::Implied, 7};
-	opTable[0x14] = {"TRB", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x14] = {"TRB", &CPU::TRB, AddMode::DirectPage, 5};
 	opTable[0x15] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x16] = {"ASL", &CPU::ASL, AddMode::DirectPageIndexedX, 6};
 	opTable[0x17] = {"ORA", &CPU::XXX, AddMode::Implied, 6};
@@ -1607,9 +1607,25 @@ uint8_t CPU::TRB() {
 	uint16_t result = fetched & ~regs.A.HL;
 
 	if (regs.P & MFlag) {
-		CheckZFlag8Bits(result);
+		CheckZFlag8Bits(fetched & regs.A.L);
 	} else {
-		CheckZFlag16Bits(result);
+		CheckZFlag16Bits(fetched & regs.A.HL);
+	}
+
+	extraCycles += WriteValue(opTable[opcode].addMode, result, !(regs.P & MFlag), true);
+
+	return extraCycles;
+}
+
+uint8_t CPU::TSB() {
+	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & MFlag));
+
+	uint16_t result = fetched | regs.A.HL;
+
+	if (regs.P & MFlag) {
+		CheckZFlag8Bits(fetched & regs.A.L);
+	} else {
+		CheckZFlag16Bits(fetched & regs.A.HL);
 	}
 
 	extraCycles += WriteValue(opTable[opcode].addMode, result, !(regs.P & MFlag), true);
