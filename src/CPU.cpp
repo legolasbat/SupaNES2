@@ -95,7 +95,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x3E] = {"ROL", &CPU::XXX, AddMode::Implied, 7};
 	opTable[0x3F] = {"AND", &CPU::AND, AddMode::AbsoluteLongIndexedX, 5};
 
-	opTable[0x40] = {"RTI", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x40] = {"RTI", &CPU::RTI, AddMode::Implied, 6};
 	opTable[0x41] = {"EOR", &CPU::EOR, AddMode::DirectPageIndirectX, 6};
 	opTable[0x42] = {"WDM", &CPU::XXX, AddMode::Implied, 2};	// Unused
 	opTable[0x43] = {"EOR", &CPU::EOR, AddMode::StackRelative, 4};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 12956;
+int logfileMaxSize = 2013;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/STR/TestSTR.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/RET/TestRET.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -1329,7 +1329,6 @@ uint8_t CPU::BRA() {
 }
 
 uint8_t CPU::BRK() {
-	assert(false);
 	if (!emulationMode) {
 		PushStack(regs.PB);
 	}
@@ -1832,6 +1831,18 @@ uint8_t CPU::REP() {
 	regs.P &= ~fetched;
 
 	return 0;
+}
+
+uint8_t CPU::RTI() {
+	regs.P = PullStack();
+	regs.PC = PullStack();
+	regs.PC |= PullStack() << 8;
+
+	if (!emulationMode) {
+		regs.PB = PullStack();
+	}
+
+	return emulationMode ? 0 : 1;
 }
 
 uint8_t CPU::RTL() {
