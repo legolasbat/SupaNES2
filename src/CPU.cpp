@@ -63,7 +63,7 @@ CPU::CPU(SupaNES* supaNes) {
 
 	opTable[0x20] = {"JSR", &CPU::JSR, AddMode::Absolute, 6};
 	opTable[0x21] = {"AND", &CPU::AND, AddMode::DirectPageIndirectX, 6};
-	opTable[0x22] = {"JSL", &CPU::XXX, AddMode::Implied, 8};
+	opTable[0x22] = {"JSL", &CPU::JSL, AddMode::AbsoluteLong, 8};
 	opTable[0x23] = {"AND", &CPU::AND, AddMode::StackRelative, 4};
 	opTable[0x24] = {"BIT", &CPU::BIT, AddMode::DirectPage, 3};
 	opTable[0x25] = {"AND", &CPU::AND, AddMode::DirectPage, 3};
@@ -107,7 +107,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x49] = {"EOR", &CPU::EOR, AddMode::Immediate, 2};
 	opTable[0x4A] = {"LSR", &CPU::LSR, AddMode::Implied, 2};
 	opTable[0x4B] = {"PHK", &CPU::PHK, AddMode::Implied, 3};
-	opTable[0x4C] = {"JMP", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0x4C] = {"JMP", &CPU::JMP, AddMode::Absolute, 3};
 	opTable[0x4D] = {"EOR", &CPU::EOR, AddMode::Absolute, 4};
 	opTable[0x4E] = {"LSR", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x4F] = {"EOR", &CPU::EOR, AddMode::AbsoluteLong, 5};
@@ -140,8 +140,8 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x68] = {"PLA", &CPU::PLA, AddMode::Implied, 4};
 	opTable[0x69] = {"ADC", &CPU::ADC, AddMode::Immediate, 2};
 	opTable[0x6A] = {"ROR", &CPU::XXX, AddMode::Implied, 2};
-	opTable[0x6B] = {"RTL", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0x6C] = {"JMP", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x6B] = {"RTL", &CPU::RTL, AddMode::Implied, 6};
+	opTable[0x6C] = {"JMP", &CPU::JMP, AddMode::AbsoluteIndirect, 5};
 	opTable[0x6D] = {"ADC", &CPU::ADC, AddMode::Absolute, 4};
 	opTable[0x6E] = {"ROR", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x6F] = {"ADC", &CPU::ADC, AddMode::AbsoluteLong, 5};
@@ -158,7 +158,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x79] = {"ADC", &CPU::ADC, AddMode::AbsoluteIndexedY, 4};
 	opTable[0x7A] = {"PLY", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x7B] = {"TDC", &CPU::XXX, AddMode::Implied, 2};
-	opTable[0x7C] = {"JMP", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x7C] = {"JMP", &CPU::JMP, AddMode::AbsoluteIndexedIndirectX, 6};
 	opTable[0x7D] = {"ADC", &CPU::ADC, AddMode::AbsoluteIndexedX, 4};
 	opTable[0x7E] = {"ROR", &CPU::XXX, AddMode::Implied, 7};
 	opTable[0x7F] = {"ADC", &CPU::ADC, AddMode::AbsoluteLongIndexedX, 5};
@@ -260,7 +260,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xD9] = {"CMP", &CPU::CMP, AddMode::AbsoluteIndexedY, 4};
 	opTable[0xDA] = {"PHX", &CPU::PHX, AddMode::Implied, 3};
 	opTable[0xDB] = {"STP", &CPU::XXX, AddMode::Implied, 3};
-	opTable[0xDC] = {"JML", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0xDC] = {"JML", &CPU::JML, AddMode::AbsoluteIndirectLong, 6};
 	opTable[0xDD] = {"CMP", &CPU::CMP, AddMode::AbsoluteIndexedX, 4};
 	opTable[0xDE] = {"DEC", &CPU::DEC, AddMode::AbsoluteIndexedX, 7};
 	opTable[0xDF] = {"CMP", &CPU::CMP, AddMode::AbsoluteLongIndexedX, 5};
@@ -294,7 +294,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xF9] = {"SBC", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0xFA] = {"PLX", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0xFB] = {"XCE", &CPU::XCE, AddMode::Implied, 2};
-	opTable[0xFC] = {"JSR", &CPU::XXX, AddMode::Implied, 8};
+	opTable[0xFC] = {"JSR", &CPU::JSR, AddMode::AbsoluteIndexedIndirectX, 8};
 	opTable[0xFD] = {"SBC", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0xFE] = {"INC", &CPU::INC, AddMode::AbsoluteIndexedX, 7};
 	opTable[0xFF] = {"SBC", &CPU::XXX, AddMode::Implied, 5};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 7083;
+int logfileMaxSize = 2593;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/INC/TestINC.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/JMP/TestJMP.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -1517,32 +1517,110 @@ uint8_t CPU::INY() {
 }
 
 uint8_t CPU::JML() {
-	uint16_t address = ReadMemory((regs.PB << 16) | regs.PC++);
-	address |= ReadMemory((regs.PB << 16) | regs.PC++) << 8;
-	regs.PB = ReadMemory((regs.PB << 16) | regs.PC++);
+	switch (opTable[opcode].addMode) {
+		case AddMode::AbsoluteLong:
+		{
+			ABSLong();
+			break;
+		}
 
-	regs.PC = address;
+		case AddMode::AbsoluteIndirectLong:
+		{
+			uint16_t indirectAddres = ReadMemory(regs.PC++);
+			indirectAddres |= ReadMemory(regs.PC++) << 8;
+			
+			fetchAddress = ReadMemory(indirectAddres);
+			fetchAddress |= ReadMemory((indirectAddres + 1) & 0xFFFF) << 8;
+
+			fetchAddress |= ReadMemory((indirectAddres + 2) & 0xFFFF) << 16;
+
+			break;
+		}
+
+		default:
+			assert(false && "JML Addressing Mode not handled.");
+			break;
+	}
+
+	regs.PB = fetchAddress >> 16;
+
+	regs.PC = fetchAddress & 0xFFFF;
+
+	return 0;
+}
+
+uint8_t CPU::JMP() {
+	switch (opTable[opcode].addMode) {
+		case AddMode::Absolute:
+		{
+			ABS();
+			break;
+		}
+
+		case AddMode::AbsoluteIndirect:
+		{
+			uint16_t indirectAddres = ReadMemory(regs.PC++);
+			indirectAddres |= ReadMemory(regs.PC++) << 8;
+			
+			fetchAddress = ReadMemory(indirectAddres);
+			fetchAddress |= ReadMemory((indirectAddres + 1) & 0xFFFF) << 8;
+
+			break;
+		}
+
+		case AddMode::AbsoluteIndexedIndirectX:
+		{
+			uint16_t indirectAddres = ReadMemory(regs.PC++);
+			indirectAddres |= ReadMemory(regs.PC++) << 8;
+			
+			fetchAddress = ReadMemory((regs.PB << 16) | ((indirectAddres + regs.X.HL) & 0xFFFF));
+			fetchAddress |= ReadMemory((regs.PB << 16) | ((indirectAddres + regs.X.HL + 1) & 0xFFFF)) << 8;
+
+			break;
+		}
+
+		default:
+			assert(false && "JMP Addressig Mode not handled.");
+			break;
+	}
+
+	regs.PC = fetchAddress;
+	return 0;
+}
+
+uint8_t CPU::JSL() {
+	ABSLong();
+
+	PushStack(regs.PB);
+	regs.PC--;
+	PushStack(regs.PC >> 8);
+	PushStack(regs.PC);
+
+	regs.PB = fetchAddress >> 16;
+	regs.PC = fetchAddress & 0xFFFF;
 
 	return 0;
 }
 
 uint8_t CPU::JSR() {
-	uint8_t extraCycles = 0;
-
 	if (opTable[opcode].addMode == AddMode::Absolute) {
-		extraCycles += ABS();
+		ABS();
 	}
 	else {
-		// Absolute Indexed Indirect, X
-		assert(false);
+		uint16_t indirectAddres = ReadMemory(regs.PC++);
+		indirectAddres |= ReadMemory(regs.PC++) << 8;
+			
+		fetchAddress = ReadMemory((regs.PB << 16) | ((indirectAddres + regs.X.HL) & 0xFFFF));
+		fetchAddress |= ReadMemory((regs.PB << 16) | ((indirectAddres + regs.X.HL + 1) & 0xFFFF)) << 8;
 	}
 
+	regs.PC--;
 	PushStack(regs.PC >> 8);
 	PushStack(regs.PC);
 
 	regs.PC = fetchAddress;
 
-	return extraCycles;
+	return 0;
 }
 
 uint8_t CPU::LDA() {
@@ -1689,9 +1767,19 @@ uint8_t CPU::REP() {
 	return 0;
 }
 
+uint8_t CPU::RTL() {
+	regs.PC = PullStack();
+	regs.PC |= PullStack() << 8;
+	regs.PC++;
+	regs.PB = PullStack();
+
+	return 0;
+}
+
 uint8_t CPU::RTS() {
 	regs.PC = PullStack();
 	regs.PC |= PullStack() << 8;
+	regs.PC++;
 
 	return 0;
 }

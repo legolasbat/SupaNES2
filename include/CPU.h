@@ -80,9 +80,12 @@ class CPU {
 			Implied,
 			Immediate,
 			Absolute,
+			AbsoluteIndirect,
+			AbsoluteIndirectLong,
 			AbsoluteLong,
 			AbsoluteLongIndexedX,
 			AbsoluteIndexedX,
+			AbsoluteIndexedIndirectX,
 			AbsoluteIndexedY,
 			DirectPage,
 			DirectPageIndexedX,
@@ -167,6 +170,8 @@ class CPU {
 		uint8_t INX();
 		uint8_t INY();
 		uint8_t JML();
+		uint8_t JMP();
+		uint8_t JSL();
 		uint8_t JSR();
 		uint8_t LDA();
 		uint8_t LDX();
@@ -181,6 +186,7 @@ class CPU {
 		uint8_t PLA();
 		uint8_t PLB();
 		uint8_t REP();
+		uint8_t RTL();
 		uint8_t RTS();
 		uint8_t SEC();
 		uint8_t SEI();
