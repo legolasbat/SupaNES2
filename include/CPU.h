@@ -89,6 +89,7 @@ class CPU {
 			AbsoluteIndexedY,
 			DirectPage,
 			DirectPageIndexedX,
+			DirectPageIndexedY,
 			DirectPageIndirect,
 			DirectPageIndirectX,
 			DirectPageIndirectIndexedY,
@@ -133,6 +134,7 @@ class CPU {
 		uint8_t ABSIndexY();
 		uint8_t DirectPage();
 		uint8_t DirectPageIndexedX();
+		uint8_t DirectPageIndexedY();
 		uint8_t DirectPageIndirect();
 		uint8_t DirectPageIndirectX();
 		uint8_t DirectPageIndirectIndexedY();
