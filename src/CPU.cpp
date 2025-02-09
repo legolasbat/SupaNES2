@@ -38,7 +38,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x08] = {"PHP", &CPU::PHP, AddMode::Implied, 3};
 	opTable[0x09] = {"ORA", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x0A] = {"ASL", &CPU::ASL, AddMode::Implied, 2};
-	opTable[0x0B] = {"PHD", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x0B] = {"PHD", &CPU::PHD, AddMode::Implied, 4};
 	opTable[0x0C] = {"TSB", &CPU::TSB, AddMode::Absolute, 6};
 	opTable[0x0D] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x0E] = {"ASL", &CPU::ASL, AddMode::Absolute, 6};
@@ -55,7 +55,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x18] = {"CLC", &CPU::CLC, AddMode::Implied, 2};
 	opTable[0x19] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x1A] = {"INC", &CPU::INC, AddMode::Implied, 2};
-	opTable[0x1B] = {"TCS", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0x1B] = {"TCS", &CPU::TCS, AddMode::Implied, 2};
 	opTable[0x1C] = {"TRB", &CPU::TRB, AddMode::Absolute, 6};
 	opTable[0x1D] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x1E] = {"ASL", &CPU::ASL, AddMode::AbsoluteIndexedX, 7};
@@ -89,7 +89,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x38] = {"SEC", &CPU::SEC, AddMode::Implied, 2};
 	opTable[0x39] = {"AND", &CPU::AND, AddMode::AbsoluteIndexedY, 4};
 	opTable[0x3A] = {"DEC", &CPU::DEC, AddMode::Implied, 2};
-	opTable[0x3B] = {"TSC", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0x3B] = {"TSC", &CPU::TSC, AddMode::Implied, 2};
 	opTable[0x3C] = {"BIT", &CPU::BIT, AddMode::AbsoluteIndexedX, 4};
 	opTable[0x3D] = {"AND", &CPU::AND, AddMode::AbsoluteIndexedX, 4};
 	opTable[0x3E] = {"ROL", &CPU::XXX, AddMode::Implied, 7};
@@ -133,7 +133,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x61] = {"ADC", &CPU::ADC, AddMode::DirectPageIndirectX, 6};
 	opTable[0x62] = {"PER", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x63] = {"ADC", &CPU::ADC, AddMode::StackRelative, 4};
-	opTable[0x64] = {"STZ", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0x64] = {"STZ", &CPU::STZ, AddMode::DirectPage, 3};
 	opTable[0x65] = {"ADC", &CPU::ADC, AddMode::DirectPage, 3};
 	opTable[0x66] = {"ROR", &CPU::XXX, AddMode::Implied, 5};
 	opTable[0x67] = {"ADC", &CPU::ADC, AddMode::DirectPageIndirectLong, 6};
@@ -150,27 +150,27 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x71] = {"ADC", &CPU::ADC, AddMode::DirectPageIndirectIndexedY, 5};
 	opTable[0x72] = {"ADC", &CPU::ADC, AddMode::DirectPageIndirect, 5};
 	opTable[0x73] = {"ADC", &CPU::ADC, AddMode::StackRelativeIndirectIndexedY, 7};
-	opTable[0x74] = {"STZ", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x74] = {"STZ", &CPU::STZ, AddMode::DirectPageIndexedX, 4};
 	opTable[0x75] = {"ADC", &CPU::ADC, AddMode::DirectPageIndexedX, 4};
 	opTable[0x76] = {"ROR", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0x77] = {"ADC", &CPU::ADC, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0x78] = {"SEI", &CPU::SEI, AddMode::Implied, 2};
 	opTable[0x79] = {"ADC", &CPU::ADC, AddMode::AbsoluteIndexedY, 4};
-	opTable[0x7A] = {"PLY", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0x7B] = {"TDC", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0x7A] = {"PLY", &CPU::PLY, AddMode::Implied, 4};
+	opTable[0x7B] = {"TDC", &CPU::TDC, AddMode::Implied, 2};
 	opTable[0x7C] = {"JMP", &CPU::JMP, AddMode::AbsoluteIndexedIndirectX, 6};
 	opTable[0x7D] = {"ADC", &CPU::ADC, AddMode::AbsoluteIndexedX, 4};
 	opTable[0x7E] = {"ROR", &CPU::XXX, AddMode::Implied, 7};
 	opTable[0x7F] = {"ADC", &CPU::ADC, AddMode::AbsoluteLongIndexedX, 5};
 
 	opTable[0x80] = {"BRA", &CPU::BRA, AddMode::Implied, 3};
-	opTable[0x81] = {"STA", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x81] = {"STA", &CPU::STA, AddMode::DirectPageIndirectX, 6};
 	opTable[0x82] = {"BRL", &CPU::BRL, AddMode::Implied, 4};
-	opTable[0x83] = {"STA", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x83] = {"STA", &CPU::STA, AddMode::StackRelative, 4};
 	opTable[0x84] = {"STY", &CPU::STY, AddMode::DirectPage, 3};
 	opTable[0x85] = {"STA", &CPU::STA, AddMode::DirectPage, 3};
 	opTable[0x86] = {"STX", &CPU::STX, AddMode::DirectPage, 3};
-	opTable[0x87] = {"STA", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x87] = {"STA", &CPU::STA, AddMode::DirectPageIndirectLong, 6};
 	opTable[0x88] = {"DEY", &CPU::DEY, AddMode::Implied, 2};
 	opTable[0x89] = {"BIT", &CPU::BIT, AddMode::Immediate, 2};
 	opTable[0x8A] = {"TXA", &CPU::XXX, AddMode::Implied, 2};
@@ -178,24 +178,24 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x8C] = {"STY", &CPU::STY, AddMode::Absolute, 4};
 	opTable[0x8D] = {"STA", &CPU::STA, AddMode::Absolute, 4};
 	opTable[0x8E] = {"STX", &CPU::STX, AddMode::Absolute, 4};
-	opTable[0x8F] = {"STA", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x8F] = {"STA", &CPU::STA, AddMode::AbsoluteLong, 5};
 
 	opTable[0x90] = {"BCC", &CPU::BCC, AddMode::Implied, 2};
-	opTable[0x91] = {"STA", &CPU::XXX, AddMode::Implied, 6};
-	opTable[0x92] = {"STA", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0x93] = {"STA", &CPU::XXX, AddMode::Implied, 7};
-	opTable[0x94] = {"STY", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0x95] = {"STA", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0x96] = {"STX", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0x97] = {"STA", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x91] = {"STA", &CPU::STA, AddMode::DirectPageIndirectIndexedY, 6};
+	opTable[0x92] = {"STA", &CPU::STA, AddMode::DirectPageIndirect, 5};
+	opTable[0x93] = {"STA", &CPU::STA, AddMode::StackRelativeIndirectIndexedY, 7};
+	opTable[0x94] = {"STY", &CPU::STY, AddMode::DirectPageIndexedX, 4};
+	opTable[0x95] = {"STA", &CPU::STA, AddMode::DirectPageIndexedX, 4};
+	opTable[0x96] = {"STX", &CPU::STX, AddMode::DirectPageIndexedY, 4};
+	opTable[0x97] = {"STA", &CPU::STA, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0x98] = {"TYA", &CPU::XXX, AddMode::Implied, 2};
-	opTable[0x99] = {"STA", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x99] = {"STA", &CPU::STA, AddMode::AbsoluteIndexedY, 5};
 	opTable[0x9A] = {"TXS", &CPU::TXS, AddMode::Implied, 2};
 	opTable[0x9B] = {"TXY", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x9C] = {"STZ", &CPU::STZ, AddMode::Absolute, 4};
-	opTable[0x9D] = {"STA", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0x9E] = {"STZ", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0x9F] = {"STA", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x9D] = {"STA", &CPU::STA, AddMode::AbsoluteIndexedX, 5};
+	opTable[0x9E] = {"STZ", &CPU::STZ, AddMode::AbsoluteIndexedX, 5};
+	opTable[0x9F] = {"STA", &CPU::STA, AddMode::AbsoluteLongIndexedX, 5};
 
 	opTable[0xA0] = {"LDY", &CPU::LDY, AddMode::Immediate, 2};
 	opTable[0xA1] = {"LDA", &CPU::LDA, AddMode::DirectPageIndirectX, 6};
@@ -205,9 +205,9 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xA5] = {"LDA", &CPU::LDA, AddMode::DirectPage, 3};
 	opTable[0xA6] = {"LDX", &CPU::LDX, AddMode::DirectPage, 3};
 	opTable[0xA7] = {"LDA", &CPU::LDA, AddMode::DirectPageIndirectLong, 6};
-	opTable[0xA8] = {"TAY", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0xA8] = {"TAY", &CPU::TAY, AddMode::Implied, 2};
 	opTable[0xA9] = {"LDA", &CPU::LDA, AddMode::Immediate, 2};
-	opTable[0xAA] = {"TAX", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0xAA] = {"TAX", &CPU::TAX, AddMode::Implied, 2};
 	opTable[0xAB] = {"PLB", &CPU::PLB, AddMode::Implied, 4};
 	opTable[0xAC] = {"LDY", &CPU::LDY, AddMode::Absolute, 4};
 	opTable[0xAD] = {"LDA", &CPU::LDA, AddMode::Absolute, 4};
@@ -224,8 +224,8 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xB7] = {"LDA", &CPU::LDA, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0xB8] = {"CLV", &CPU::CLV, AddMode::Implied, 2};
 	opTable[0xB9] = {"LDA", &CPU::LDA, AddMode::AbsoluteIndexedY, 4};
-	opTable[0xBA] = {"TSX", &CPU::XXX, AddMode::Implied, 2};
-	opTable[0xBB] = {"TYX", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0xBA] = {"TSX", &CPU::TSX, AddMode::Implied, 2};
+	opTable[0xBB] = {"TYX", &CPU::TYX, AddMode::Implied, 2};
 	opTable[0xBC] = {"LDY", &CPU::LDY, AddMode::AbsoluteIndexedX, 4};
 	opTable[0xBD] = {"LDA", &CPU::LDA, AddMode::AbsoluteIndexedX, 4};
 	opTable[0xBE] = {"LDX", &CPU::LDX, AddMode::AbsoluteIndexedY, 4};
@@ -292,7 +292,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xF7] = {"SBC", &CPU::XXX, AddMode::Implied, 6};
 	opTable[0xF8] = {"SED", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0xF9] = {"SBC", &CPU::XXX, AddMode::Implied, 4};
-	opTable[0xFA] = {"PLX", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0xFA] = {"PLX", &CPU::PLX, AddMode::Implied, 4};
 	opTable[0xFB] = {"XCE", &CPU::XCE, AddMode::Implied, 2};
 	opTable[0xFC] = {"JSR", &CPU::JSR, AddMode::AbsoluteIndexedIndirectX, 8};
 	opTable[0xFD] = {"SBC", &CPU::XXX, AddMode::Implied, 4};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 5513;
+int logfileMaxSize = 12956;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/LSR/TestLSR.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/STR/TestSTR.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -671,6 +671,7 @@ uint8_t CPU::FetchValue(AddMode addMode, bool is16Bits) {
 		}
 
 		default:
+			assert(false && "No read addressing mode");
 			return 0;
 	}
 }
@@ -779,7 +780,7 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits, bool rea
 		{
 			uint8_t extraCycles = 0;
 			if (!read) {
-				extraCycles = DirectPage();
+				extraCycles = DirectPageIndexedX();
 			}
 			WriteMemory(fetchAddress, value);
 			if (is16Bits) {
@@ -788,7 +789,21 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits, bool rea
 			}
 			return extraCycles;
 		}
-		
+	
+		case AddMode::DirectPageIndexedY:
+		{
+			uint8_t extraCycles = 0;
+			if (!read) {
+				extraCycles = DirectPageIndexedY();
+			}
+			WriteMemory(fetchAddress, value);
+			if (is16Bits) {
+				extraCycles++;
+				WriteMemory((fetchAddress + 1) & 0xFFFF, value >> 8);
+			}
+			return extraCycles;
+		}
+
 		case AddMode::DirectPageIndirect:
 		{
 			uint8_t extraCycles = 0;
@@ -887,6 +902,7 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits, bool rea
 		}
 
 		default:
+			assert(false && "No write addressing mode");
 			return 0;
 	}
 }
@@ -1737,6 +1753,12 @@ uint8_t CPU::PHA() {
 	return extraCycles;
 }
 
+uint8_t CPU::PHD() {
+	PushStack(regs.DP >> 8);
+	PushStack(regs.DP);
+	return 0;
+}
+
 uint8_t CPU::PHK() {
 	PushStack(regs.PB);
 	return 0;
@@ -1776,6 +1798,32 @@ uint8_t CPU::PLB() {
 	regs.DB = PullStack();
 	CheckZFlag8Bits(regs.DB);
 	CheckNFlag8Bits(regs.DB);
+	return 0;
+}
+
+uint8_t CPU::PLX() {
+	regs.X.L = PullStack();
+	if (!(regs.P & XFlag)) {
+		regs.X.HL |= PullStack() << 8;
+		CheckNFlag16Bits(regs.X.HL);
+		CheckZFlag16Bits(regs.X.HL);
+		return 1;
+	}
+	CheckZFlag8Bits(regs.X.L);
+	CheckNFlag8Bits(regs.X.L);
+	return 0;
+}
+
+uint8_t CPU::PLY() {
+	regs.Y.L = PullStack();
+	if (!(regs.P & XFlag)) {
+		regs.Y.HL |= PullStack() << 8;
+		CheckNFlag16Bits(regs.Y.HL);
+		CheckZFlag16Bits(regs.Y.HL);
+		return 1;
+	}
+	CheckZFlag8Bits(regs.Y.L);
+	CheckNFlag8Bits(regs.Y.L);
 	return 0;
 }
 
@@ -1866,11 +1914,57 @@ uint8_t CPU::STZ() {
 	return extraCycles;
 }
 
+uint8_t CPU::TAX() {
+	if (regs.P & XFlag) {
+		regs.X.L = regs.A.L;
+		CheckNFlag8Bits(regs.X.L);
+		CheckZFlag8Bits(regs.X.L);
+	} else {
+		regs.X.HL = regs.A.HL;
+		CheckNFlag16Bits(regs.X.HL);
+		CheckZFlag16Bits(regs.X.HL);
+	}
+
+	return 0;
+}
+
+uint8_t CPU::TAY() {
+	if (regs.P & XFlag) {
+		regs.Y.L = regs.A.L;
+		CheckNFlag8Bits(regs.Y.L);
+		CheckZFlag8Bits(regs.Y.L);
+	} else {
+		regs.Y.HL = regs.A.HL;
+		CheckNFlag16Bits(regs.Y.HL);
+		CheckZFlag16Bits(regs.Y.HL);
+	}
+
+	return 0;
+}
+
 uint8_t CPU::TCD() {
 	regs.DP = regs.A.HL;
 
 	CheckNFlag16Bits(regs.DP);
 	CheckZFlag16Bits(regs.DP);
+
+	return 0;
+}
+
+uint8_t CPU::TCS() {
+	regs.SP = regs.A.HL;
+
+	CheckNFlag16Bits(regs.SP);
+	CheckZFlag16Bits(regs.SP);
+
+	return 0;
+}
+
+uint8_t CPU::TDC() {
+	regs.A.HL = regs.DP;
+
+	CheckNFlag16Bits(regs.A.HL);
+	CheckZFlag16Bits(regs.A.HL);
 
 	return 0;
 }
@@ -1907,11 +2001,93 @@ uint8_t CPU::TSB() {
 	return extraCycles;
 }
 
+uint8_t CPU::TSC() {
+	regs.A.HL = regs.SP;
+
+	CheckNFlag16Bits(regs.A.HL);
+	CheckZFlag16Bits(regs.A.HL);
+
+	return 0;
+}
+
+uint8_t CPU::TSX() {
+	if (regs.P & XFlag) {
+		regs.X.HL = regs.SP & 0xFF;
+		CheckNFlag8Bits(regs.X.L);
+		CheckZFlag8Bits(regs.X.L);
+	} else {
+		regs.X.HL = regs.SP;
+		CheckNFlag16Bits(regs.X.HL);
+		CheckZFlag16Bits(regs.X.HL);
+	}
+	return 0;
+}
+
+uint8_t CPU::TXA() {
+	if (regs.P & MFlag) {
+		regs.A.L = regs.X.L;
+		CheckNFlag8Bits(regs.A.L);
+		CheckZFlag8Bits(regs.A.L);
+	} else {
+		if (regs.P & XFlag) {
+			regs.A.HL = regs.X.HL & 0xFF;
+		} else {
+			regs.A.HL = regs.X.HL;
+		}
+		CheckNFlag16Bits(regs.A.HL);
+		CheckZFlag16Bits(regs.A.HL);
+	}
+	return 0;
+}
+
 uint8_t CPU::TXS() {
 	regs.SP = regs.X.HL;
 	if (emulationMode) {
 		regs.SP &= 0xFF;
 		regs.SP |= 0x01FF;
+	}
+	return 0;
+}
+
+uint8_t CPU::TXY() {
+	if (regs.P & XFlag) {
+		regs.Y.L = regs.X.L;
+		CheckNFlag8Bits(regs.Y.L);
+		CheckZFlag8Bits(regs.Y.L);
+	} else {
+		regs.Y.HL = regs.X.HL;
+		CheckNFlag16Bits(regs.Y.HL);
+		CheckZFlag16Bits(regs.Y.HL);
+	}
+	return 0;
+}
+
+uint8_t CPU::TYA() {
+	if (regs.P & MFlag) {
+		regs.A.L = regs.Y.L;
+		CheckNFlag8Bits(regs.A.L);
+		CheckZFlag8Bits(regs.A.L);
+	} else {
+		if (regs.P & XFlag) {
+			regs.A.HL = regs.Y.HL & 0xFF;
+		} else {
+			regs.A.HL = regs.Y.HL;
+		}
+		CheckNFlag16Bits(regs.A.HL);
+		CheckZFlag16Bits(regs.A.HL);
+	}
+	return 0;
+}
+
+uint8_t CPU::TYX() {
+	if (regs.P & XFlag) {
+		regs.X.L = regs.Y.L;
+		CheckNFlag8Bits(regs.X.L);
+		CheckZFlag8Bits(regs.X.L);
+	} else {
+		regs.X.HL = regs.Y.HL;
+		CheckNFlag16Bits(regs.X.HL);
+		CheckZFlag16Bits(regs.X.HL);
 	}
 	return 0;
 }
