@@ -101,7 +101,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x43] = {"EOR", &CPU::EOR, AddMode::StackRelative, 4};
 	opTable[0x44] = {"MVP", &CPU::XXX, AddMode::Implied, 0};
 	opTable[0x45] = {"EOR", &CPU::EOR, AddMode::DirectPage, 3};
-	opTable[0x46] = {"LSR", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x46] = {"LSR", &CPU::LSR, AddMode::DirectPage, 5};
 	opTable[0x47] = {"EOR", &CPU::EOR, AddMode::DirectPageIndirectLong, 6};
 	opTable[0x48] = {"PHA", &CPU::PHA, AddMode::Implied, 3};
 	opTable[0x49] = {"EOR", &CPU::EOR, AddMode::Immediate, 2};
@@ -109,7 +109,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x4B] = {"PHK", &CPU::PHK, AddMode::Implied, 3};
 	opTable[0x4C] = {"JMP", &CPU::JMP, AddMode::Absolute, 3};
 	opTable[0x4D] = {"EOR", &CPU::EOR, AddMode::Absolute, 4};
-	opTable[0x4E] = {"LSR", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x4E] = {"LSR", &CPU::LSR, AddMode::Absolute, 6};
 	opTable[0x4F] = {"EOR", &CPU::EOR, AddMode::AbsoluteLong, 5};
 
 	opTable[0x50] = {"BVC", &CPU::BVC, AddMode::Implied, 2};
@@ -118,7 +118,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x53] = {"EOR", &CPU::EOR, AddMode::StackRelativeIndirectIndexedY, 7};
 	opTable[0x54] = {"MVN", &CPU::XXX, AddMode::Implied, 0};
 	opTable[0x55] = {"EOR", &CPU::EOR, AddMode::DirectPageIndexedX, 4};
-	opTable[0x56] = {"LSR", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x56] = {"LSR", &CPU::LSR, AddMode::DirectPageIndexedX, 6};
 	opTable[0x57] = {"EOR", &CPU::EOR, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0x58] = {"CLI", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x59] = {"EOR", &CPU::EOR, AddMode::AbsoluteIndexedY, 4};
@@ -126,7 +126,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x5B] = {"TCD", &CPU::TCD, AddMode::Implied, 2};
 	opTable[0x5C] = {"JML", &CPU::JML, AddMode::AbsoluteLong, 4};
 	opTable[0x5D] = {"EOR", &CPU::EOR, AddMode::AbsoluteIndexedX, 4};
-	opTable[0x5E] = {"LSR", &CPU::XXX, AddMode::Implied, 7};
+	opTable[0x5E] = {"LSR", &CPU::LSR, AddMode::AbsoluteIndexedX, 7};
 	opTable[0x5F] = {"EOR", &CPU::EOR, AddMode::AbsoluteLongIndexedX, 5};
 
 	opTable[0x60] = {"RTS", &CPU::RTS, AddMode::Implied, 6};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 21147;
+int logfileMaxSize = 5513;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/LDR/TestLDR.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/LSR/TestLSR.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
