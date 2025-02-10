@@ -135,15 +135,15 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x63] = {"ADC", &CPU::ADC, AddMode::StackRelative, 4};
 	opTable[0x64] = {"STZ", &CPU::STZ, AddMode::DirectPage, 3};
 	opTable[0x65] = {"ADC", &CPU::ADC, AddMode::DirectPage, 3};
-	opTable[0x66] = {"ROR", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x66] = {"ROR", &CPU::ROR, AddMode::DirectPage, 5};
 	opTable[0x67] = {"ADC", &CPU::ADC, AddMode::DirectPageIndirectLong, 6};
 	opTable[0x68] = {"PLA", &CPU::PLA, AddMode::Implied, 4};
 	opTable[0x69] = {"ADC", &CPU::ADC, AddMode::Immediate, 2};
-	opTable[0x6A] = {"ROR", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0x6A] = {"ROR", &CPU::ROR, AddMode::Implied, 2};
 	opTable[0x6B] = {"RTL", &CPU::RTL, AddMode::Implied, 6};
 	opTable[0x6C] = {"JMP", &CPU::JMP, AddMode::AbsoluteIndirect, 5};
 	opTable[0x6D] = {"ADC", &CPU::ADC, AddMode::Absolute, 4};
-	opTable[0x6E] = {"ROR", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x6E] = {"ROR", &CPU::ROR, AddMode::Absolute, 6};
 	opTable[0x6F] = {"ADC", &CPU::ADC, AddMode::AbsoluteLong, 5};
 
 	opTable[0x70] = {"BVS", &CPU::BVS, AddMode::Implied, 2};
@@ -152,7 +152,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x73] = {"ADC", &CPU::ADC, AddMode::StackRelativeIndirectIndexedY, 7};
 	opTable[0x74] = {"STZ", &CPU::STZ, AddMode::DirectPageIndexedX, 4};
 	opTable[0x75] = {"ADC", &CPU::ADC, AddMode::DirectPageIndexedX, 4};
-	opTable[0x76] = {"ROR", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x76] = {"ROR", &CPU::ROR, AddMode::DirectPageIndexedX, 6};
 	opTable[0x77] = {"ADC", &CPU::ADC, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0x78] = {"SEI", &CPU::SEI, AddMode::Implied, 2};
 	opTable[0x79] = {"ADC", &CPU::ADC, AddMode::AbsoluteIndexedY, 4};
@@ -160,7 +160,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x7B] = {"TDC", &CPU::TDC, AddMode::Implied, 2};
 	opTable[0x7C] = {"JMP", &CPU::JMP, AddMode::AbsoluteIndexedIndirectX, 6};
 	opTable[0x7D] = {"ADC", &CPU::ADC, AddMode::AbsoluteIndexedX, 4};
-	opTable[0x7E] = {"ROR", &CPU::XXX, AddMode::Implied, 7};
+	opTable[0x7E] = {"ROR", &CPU::ROR, AddMode::AbsoluteIndexedX, 7};
 	opTable[0x7F] = {"ADC", &CPU::ADC, AddMode::AbsoluteLongIndexedX, 5};
 
 	opTable[0x80] = {"BRA", &CPU::BRA, AddMode::Implied, 3};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 5503;
+int logfileMaxSize = 5508;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/ROL/TestROL.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/ROR/TestROR.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -1862,6 +1862,37 @@ uint8_t CPU::ROL() {
 		CheckZFlag16Bits(fetched);
 	}
 
+	extraCycles += WriteValue(opTable[opcode].addMode, fetched, !(regs.P & MFlag), true);
+
+	return extraCycles;
+}
+
+uint8_t CPU::ROR() {
+	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & MFlag));
+	bool hasCarry = fetched & 0x01;
+	if (regs.P & MFlag) {
+		if (regs.P & CFlag) {
+			fetched = (fetched >> 1) | 0x80;
+		} else {
+			fetched = fetched >> 1;
+		}
+		fetched &= 0xFF;
+
+		CheckNFlag8Bits(fetched);
+		CheckZFlag8Bits(fetched);
+	} else {
+		if (regs.P & CFlag) {
+			fetched = (fetched >> 1) | 0x8000;
+		} else {
+			fetched = fetched >> 1;
+		}
+		fetched &= 0xFFFF;
+
+		CheckNFlag16Bits(fetched);
+		CheckZFlag16Bits(fetched);
+	}
+
+	SetFlag(CFlag, hasCarry);
 	extraCycles += WriteValue(opTable[opcode].addMode, fetched, !(regs.P & MFlag), true);
 
 	return extraCycles;
