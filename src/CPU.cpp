@@ -266,38 +266,38 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xDF] = {"CMP", &CPU::CMP, AddMode::AbsoluteLongIndexedX, 5};
 
 	opTable[0xE0] = {"CPX", &CPU::CPX, AddMode::Immediate, 2};
-	opTable[0xE1] = {"SBC", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0xE1] = {"SBC", &CPU::SBC, AddMode::DirectPageIndirectX, 6};
 	opTable[0xE2] = {"SEP", &CPU::SEP, AddMode::Immediate, 3};
-	opTable[0xE3] = {"SBC", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0xE3] = {"SBC", &CPU::SBC, AddMode::StackRelative, 4};
 	opTable[0xE4] = {"CPX", &CPU::CPX, AddMode::DirectPage, 3};
-	opTable[0xE5] = {"SBC", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0xE5] = {"SBC", &CPU::SBC, AddMode::DirectPage, 3};
 	opTable[0xE6] = {"INC", &CPU::INC, AddMode::DirectPage, 5};
-	opTable[0xE7] = {"SBC", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0xE7] = {"SBC", &CPU::SBC, AddMode::DirectPageIndirectLong, 6};
 	opTable[0xE8] = {"INX", &CPU::INX, AddMode::Implied, 2};
-	opTable[0xE9] = {"SBC", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0xE9] = {"SBC", &CPU::SBC, AddMode::Immediate, 2};
 	opTable[0xEA] = {"NOP", &CPU::NOP, AddMode::Implied, 2};
 	opTable[0xEB] = {"XBA", &CPU::XXX, AddMode::Implied, 3};
 	opTable[0xEC] = {"CPX", &CPU::CPX, AddMode::Absolute, 4};
-	opTable[0xED] = {"SBC", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0xED] = {"SBC", &CPU::SBC, AddMode::Absolute, 4};
 	opTable[0xEE] = {"INC", &CPU::INC, AddMode::Absolute, 6};
-	opTable[0xEF] = {"SBC", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0xEF] = {"SBC", &CPU::SBC, AddMode::AbsoluteLong, 5};
 
 	opTable[0xF0] = {"BEQ", &CPU::BEQ, AddMode::Implied, 2};
-	opTable[0xF1] = {"SBC", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0xF2] = {"SBC", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0xF3] = {"SBC", &CPU::XXX, AddMode::Implied, 7};
+	opTable[0xF1] = {"SBC", &CPU::SBC, AddMode::DirectPageIndirectIndexedY, 5};
+	opTable[0xF2] = {"SBC", &CPU::SBC, AddMode::DirectPageIndirect, 5};
+	opTable[0xF3] = {"SBC", &CPU::SBC, AddMode::StackRelativeIndirectIndexedY, 7};
 	opTable[0xF4] = {"PEA", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0xF5] = {"SBC", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0xF5] = {"SBC", &CPU::SBC, AddMode::DirectPageIndexedX, 4};
 	opTable[0xF6] = {"INC", &CPU::INC, AddMode::DirectPageIndexedX, 6};
-	opTable[0xF7] = {"SBC", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0xF7] = {"SBC", &CPU::SBC, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0xF8] = {"SED", &CPU::XXX, AddMode::Implied, 2};
-	opTable[0xF9] = {"SBC", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0xF9] = {"SBC", &CPU::SBC, AddMode::AbsoluteIndexedY, 4};
 	opTable[0xFA] = {"PLX", &CPU::PLX, AddMode::Implied, 4};
 	opTable[0xFB] = {"XCE", &CPU::XCE, AddMode::Implied, 2};
 	opTable[0xFC] = {"JSR", &CPU::JSR, AddMode::AbsoluteIndexedIndirectX, 8};
-	opTable[0xFD] = {"SBC", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0xFD] = {"SBC", &CPU::SBC, AddMode::AbsoluteIndexedX, 4};
 	opTable[0xFE] = {"INC", &CPU::INC, AddMode::AbsoluteIndexedX, 7};
-	opTable[0xFF] = {"SBC", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0xFF] = {"SBC", &CPU::SBC, AddMode::AbsoluteLongIndexedX, 5};
 }
 
 int CPU::Clock() {
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 2013;
+int logfileMaxSize = 22850;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/RET/TestRET.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/SBC/TestSBC.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -1860,6 +1860,91 @@ uint8_t CPU::RTS() {
 	regs.PC++;
 
 	return 0;
+}
+
+uint8_t CPU::SBC() {
+	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & MFlag));
+	uint8_t carry = (regs.P & CFlag) ? 0 : 1;
+	if (regs.P & MFlag) {
+		// Decimal Mode
+		if (regs.P & DFlag) {
+			uint16_t result = (regs.A.L & 0x0F) - (fetched & 0x0F) - carry;
+			if (result > 0x09) {
+				result -= 0x06;
+			}
+			carry = (result > 0x0F) ? 1 : 0;
+
+			result = (regs.A.L & 0xF0) - (fetched & 0xF0) - (carry << 4) + (result & 0x0F);
+			SetFlag(VFlag, (int16_t)result < -128 || (int16_t)result > 127);
+			if (result > 0x9F) {
+				result -= 0x60;
+			}
+
+			CheckNFlag8Bits(result);
+			CheckZFlag8Bits(result);
+			SetFlag(CFlag, (uint8_t)result < regs.A.L);
+
+			regs.A.L = result;
+
+		} else {
+			uint8_t result = regs.A.L - fetched - carry;
+			CheckNFlag8Bits(result);
+			CheckZFlag8Bits(result);
+
+			SetFlag(CFlag, result < regs.A.L);
+
+			SetFlag(VFlag, (int8_t)result < -128 || result > 127);
+
+			regs.A.L = result;
+		}
+	} else {
+		// Decimal Mode
+		if (regs.P & DFlag) {
+			uint32_t result = (regs.A.HL & 0x000F) - (fetched & 0x000F) - carry;
+			if (result > 0x0009) {
+				result -= 0x0006;
+			}
+			carry = (result > 0x000F) ? 1 : 0;
+
+			result = (regs.A.HL & 0x00F0) - (fetched & 0x00F0) - (carry << 4) + (result & 0x000F);
+			if (result > 0x009F) {
+				result -= 0x0060;
+			}
+			carry = (result > 0x00FF) ? 1 : 0;
+
+			result = (regs.A.HL & 0x0F00) - (fetched & 0x0F00) - (carry << 8) + (result & 0x00FF);
+			if (result > 0x09FF) {
+				result -= 0x0600;
+			}
+			carry = (result > 0x0FFF) ? 1 : 0;
+
+			result = (regs.A.HL & 0xF000) - (fetched & 0xF000) - (carry << 12) + (result & 0x0FFF);
+			SetFlag(VFlag, (int32_t)result < -32768 || (int32_t)result > 32767);
+			if (result > 0x9FFF) {
+				result -= 0x6000;
+			}
+
+			CheckNFlag16Bits(result);
+			CheckZFlag16Bits(result);
+			SetFlag(CFlag, (uint16_t)result < regs.A.HL);
+
+			regs.A.HL = result;
+
+		} else {
+			uint16_t result = regs.A.HL - fetched - carry;
+			CheckNFlag16Bits(result);
+			CheckZFlag16Bits(result);
+
+			SetFlag(CFlag, result < regs.A.HL);
+
+			SetFlag(VFlag, (int16_t)result < -32768 || result > 32767);
+
+			regs.A.HL = result;
+		}
+	}
+
+	return extraCycles;
+
 }
 
 uint8_t CPU::SEC() {

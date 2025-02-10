@@ -194,6 +194,7 @@ class CPU {
 		uint8_t RTI();
 		uint8_t RTL();
 		uint8_t RTS();
+		uint8_t SBC();
 		uint8_t SEC();
 		uint8_t SEI();
 		uint8_t SEP();
