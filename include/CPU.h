@@ -191,6 +191,7 @@ class CPU {
 		uint8_t PLX();
 		uint8_t PLY();
 		uint8_t REP();
+		uint8_t ROL();
 		uint8_t RTI();
 		uint8_t RTL();
 		uint8_t RTS();

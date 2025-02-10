@@ -67,15 +67,15 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x23] = {"AND", &CPU::AND, AddMode::StackRelative, 4};
 	opTable[0x24] = {"BIT", &CPU::BIT, AddMode::DirectPage, 3};
 	opTable[0x25] = {"AND", &CPU::AND, AddMode::DirectPage, 3};
-	opTable[0x26] = {"ROL", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x26] = {"ROL", &CPU::ROL, AddMode::DirectPage, 5};
 	opTable[0x27] = {"AND", &CPU::AND, AddMode::DirectPageIndirectLong, 6};
 	opTable[0x28] = {"PLP", &CPU::XXX, AddMode::Implied, 4};
 	opTable[0x29] = {"AND", &CPU::AND, AddMode::Immediate, 2};
-	opTable[0x2A] = {"ROL", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0x2A] = {"ROL", &CPU::ROL, AddMode::Implied, 2};
 	opTable[0x2B] = {"PLD", &CPU::XXX, AddMode::Implied, 5};
 	opTable[0x2C] = {"BIT", &CPU::BIT, AddMode::Absolute, 4};
 	opTable[0x2D] = {"AND", &CPU::AND, AddMode::Absolute, 4};
-	opTable[0x2E] = {"ROL", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x2E] = {"ROL", &CPU::ROL, AddMode::Absolute, 6};
 	opTable[0x2F] = {"AND", &CPU::AND, AddMode::AbsoluteLong, 5};
 
 	opTable[0x30] = {"BMI", &CPU::BMI, AddMode::Implied, 2};
@@ -84,7 +84,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x33] = {"AND", &CPU::AND, AddMode::StackRelativeIndirectIndexedY, 7};
 	opTable[0x34] = {"BIT", &CPU::BIT, AddMode::DirectPageIndexedX, 4};
 	opTable[0x35] = {"AND", &CPU::AND, AddMode::DirectPageIndexedX, 4};
-	opTable[0x36] = {"ROL", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x36] = {"ROL", &CPU::ROL, AddMode::DirectPageIndexedX, 6};
 	opTable[0x37] = {"AND", &CPU::AND, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0x38] = {"SEC", &CPU::SEC, AddMode::Implied, 2};
 	opTable[0x39] = {"AND", &CPU::AND, AddMode::AbsoluteIndexedY, 4};
@@ -92,7 +92,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x3B] = {"TSC", &CPU::TSC, AddMode::Implied, 2};
 	opTable[0x3C] = {"BIT", &CPU::BIT, AddMode::AbsoluteIndexedX, 4};
 	opTable[0x3D] = {"AND", &CPU::AND, AddMode::AbsoluteIndexedX, 4};
-	opTable[0x3E] = {"ROL", &CPU::XXX, AddMode::Implied, 7};
+	opTable[0x3E] = {"ROL", &CPU::ROL, AddMode::AbsoluteIndexedX, 7};
 	opTable[0x3F] = {"AND", &CPU::AND, AddMode::AbsoluteLongIndexedX, 5};
 
 	opTable[0x40] = {"RTI", &CPU::RTI, AddMode::Implied, 6};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 22850;
+int logfileMaxSize = 5503;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/SBC/TestSBC.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/ROL/TestROL.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -1831,6 +1831,40 @@ uint8_t CPU::REP() {
 	regs.P &= ~fetched;
 
 	return 0;
+}
+
+uint8_t CPU::ROL() {
+	uint8_t extraCycles = FetchValue(opTable[opcode].addMode, !(regs.P & MFlag));
+
+	if (regs.P & MFlag) {
+		bool hasCarry = fetched & 0x80;
+		if (regs.P & CFlag) {
+			fetched = (fetched << 1) + 1;
+		} else {
+			fetched = fetched << 1;
+		}
+		fetched &= 0xFF;
+
+		SetFlag(CFlag, hasCarry);
+		CheckNFlag8Bits(fetched);
+		CheckZFlag8Bits(fetched);
+	} else {
+		bool hasCarry = fetched & 0x8000;
+		if (regs.P & CFlag) {
+			fetched = (fetched << 1) + 1;
+		} else {
+			fetched = fetched << 1;
+		}
+		fetched &= 0xFFFF;
+
+		SetFlag(CFlag, hasCarry);
+		CheckNFlag16Bits(fetched);
+		CheckZFlag16Bits(fetched);
+	}
+
+	extraCycles += WriteValue(opTable[opcode].addMode, fetched, !(regs.P & MFlag), true);
+
+	return extraCycles;
 }
 
 uint8_t CPU::RTI() {
