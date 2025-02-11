@@ -69,10 +69,10 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x25] = {"AND", &CPU::AND, AddMode::DirectPage, 3};
 	opTable[0x26] = {"ROL", &CPU::ROL, AddMode::DirectPage, 5};
 	opTable[0x27] = {"AND", &CPU::AND, AddMode::DirectPageIndirectLong, 6};
-	opTable[0x28] = {"PLP", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x28] = {"PLP", &CPU::PLP, AddMode::Implied, 4};
 	opTable[0x29] = {"AND", &CPU::AND, AddMode::Immediate, 2};
 	opTable[0x2A] = {"ROL", &CPU::ROL, AddMode::Implied, 2};
-	opTable[0x2B] = {"PLD", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x2B] = {"PLD", &CPU::PLD, AddMode::Implied, 5};
 	opTable[0x2C] = {"BIT", &CPU::BIT, AddMode::Absolute, 4};
 	opTable[0x2D] = {"AND", &CPU::AND, AddMode::Absolute, 4};
 	opTable[0x2E] = {"ROL", &CPU::ROL, AddMode::Absolute, 6};
@@ -122,7 +122,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x57] = {"EOR", &CPU::EOR, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0x58] = {"CLI", &CPU::XXX, AddMode::Implied, 2};
 	opTable[0x59] = {"EOR", &CPU::EOR, AddMode::AbsoluteIndexedY, 4};
-	opTable[0x5A] = {"PHY", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0x5A] = {"PHY", &CPU::PHY, AddMode::Implied, 3};
 	opTable[0x5B] = {"TCD", &CPU::TCD, AddMode::Implied, 2};
 	opTable[0x5C] = {"JML", &CPU::JML, AddMode::AbsoluteLong, 4};
 	opTable[0x5D] = {"EOR", &CPU::EOR, AddMode::AbsoluteIndexedX, 4};
@@ -131,7 +131,7 @@ CPU::CPU(SupaNES* supaNes) {
 
 	opTable[0x60] = {"RTS", &CPU::RTS, AddMode::Implied, 6};
 	opTable[0x61] = {"ADC", &CPU::ADC, AddMode::DirectPageIndirectX, 6};
-	opTable[0x62] = {"PER", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x62] = {"PER", &CPU::PER, AddMode::Implied, 6};
 	opTable[0x63] = {"ADC", &CPU::ADC, AddMode::StackRelative, 4};
 	opTable[0x64] = {"STZ", &CPU::STZ, AddMode::DirectPage, 3};
 	opTable[0x65] = {"ADC", &CPU::ADC, AddMode::DirectPage, 3};
@@ -174,7 +174,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x88] = {"DEY", &CPU::DEY, AddMode::Implied, 2};
 	opTable[0x89] = {"BIT", &CPU::BIT, AddMode::Immediate, 2};
 	opTable[0x8A] = {"TXA", &CPU::XXX, AddMode::Implied, 2};
-	opTable[0x8B] = {"PHB", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0x8B] = {"PHB", &CPU::PHB, AddMode::Implied, 3};
 	opTable[0x8C] = {"STY", &CPU::STY, AddMode::Absolute, 4};
 	opTable[0x8D] = {"STA", &CPU::STA, AddMode::Absolute, 4};
 	opTable[0x8E] = {"STX", &CPU::STX, AddMode::Absolute, 4};
@@ -252,7 +252,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xD1] = {"CMP", &CPU::CMP, AddMode::DirectPageIndirectIndexedY, 5};
 	opTable[0xD2] = {"CMP", &CPU::CMP, AddMode::DirectPageIndirect, 5};
 	opTable[0xD3] = {"CMP", &CPU::CMP, AddMode::StackRelativeIndirectIndexedY, 7};
-	opTable[0xD4] = {"PEI", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0xD4] = {"PEI", &CPU::PEI, AddMode::Implied, 6};
 	opTable[0xD5] = {"CMP", &CPU::CMP, AddMode::DirectPageIndexedX, 4};
 	opTable[0xD6] = {"DEC", &CPU::DEC, AddMode::DirectPageIndexedX, 6};
 	opTable[0xD7] = {"CMP", &CPU::CMP, AddMode::DirectPageIndirectLongIndexedY, 6};
@@ -286,7 +286,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xF1] = {"SBC", &CPU::SBC, AddMode::DirectPageIndirectIndexedY, 5};
 	opTable[0xF2] = {"SBC", &CPU::SBC, AddMode::DirectPageIndirect, 5};
 	opTable[0xF3] = {"SBC", &CPU::SBC, AddMode::StackRelativeIndirectIndexedY, 7};
-	opTable[0xF4] = {"PEA", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0xF4] = {"PEA", &CPU::PEA, AddMode::Implied, 5};
 	opTable[0xF5] = {"SBC", &CPU::SBC, AddMode::DirectPageIndexedX, 4};
 	opTable[0xF6] = {"INC", &CPU::INC, AddMode::DirectPageIndexedX, 6};
 	opTable[0xF7] = {"SBC", &CPU::SBC, AddMode::DirectPageIndirectLongIndexedY, 6};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 13442;
+int logfileMaxSize = 10097;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/ORA/TestORA.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/PHL/TestPHL.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -1741,6 +1741,28 @@ uint8_t CPU::ORA() {
 	return extraCycles;
 }
 
+uint8_t CPU::PEA() {
+	ABS();
+	PushStack(fetchAddress >> 8);
+	PushStack(fetchAddress);
+	return 0;
+}
+
+uint8_t CPU::PEI() {
+	uint8_t extraCycles = DirectPageIndirect();
+	PushStack(fetchAddress >> 8);
+	PushStack(fetchAddress);
+	return extraCycles;
+}
+
+uint8_t CPU::PER() {
+	ABS();
+	uint16_t value = regs.PC + fetchAddress;
+	PushStack(value >> 8);
+	PushStack(value);
+	return 0;
+}
+
 uint8_t CPU::PHA() {
 	uint8_t extraCycles = 0;
 	if (!(regs.P & MFlag)) {
@@ -1750,6 +1772,11 @@ uint8_t CPU::PHA() {
 	PushStack(regs.A.L);
 
 	return extraCycles;
+}
+
+uint8_t CPU::PHB() {
+	PushStack(regs.DB);
+	return 0;
 }
 
 uint8_t CPU::PHD() {
@@ -1777,12 +1804,23 @@ uint8_t CPU::PHX() {
 	PushStack(regs.X.L);
 
 	return extraCycles;
+}
 
+uint8_t CPU::PHY() {
+	uint8_t extraCycles = 0;
+	if (!(regs.P & XFlag)) {
+		extraCycles++;
+		PushStack(regs.Y.HL >> 8);
+	}
+	PushStack(regs.Y.L);
+
+	return extraCycles;
 }
 
 uint8_t CPU::PLA() {
 	regs.A.L = PullStack();
 	if (!(regs.P & MFlag)) {
+		regs.A.HL &= 0xFF;
 		regs.A.HL |= PullStack() << 8;
 		CheckNFlag16Bits(regs.A.HL);
 		CheckZFlag16Bits(regs.A.HL);
@@ -1800,9 +1838,23 @@ uint8_t CPU::PLB() {
 	return 0;
 }
 
+uint8_t CPU::PLD() {
+	regs.DP = PullStack();
+	regs.DP |= PullStack() << 8;
+	CheckNFlag16Bits(regs.DP);
+	CheckZFlag16Bits(regs.DP);
+	return 0;
+}
+
+uint8_t CPU::PLP() {
+	regs.P = PullStack();
+	return 0;
+}
+
 uint8_t CPU::PLX() {
 	regs.X.L = PullStack();
 	if (!(regs.P & XFlag)) {
+		regs.X.HL &= 0xFF;
 		regs.X.HL |= PullStack() << 8;
 		CheckNFlag16Bits(regs.X.HL);
 		CheckZFlag16Bits(regs.X.HL);
@@ -1816,6 +1868,7 @@ uint8_t CPU::PLX() {
 uint8_t CPU::PLY() {
 	regs.Y.L = PullStack();
 	if (!(regs.P & XFlag)) {
+		regs.Y.HL &= 0xFF;
 		regs.Y.HL |= PullStack() << 8;
 		CheckNFlag16Bits(regs.Y.HL);
 		CheckZFlag16Bits(regs.Y.HL);
