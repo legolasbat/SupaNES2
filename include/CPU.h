@@ -228,6 +228,7 @@ class CPU {
 		uint8_t TRB();
 		uint8_t TSB();
 		uint8_t TXS();
+		uint8_t XBA();
 		uint8_t XCE();
 		uint8_t XXX();
 };

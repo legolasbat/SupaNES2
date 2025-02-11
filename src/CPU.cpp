@@ -173,7 +173,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x87] = {"STA", &CPU::STA, AddMode::DirectPageIndirectLong, 6};
 	opTable[0x88] = {"DEY", &CPU::DEY, AddMode::Implied, 2};
 	opTable[0x89] = {"BIT", &CPU::BIT, AddMode::Immediate, 2};
-	opTable[0x8A] = {"TXA", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0x8A] = {"TXA", &CPU::TXA, AddMode::Implied, 2};
 	opTable[0x8B] = {"PHB", &CPU::PHB, AddMode::Implied, 3};
 	opTable[0x8C] = {"STY", &CPU::STY, AddMode::Absolute, 4};
 	opTable[0x8D] = {"STA", &CPU::STA, AddMode::Absolute, 4};
@@ -188,10 +188,10 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x95] = {"STA", &CPU::STA, AddMode::DirectPageIndexedX, 4};
 	opTable[0x96] = {"STX", &CPU::STX, AddMode::DirectPageIndexedY, 4};
 	opTable[0x97] = {"STA", &CPU::STA, AddMode::DirectPageIndirectLongIndexedY, 6};
-	opTable[0x98] = {"TYA", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0x98] = {"TYA", &CPU::TYA, AddMode::Implied, 2};
 	opTable[0x99] = {"STA", &CPU::STA, AddMode::AbsoluteIndexedY, 5};
 	opTable[0x9A] = {"TXS", &CPU::TXS, AddMode::Implied, 2};
-	opTable[0x9B] = {"TXY", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0x9B] = {"TXY", &CPU::TXY, AddMode::Implied, 2};
 	opTable[0x9C] = {"STZ", &CPU::STZ, AddMode::Absolute, 4};
 	opTable[0x9D] = {"STA", &CPU::STA, AddMode::AbsoluteIndexedX, 5};
 	opTable[0x9E] = {"STZ", &CPU::STZ, AddMode::AbsoluteIndexedX, 5};
@@ -276,7 +276,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xE8] = {"INX", &CPU::INX, AddMode::Implied, 2};
 	opTable[0xE9] = {"SBC", &CPU::SBC, AddMode::Immediate, 2};
 	opTable[0xEA] = {"NOP", &CPU::NOP, AddMode::Implied, 2};
-	opTable[0xEB] = {"XBA", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0xEB] = {"XBA", &CPU::XBA, AddMode::Implied, 3};
 	opTable[0xEC] = {"CPX", &CPU::CPX, AddMode::Absolute, 4};
 	opTable[0xED] = {"SBC", &CPU::SBC, AddMode::Absolute, 4};
 	opTable[0xEE] = {"INC", &CPU::INC, AddMode::Absolute, 6};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 2798;
+int logfileMaxSize = 15414;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/PSR/TestPSR.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/TRN/TestTRN.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -2183,9 +2183,6 @@ uint8_t CPU::TCD() {
 uint8_t CPU::TCS() {
 	regs.SP = regs.A.HL;
 
-	CheckNFlag16Bits(regs.SP);
-	CheckZFlag16Bits(regs.SP);
-
 	return 0;
 }
 
@@ -2321,14 +2318,33 @@ uint8_t CPU::TYX() {
 	return 0;
 }
 
+uint8_t CPU::XBA() {
+	uint8_t temp = regs.A.L;
+	regs.A.L = regs.A.HL >> 8;
+	regs.A.HL &= 0xFF;
+	regs.A.HL |= temp << 8;
+	CheckNFlag8Bits(regs.A.L);
+	CheckZFlag8Bits(regs.A.L);
+
+	return 0;
+}
+
 uint8_t CPU::XCE() {
 	if (emulationMode) {
 		SetFlag(CFlag, true);
 		emulationMode = false;
 	}
 	else {
-		printf("Trying to return to emulation mode.\n");
-		assert(false);
+		emulationMode = (regs.P & CFlag);
+		SetFlag(CFlag, false);
+		if (emulationMode) {
+			SetFlag(MFlag, true);
+			SetFlag(XFlag, true);
+			regs.SP &= 0xFF;
+			regs.SP |= 0x100;
+			regs.X.HL &= 0xFF;
+			regs.Y.HL &= 0xFF;
+		}
 	}
 	return 0;
 }
