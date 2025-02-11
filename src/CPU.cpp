@@ -28,38 +28,38 @@ CPU::CPU(SupaNES* supaNes) {
 	regs.P = 0x34;
 
 	opTable[0x00] = {"BRK", &CPU::BRK, AddMode::Implied, 7};
-	opTable[0x01] = {"ORA", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x01] = {"ORA", &CPU::ORA, AddMode::DirectPageIndirectX, 6};
 	opTable[0x02] = {"COP", &CPU::XXX, AddMode::Implied, 7};
 	opTable[0x03] = {"ORA", &CPU::ORA, AddMode::StackRelative, 4};
 	opTable[0x04] = {"TSB", &CPU::TSB, AddMode::DirectPage, 5};
-	opTable[0x05] = {"ORA", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0x05] = {"ORA", &CPU::ORA, AddMode::DirectPage, 3};
 	opTable[0x06] = {"ASL", &CPU::ASL, AddMode::DirectPage, 5};
-	opTable[0x07] = {"ORA", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x07] = {"ORA", &CPU::ORA, AddMode::DirectPageIndirectLong, 6};
 	opTable[0x08] = {"PHP", &CPU::PHP, AddMode::Implied, 3};
-	opTable[0x09] = {"ORA", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0x09] = {"ORA", &CPU::ORA, AddMode::Immediate, 2};
 	opTable[0x0A] = {"ASL", &CPU::ASL, AddMode::Implied, 2};
 	opTable[0x0B] = {"PHD", &CPU::PHD, AddMode::Implied, 4};
 	opTable[0x0C] = {"TSB", &CPU::TSB, AddMode::Absolute, 6};
-	opTable[0x0D] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x0D] = {"ORA", &CPU::ORA, AddMode::Absolute, 4};
 	opTable[0x0E] = {"ASL", &CPU::ASL, AddMode::Absolute, 6};
-	opTable[0x0F] = {"ORA", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x0F] = {"ORA", &CPU::ORA, AddMode::AbsoluteLong, 5};
 
 	opTable[0x10] = {"BPL", &CPU::BPL, AddMode::Implied, 2};
-	opTable[0x11] = {"ORA", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0x12] = {"ORA", &CPU::XXX, AddMode::Implied, 5};
-	opTable[0x13] = {"ORA", &CPU::XXX, AddMode::Implied, 7};
+	opTable[0x11] = {"ORA", &CPU::ORA, AddMode::DirectPageIndirectIndexedY, 5};
+	opTable[0x12] = {"ORA", &CPU::ORA, AddMode::DirectPageIndirect, 5};
+	opTable[0x13] = {"ORA", &CPU::ORA, AddMode::StackRelativeIndirectIndexedY, 7};
 	opTable[0x14] = {"TRB", &CPU::TRB, AddMode::DirectPage, 5};
-	opTable[0x15] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x15] = {"ORA", &CPU::ORA, AddMode::DirectPageIndexedX, 4};
 	opTable[0x16] = {"ASL", &CPU::ASL, AddMode::DirectPageIndexedX, 6};
-	opTable[0x17] = {"ORA", &CPU::XXX, AddMode::Implied, 6};
+	opTable[0x17] = {"ORA", &CPU::ORA, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0x18] = {"CLC", &CPU::CLC, AddMode::Implied, 2};
-	opTable[0x19] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x19] = {"ORA", &CPU::ORA, AddMode::AbsoluteIndexedY, 4};
 	opTable[0x1A] = {"INC", &CPU::INC, AddMode::Implied, 2};
 	opTable[0x1B] = {"TCS", &CPU::TCS, AddMode::Implied, 2};
 	opTable[0x1C] = {"TRB", &CPU::TRB, AddMode::Absolute, 6};
-	opTable[0x1D] = {"ORA", &CPU::XXX, AddMode::Implied, 4};
+	opTable[0x1D] = {"ORA", &CPU::ORA, AddMode::AbsoluteIndexedX, 4};
 	opTable[0x1E] = {"ASL", &CPU::ASL, AddMode::AbsoluteIndexedX, 7};
-	opTable[0x1F] = {"ORA", &CPU::XXX, AddMode::Implied, 5};
+	opTable[0x1F] = {"ORA", &CPU::ORA, AddMode::AbsoluteLongIndexedX, 5};
 
 	opTable[0x20] = {"JSR", &CPU::JSR, AddMode::Absolute, 6};
 	opTable[0x21] = {"AND", &CPU::AND, AddMode::DirectPageIndirectX, 6};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 5508;
+int logfileMaxSize = 13442;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/ROR/TestROR.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/ORA/TestORA.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
