@@ -111,6 +111,9 @@ class CPU {
 		uint16_t fetched;
 		uint32_t fetchAddress;
 
+		bool movActive = false;
+		uint8_t srcBank;
+
 		void SetFlag(uint8_t flag, bool state);
 		
 		void CheckNFlag8Bits(uint8_t value);
@@ -164,6 +167,7 @@ class CPU {
 		uint8_t CLI();
 		uint8_t CLV();
 		uint8_t CMP();
+		uint8_t COP();
 		uint8_t CPX();
 		uint8_t CPY();
 		uint8_t DEC();
@@ -181,6 +185,8 @@ class CPU {
 		uint8_t LDX();
 		uint8_t LDY();
 		uint8_t LSR();
+		uint8_t MVN();
+		uint8_t MVP();
 		uint8_t NOP();
 		uint8_t ORA();
 		uint8_t PEA();
@@ -211,6 +217,7 @@ class CPU {
 		uint8_t SEI();
 		uint8_t SEP();
 		uint8_t STA();
+		uint8_t STP();
 		uint8_t STX();
 		uint8_t STY();
 		uint8_t STZ();
@@ -228,6 +235,8 @@ class CPU {
 		uint8_t TRB();
 		uint8_t TSB();
 		uint8_t TXS();
+		uint8_t WAI();
+		uint8_t WDM();
 		uint8_t XBA();
 		uint8_t XCE();
 		uint8_t XXX();

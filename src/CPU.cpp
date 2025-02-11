@@ -29,7 +29,7 @@ CPU::CPU(SupaNES* supaNes) {
 
 	opTable[0x00] = {"BRK", &CPU::BRK, AddMode::Implied, 7};
 	opTable[0x01] = {"ORA", &CPU::ORA, AddMode::DirectPageIndirectX, 6};
-	opTable[0x02] = {"COP", &CPU::XXX, AddMode::Implied, 7};
+	opTable[0x02] = {"COP", &CPU::COP, AddMode::Implied, 7};
 	opTable[0x03] = {"ORA", &CPU::ORA, AddMode::StackRelative, 4};
 	opTable[0x04] = {"TSB", &CPU::TSB, AddMode::DirectPage, 5};
 	opTable[0x05] = {"ORA", &CPU::ORA, AddMode::DirectPage, 3};
@@ -97,9 +97,9 @@ CPU::CPU(SupaNES* supaNes) {
 
 	opTable[0x40] = {"RTI", &CPU::RTI, AddMode::Implied, 6};
 	opTable[0x41] = {"EOR", &CPU::EOR, AddMode::DirectPageIndirectX, 6};
-	opTable[0x42] = {"WDM", &CPU::XXX, AddMode::Implied, 2};	// Unused
+	opTable[0x42] = {"WDM", &CPU::WDM, AddMode::Immediate, 2};	// Unused
 	opTable[0x43] = {"EOR", &CPU::EOR, AddMode::StackRelative, 4};
-	opTable[0x44] = {"MVP", &CPU::XXX, AddMode::Implied, 0};
+	opTable[0x44] = {"MVP", &CPU::MVP, AddMode::Implied, 0};
 	opTable[0x45] = {"EOR", &CPU::EOR, AddMode::DirectPage, 3};
 	opTable[0x46] = {"LSR", &CPU::LSR, AddMode::DirectPage, 5};
 	opTable[0x47] = {"EOR", &CPU::EOR, AddMode::DirectPageIndirectLong, 6};
@@ -116,7 +116,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x51] = {"EOR", &CPU::EOR, AddMode::DirectPageIndirectIndexedY, 5};
 	opTable[0x52] = {"EOR", &CPU::EOR, AddMode::DirectPageIndirect, 5};
 	opTable[0x53] = {"EOR", &CPU::EOR, AddMode::StackRelativeIndirectIndexedY, 7};
-	opTable[0x54] = {"MVN", &CPU::XXX, AddMode::Implied, 0};
+	opTable[0x54] = {"MVN", &CPU::MVN, AddMode::Implied, 0};
 	opTable[0x55] = {"EOR", &CPU::EOR, AddMode::DirectPageIndexedX, 4};
 	opTable[0x56] = {"LSR", &CPU::LSR, AddMode::DirectPageIndexedX, 6};
 	opTable[0x57] = {"EOR", &CPU::EOR, AddMode::DirectPageIndirectLongIndexedY, 6};
@@ -242,7 +242,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xC8] = {"INY", &CPU::INY, AddMode::Implied, 2};
 	opTable[0xC9] = {"CMP", &CPU::CMP, AddMode::Immediate, 2};
 	opTable[0xCA] = {"DEX", &CPU::DEX, AddMode::Implied, 2};
-	opTable[0xCB] = {"WAI", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0xCB] = {"WAI", &CPU::WAI, AddMode::Implied, 3};
 	opTable[0xCC] = {"CPY", &CPU::CPY, AddMode::Absolute, 4};
 	opTable[0xCD] = {"CMP", &CPU::CMP, AddMode::Absolute, 4};
 	opTable[0xCE] = {"DEC", &CPU::DEC, AddMode::Absolute, 6};
@@ -259,7 +259,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xD8] = {"CLD", &CPU::CLD, AddMode::Implied, 2};
 	opTable[0xD9] = {"CMP", &CPU::CMP, AddMode::AbsoluteIndexedY, 4};
 	opTable[0xDA] = {"PHX", &CPU::PHX, AddMode::Implied, 3};
-	opTable[0xDB] = {"STP", &CPU::XXX, AddMode::Implied, 3};
+	opTable[0xDB] = {"STP", &CPU::STP, AddMode::Implied, 3};
 	opTable[0xDC] = {"JML", &CPU::JML, AddMode::AbsoluteIndirectLong, 6};
 	opTable[0xDD] = {"CMP", &CPU::CMP, AddMode::AbsoluteIndexedX, 4};
 	opTable[0xDE] = {"DEC", &CPU::DEC, AddMode::AbsoluteIndexedX, 7};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 15414;
+int logfileMaxSize = 7277;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/TRN/TestTRN.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/MOV/TestMOV.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -1295,11 +1295,13 @@ uint8_t CPU::BNE() {
 	int8_t offset = ReadMemory((regs.PB << 16) | regs.PC++);
 	
 	if (!(regs.P & ZFlag)) {
-		regs.PC += offset;
-
 		if (emulationMode) {
-			assert(false && "Emulation Mode in BNE");
+			if (((regs.PC + offset) & 0xFF00) != (regs.PC & 0xFF00)) {
+				regs.PC += offset;
+				return 2;
+			}
 		}
+		regs.PC += offset;
 		return 1;
 	}
 
@@ -1418,6 +1420,23 @@ uint8_t CPU::CMP() {
 		SetFlag(CFlag, regs.A.HL >= fetched);
 	}
 	return extraCycles;
+}
+
+uint8_t CPU::COP() {
+	if (!emulationMode) {
+		PushStack(regs.PB);
+	}
+	regs.PC++;
+	PushStack(regs.PC >> 8);
+	PushStack(regs.PC & 0xFF);
+	PushStack(regs.P);
+
+	SetFlag(IFlag, true);
+	SetFlag(DFlag, false);
+
+	regs.PC = excVectors.COPVector;
+
+	return emulationMode ? 0 : 1;
 }
 
 uint8_t CPU::CPX() {
@@ -1727,6 +1746,56 @@ uint8_t CPU::LSR() {
 	extraCycles += WriteValue(opTable[opcode].addMode, fetched, !(regs.P & MFlag), true);
 
 	return extraCycles;
+}
+
+uint8_t CPU::MVN() {
+	if (!movActive) {
+		srcBank = ReadMemory((regs.PB << 16) | regs.PC++);
+		regs.DB = ReadMemory((regs.PB << 16) | regs.PC++);
+		regs.PC -= 2;
+		movActive = true;
+	}
+	assert(!(regs.P & XFlag) && "MVN XFlag");
+	uint8_t value = ReadMemory((srcBank << 16) | regs.X.HL);
+	WriteMemory((regs.DB << 16) | regs.Y.HL, value);
+
+	regs.A.HL--;
+	regs.X.HL++;
+	regs.Y.HL++;
+
+	if (regs.A.HL == 0xFFFF) {
+		movActive = false;
+		regs.PC += 2;
+	} else {
+		regs.PC--;
+	}
+
+	return 0;
+}
+
+uint8_t CPU::MVP() {
+	if (!movActive) {
+		srcBank = ReadMemory((regs.PB << 16) | regs.PC++);
+		regs.DB = ReadMemory((regs.PB << 16) | regs.PC++);
+		regs.PC -= 2;
+		movActive = true;
+	}
+	assert(!(regs.P & XFlag) && "MVN XFlag");
+	uint8_t value = ReadMemory((srcBank << 16) | regs.X.HL);
+	WriteMemory((regs.DB << 16) | regs.Y.HL, value);
+
+	regs.A.HL--;
+	regs.X.HL--;
+	regs.Y.HL--;
+
+	if (regs.A.HL == 0xFFFF) {
+		movActive = false;
+		regs.PC += 2;
+	} else {
+		regs.PC--;
+	}
+
+	return 0;
 }
 
 uint8_t CPU::NOP() {
@@ -2114,6 +2183,11 @@ uint8_t CPU::STA() {
 	return extraCycles;
 }
 
+uint8_t CPU::STP() {
+	assert(false && "STP OPCODE");
+	return 0;
+}
+
 uint8_t CPU::STX() {
 	uint16_t value;
 	if (regs.P & XFlag) {
@@ -2315,6 +2389,16 @@ uint8_t CPU::TYX() {
 		CheckNFlag16Bits(regs.X.HL);
 		CheckZFlag16Bits(regs.X.HL);
 	}
+	return 0;
+}
+
+uint8_t CPU::WAI() {
+	assert(false && "WAI OPCODE");
+	return 0;
+}
+
+uint8_t CPU::WDM() {
+	IMM(false);
 	return 0;
 }
 
