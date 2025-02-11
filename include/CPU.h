@@ -160,6 +160,8 @@ class CPU {
 		uint8_t BVC();
 		uint8_t BVS();
 		uint8_t CLC();
+		uint8_t CLD();
+		uint8_t CLI();
 		uint8_t CLV();
 		uint8_t CMP();
 		uint8_t CPX();
@@ -205,6 +207,7 @@ class CPU {
 		uint8_t RTS();
 		uint8_t SBC();
 		uint8_t SEC();
+		uint8_t SED();
 		uint8_t SEI();
 		uint8_t SEP();
 		uint8_t STA();

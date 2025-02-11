@@ -120,7 +120,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x55] = {"EOR", &CPU::EOR, AddMode::DirectPageIndexedX, 4};
 	opTable[0x56] = {"LSR", &CPU::LSR, AddMode::DirectPageIndexedX, 6};
 	opTable[0x57] = {"EOR", &CPU::EOR, AddMode::DirectPageIndirectLongIndexedY, 6};
-	opTable[0x58] = {"CLI", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0x58] = {"CLI", &CPU::CLI, AddMode::Implied, 2};
 	opTable[0x59] = {"EOR", &CPU::EOR, AddMode::AbsoluteIndexedY, 4};
 	opTable[0x5A] = {"PHY", &CPU::PHY, AddMode::Implied, 3};
 	opTable[0x5B] = {"TCD", &CPU::TCD, AddMode::Implied, 2};
@@ -256,7 +256,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xD5] = {"CMP", &CPU::CMP, AddMode::DirectPageIndexedX, 4};
 	opTable[0xD6] = {"DEC", &CPU::DEC, AddMode::DirectPageIndexedX, 6};
 	opTable[0xD7] = {"CMP", &CPU::CMP, AddMode::DirectPageIndirectLongIndexedY, 6};
-	opTable[0xD8] = {"CLD", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0xD8] = {"CLD", &CPU::CLD, AddMode::Implied, 2};
 	opTable[0xD9] = {"CMP", &CPU::CMP, AddMode::AbsoluteIndexedY, 4};
 	opTable[0xDA] = {"PHX", &CPU::PHX, AddMode::Implied, 3};
 	opTable[0xDB] = {"STP", &CPU::XXX, AddMode::Implied, 3};
@@ -290,7 +290,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xF5] = {"SBC", &CPU::SBC, AddMode::DirectPageIndexedX, 4};
 	opTable[0xF6] = {"INC", &CPU::INC, AddMode::DirectPageIndexedX, 6};
 	opTable[0xF7] = {"SBC", &CPU::SBC, AddMode::DirectPageIndirectLongIndexedY, 6};
-	opTable[0xF8] = {"SED", &CPU::XXX, AddMode::Implied, 2};
+	opTable[0xF8] = {"SED", &CPU::SED, AddMode::Implied, 2};
 	opTable[0xF9] = {"SBC", &CPU::SBC, AddMode::AbsoluteIndexedY, 4};
 	opTable[0xFA] = {"PLX", &CPU::PLX, AddMode::Implied, 4};
 	opTable[0xFB] = {"XCE", &CPU::XCE, AddMode::Implied, 2};
@@ -379,10 +379,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 
 bool enableLog = true;
 FILE* logfile = nullptr;
-int logfileMaxSize = 10097;
+int logfileMaxSize = 2798;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/PHL/TestPHL.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/PSR/TestPSR.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
 				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -1388,6 +1388,16 @@ uint8_t CPU::CLC() {
 	return 0;
 }
 
+uint8_t CPU::CLD() {
+	SetFlag(DFlag, false);
+	return 0;
+}
+
+uint8_t CPU::CLI() {
+	SetFlag(IFlag, false);
+	return 0;
+}
+
 uint8_t CPU::CLV() {
 	SetFlag(VFlag, false);
 	return 0;
@@ -2067,6 +2077,11 @@ uint8_t CPU::SBC() {
 
 uint8_t CPU::SEC() {
 	SetFlag(CFlag, true);
+	return 0;
+}
+
+uint8_t CPU::SED() {
+	SetFlag(DFlag, true);
 	return 0;
 }
 
