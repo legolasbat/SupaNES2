@@ -2432,8 +2432,3 @@ uint8_t CPU::XCE() {
 	}
 	return 0;
 }
-
-uint8_t CPU::XXX() {
-	assert(false);
-	return 0;
-}
