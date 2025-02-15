@@ -4,7 +4,6 @@
 #include <cassert>
 #include <cstdint>
 #include <stdio.h>
-#include <sys/types.h>
 
 CPU::CPU(SupaNES* supaNes) {
 	memory = supaNes;
@@ -301,16 +300,20 @@ CPU::CPU(SupaNES* supaNes) {
 }
 
 int CPU::Clock() {
-	opcode = ReadMemory((regs.PB << 16) | regs.PC);
+	uint8_t cycles = 0;	
+	if (startDMA) {
+		cycles = DMA();
+	} else {
+		opcode = ReadMemory((regs.PB << 16) | regs.PC);
 
-	printf("PC: 0x%02x%04x OP: %s %02x\n", regs.PB, regs.PC, opTable[opcode].name, opcode);
-	Debug();
+		printf("\033[0;36mPC: 0x%02x%04x OP: %s %02x\033[0m\n", regs.PB, regs.PC, opTable[opcode].name, opcode);
+		Debug();
 
-	regs.PC++;
+		regs.PC++;
 
-	uint8_t cycles = opTable[opcode].cycles;
-	cycles += (this->*opTable[opcode].execute)();
-
+		cycles = opTable[opcode].cycles;
+		cycles += (this->*opTable[opcode].execute)();
+	}
 	return cycles;
 }
 
@@ -353,7 +356,7 @@ uint8_t CPU::ReadCPU(uint32_t address) {
 			}
 		}
 	}
-	printf("Reading CPU\n");
+	printf("\033[0;36mReading CPU: %06x\033[0m\n", address);
 	//TODO: CPU Reading
 	return value;
 }
@@ -372,12 +375,128 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 				return;
 			}
 		}
+		else if (reg == 0x0B) {
+			if (value != 0) {
+				enabledDMA = value;
+				startDMA = true;
+				printf("\033[0;36mStarting DMA\033[0m\n");
+			}
+		}
+		else {
+			printf("\033[0;36mWritting CPU: %06x = %02x\033[0m\n", address, value);
+			//TODO: CPU Writting
+		}
 	}
-	printf("Writting CPU\n");
+	else if (page == 0x43) {
+		uint8_t dmaChannel = (reg & 0xF0) >> 4;
+		reg &= 0xF;
+
+		if (dmaChannel < 8 && reg < 7) {
+			DMARegisters[dmaChannel][reg] = value;
+		} else {
+			assert(false && "HDMA");
+		}
+	}
+	else {
+	printf("\033[0;36mWritting CPU: %06x = %02x\033[0m\n", address, value);
 	//TODO: CPU Writting
+	}
 }
 
-bool enableLog = true;
+uint8_t CPU::DMA() {
+	uint8_t cycles = 0;
+	for (uint8_t i = 0; i < 8; i++) {
+		if (enabledDMA & (1 << i)) {
+			uint16_t BAddress = 0x2100 | DMARegisters[i][1];	// B Port Address
+			
+			uint8_t DMAControl = DMARegisters[i][0];
+			bool direction = DMAControl & 0x80;					// False: Write to BAddress; True: Read from BAddress
+			uint8_t increment = (DMAControl >> 3) & 0x03;		// 00: Increment; 10: Decrement; x1: Nothing
+			uint8_t mode = DMAControl & 0x07;
+
+			uint32_t AAddress = DMARegisters[i][2] | (DMARegisters[i][3] << 8) | (DMARegisters[i][4] << 16);
+			uint16_t count = DMARegisters[i][5] | (DMARegisters[i][6] << 8);
+			switch (mode) {
+				case 0:
+				{
+					if (!direction) {
+						WriteMemory(BAddress, ReadMemory(AAddress));
+					} else {
+						WriteMemory(AAddress, ReadMemory(BAddress));
+					}
+					cycles += 8;
+
+					count--;
+					DMARegisters[i][5] = count & 0xFF;
+					DMARegisters[i][6] = count >> 8;
+					if (count == 0) {
+						enabledDMA &= ~(1 << i);
+						if (enabledDMA == 0x00) {
+							startDMA = false;
+							printf("\033[0;36mEnding DMA\033[0m\n");
+							return cycles;
+						}
+					}
+					AAddress += (increment == 0) ? 1 : ((increment == 2) ? -1 : 0);
+					DMARegisters[i][2] = AAddress & 0xFF;
+					DMARegisters[i][3] = (AAddress >> 8) & 0xFF;
+					DMARegisters[i][4] = (AAddress >> 16) & 0xFF;
+					break;
+				}
+
+				case 1:
+				{
+					if (!direction) {
+						WriteMemory(BAddress, ReadMemory(AAddress));
+						if (--count == 0) {
+							cycles += 7;
+							enabledDMA &= ~(1 << i);
+							if (enabledDMA == 0x00) {
+								startDMA = false;
+								printf("\033[0;36mEnding DMA\033[0m\n");
+								return cycles;
+							}
+						}
+						WriteMemory(BAddress + 1, ReadMemory(AAddress + 1));
+					} else {
+						WriteMemory(AAddress, ReadMemory(BAddress));
+						if (--count == 0) {
+							cycles += 7;
+							enabledDMA &= ~(1 << i);
+							if (enabledDMA == 0x00) {
+								startDMA = false;
+								printf("\033[0;36mEnding DMA\033[0m\n");
+								return cycles;
+							}
+						}
+						WriteMemory(AAddress + 1, ReadMemory(BAddress + 1));
+
+					}
+					cycles += 8;
+
+					count--;
+					DMARegisters[i][5] = count & 0xFF;
+					DMARegisters[i][6] = count >> 8;
+					if (count == 0) {
+						enabledDMA &= ~(1 << i);
+						if (enabledDMA == 0x00) {
+							startDMA = false;
+							return cycles;
+						}
+					}
+					AAddress += (increment == 0) ? 2 : ((increment == 2) ? -2 : 0);
+					DMARegisters[i][2] = AAddress & 0xFF;
+					DMARegisters[i][3] = (AAddress >> 8) & 0xFF;
+					DMARegisters[i][4] = (AAddress >> 16) & 0xFF;
+					break;
+				}
+			}
+		}
+	}
+	return cycles;
+}
+
+bool enableLog = false;
 FILE* logfile = nullptr;
 int logfileMaxSize = 7277;
 int logfileLineCount = 0;

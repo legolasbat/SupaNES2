@@ -64,6 +64,11 @@ class CPU {
 		
 		bool emulationMode;
 
+		bool startDMA = false;
+		uint8_t enabledDMA;
+		uint8_t DMARegisters[8][7];
+		uint8_t DMA();
+
 		struct ExcVectors{
 			uint16_t COPVector;
 			uint16_t BRKVector;

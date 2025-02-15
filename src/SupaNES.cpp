@@ -4,8 +4,9 @@
 #include <stdio.h>
 
 SupaNES::SupaNES() {
-	// TODO: Create pointers to elements
+	// TODO: Add APU
 	cpu = new CPU(this);
+	ppu = new PPU(this);
 	cart = new Cartridge(this);
 	
 	RomLoaded = false;
@@ -20,6 +21,7 @@ SupaNES::SupaNES() {
 
 int SupaNES::Clock() {
 	cpu->Clock();
+	ppu->Clock();
 	return 0;
 }
 
@@ -106,7 +108,32 @@ void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
 	}
 	else if (memoryPage == 0x21) {
 		//TODO: Make PPU, APU and WRAM
-		printf("Page 21: %06X\n", address);
+		// PPU
+		if ((address & 0xFF) <= 0x3F) {
+			ppu->WritePPU(address, value);
+		}
+		// APU
+		else if ((address & 0xFF) <= 0x43) {
+			assert(false && "Writting APU");
+		}
+		// WRAM
+		else if ((address & 0xFF) == 0x80) {	// Write/Read
+			WRAM[WRAMAddress++] = value;
+		}
+		else if ((address & 0xFF) == 0x81) {	// Low Address
+			WRAMAddress &= 0x1FF00;
+			WRAMAddress |= value;
+		}
+		else if ((address & 0xFF) == 0x82) {	// Page Address
+			WRAMAddress &= 0x100FF;
+			WRAMAddress |= value << 8;
+		}
+		else if ((address & 0xFF) == 0x83) {	// Bank Address
+			WRAMAddress &= 0xFFFF;
+			WRAMAddress |= value << 16;
+		} else {
+			printf("Page 21: %06X\n", address);
+		}
 	}
 	else if (memoryPage == 0x40) {
 		// Writting Joypad register

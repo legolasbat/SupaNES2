@@ -1,12 +1,13 @@
 #pragma once
 
 #include "CPU.h"
+#include "PPU.h"
 #include "Cartridge.h"
 
 class SupaNES {
 	public:
 		CPU* cpu;
-		// Add PPU
+		PPU* ppu;
 		// Add APU
 		Cartridge* cart;
 		
@@ -23,6 +24,8 @@ class SupaNES {
 
 	private:
 		uint8_t WRAM[0x20000];
+
+		uint32_t WRAMAddress;
 
 		uint8_t memoryBank;
 		uint8_t memoryPage;

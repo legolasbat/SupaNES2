@@ -13,6 +13,7 @@ bool Cartridge::LoadROM(const char* filepath, uint16_t* excVectors) {
 	FILE* file = fopen(filepath, "rb");
 	
 	if(file == NULL){
+		printf("Failed to open file: %s\n", filepath);
 		return false;
 	}
 
