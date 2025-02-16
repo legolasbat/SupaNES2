@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <imgui.h>
 #include <backends/imgui_impl_sdl3.h>
 #include <backends/imgui_impl_sdlrenderer3.h>
@@ -6,11 +7,15 @@
 #include "SDL3/SDL_dialog.h"
 #include "SDL3/SDL_error.h"
 #include "SDL3/SDL_log.h"
+#include "SDL3/SDL_oldnames.h"
+#include "SDL3/SDL_pixels.h"
+#include "SDL3/SDL_render.h"
 #include "SupaNES.h"
 
 typedef struct {
 	SDL_Window* window;
 	SDL_Renderer* renderer;
+	SDL_Texture* texture;
 	SupaNES* supaNES;
 } AppState;
 
@@ -44,6 +49,7 @@ int main(int argc, char* argv[]) {
 		SDL_Log("Couldn't craete window and renderer: %s\n", SDL_GetError());
 		return SDL_APP_FAILURE;
 	}
+	as->texture = SDL_CreateTexture(as->renderer, SDL_PIXELFORMAT_ABGR1555, SDL_TEXTUREACCESS_STREAMING, 256, 224);
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -65,21 +71,32 @@ int main(int argc, char* argv[]) {
 		ImGui_ImplSDLRenderer3_NewFrame();
 		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
-
+		
 		MenuBar(as);
 
+		ImGui::Render();
+		
 		// SupaNes clock
 		if(as->supaNES->RomLoaded) {
 			as->supaNES->Clock();
+
+			if (as->supaNES->ppu->frameCompleted) {
+				// Render
+				SDL_RenderClear(as->renderer);
+				uint16_t* frame = as->supaNES->ppu->GetFrame();
+				SDL_UpdateTexture(as->texture, NULL, frame, 256 * sizeof(uint16_t));
+				SDL_RenderTexture(as->renderer, as->texture, NULL, NULL);
+				ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), as->renderer);
+				SDL_RenderPresent(as->renderer);
+			}
 		}
-
-		// Render
-		ImGui::Render();
-		SDL_SetRenderDrawColor(as->renderer, 255, 0, 0, 255);
-		SDL_RenderClear(as->renderer);
-		ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), as->renderer);
-		SDL_RenderPresent(as->renderer);
-
+		else {
+			// Render
+			SDL_SetRenderDrawColor(as->renderer, 255, 0, 0, 255);
+			SDL_RenderClear(as->renderer);
+			ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), as->renderer);
+			SDL_RenderPresent(as->renderer);
+		}
 	}
 	
 	// Cleanup
