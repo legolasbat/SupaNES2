@@ -19,7 +19,7 @@ class PPU {
 		uint16_t pixels[256 * 224];
 
 		bool frameCompleted;
-		uint16_t* GetFrame();
+		uint16_t* GetFrame(void* texturePixels, int pitch);
 
 	private:
 

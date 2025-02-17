@@ -4,11 +4,6 @@
 #include <backends/imgui_impl_sdlrenderer3.h>
 #include <SDL3/SDL.h>
 
-#include "SDL3/SDL_dialog.h"
-#include "SDL3/SDL_error.h"
-#include "SDL3/SDL_log.h"
-#include "SDL3/SDL_oldnames.h"
-#include "SDL3/SDL_pixels.h"
 #include "SDL3/SDL_render.h"
 #include "SupaNES.h"
 
@@ -80,11 +75,15 @@ int main(int argc, char* argv[]) {
 		if(as->supaNES->RomLoaded) {
 			as->supaNES->Clock();
 
-			if (as->supaNES->ppu->frameCompleted) {
+			if (true || as->supaNES->ppu->frameCompleted) {
 				// Render
+				SDL_SetRenderDrawColor(as->renderer, 255, 225, 0, 255);
 				SDL_RenderClear(as->renderer);
-				uint16_t* frame = as->supaNES->ppu->GetFrame();
-				SDL_UpdateTexture(as->texture, NULL, frame, 256 * sizeof(uint16_t));
+				void* texturePixels;
+				int pitch;
+				SDL_LockTexture(as->texture, NULL, &texturePixels, &pitch);
+				uint16_t* frame = as->supaNES->ppu->GetFrame(texturePixels, pitch);
+				SDL_UnlockTexture(as->texture);
 				SDL_RenderTexture(as->renderer, as->texture, NULL, NULL);
 				ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), as->renderer);
 				SDL_RenderPresent(as->renderer);

@@ -262,10 +262,14 @@ void PPU::SetPixel(int X, int Y) {
 	pixels[(Y * width) + X] = palette;
 }
 
-uint16_t* PPU::GetFrame() {
+uint16_t* PPU::GetFrame(void* texturePixels, int pitch) {
 	frameCompleted = false;
-	for (int i = 0; i < width * height; i++) {
-		pixels[i] = 0xF0;
+	uint16_t* outPixels = (uint16_t*)texturePixels;
+	for (int y = 0; y < height; y++) {
+		for (int x = 0; x < width; x++) {
+			outPixels[y * (pitch / 2) + x] = pixels[y * (pitch / 2) + x];
+			outPixels[y * (pitch / 2) + x] = 0xFFFF;
+		}
 	}
-	return pixels;
+	return outPixels;
 }
