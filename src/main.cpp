@@ -6,8 +6,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "SDL3/SDL_render.h"
-#include "SDL3/SDL_timer.h"
 #include "SupaNES.h"
 
 typedef struct {
@@ -72,22 +70,23 @@ int main(int argc, char* argv[]) {
 	while(!done) {
 		uint64_t currentTime = SDL_GetTicks();
 		
-		HandleEvents(as);
-		
-		// Start frame
-		ImGui_ImplSDLRenderer3_NewFrame();
-		ImGui_ImplSDL3_NewFrame();
-		ImGui::NewFrame();
-		
-		MenuBar(as);
-
-		ImGui::Render();
-		
 		// SupaNes clock
 		if(as->supaNES->RomLoaded) {
 			cycles += as->supaNES->Clock();
 
 			if (as->supaNES->ppu->frameCompleted) {
+			
+				HandleEvents(as);
+		
+				// Start frame
+				ImGui_ImplSDLRenderer3_NewFrame();
+				ImGui_ImplSDL3_NewFrame();
+				ImGui::NewFrame();
+		
+				MenuBar(as);
+
+				ImGui::Render();
+		
 				// Render
 				SDL_SetRenderDrawColor(as->renderer, 0, 0, 0, 255);
 				SDL_RenderClear(as->renderer);
@@ -103,12 +102,22 @@ int main(int argc, char* argv[]) {
 				
 				deltaTime = currentTime - lastFrame;
 				lastFrame = currentTime;
-				//snprintf(windowTitle, 128, "SupaNES2 | %.0f", 1000.0f / (desiredDelta - deltaTime));
-				snprintf(windowTitle, 128, "SupaNES2 | %lu", deltaTime);
+				snprintf(windowTitle, 128, "SupaNES2 | %.0f", 1000.0f / deltaTime);
 				SDL_SetWindowTitle(as->window, windowTitle);
 			}
 		}
 		else {
+			HandleEvents(as);
+		
+			// Start frame
+			ImGui_ImplSDLRenderer3_NewFrame();
+			ImGui_ImplSDL3_NewFrame();
+			ImGui::NewFrame();
+		
+			MenuBar(as);
+
+			ImGui::Render();
+		
 			// Render
 			SDL_SetRenderDrawColor(as->renderer, 255, 0, 0, 255);
 			SDL_RenderClear(as->renderer);
@@ -116,9 +125,6 @@ int main(int argc, char* argv[]) {
 			SDL_RenderPresent(as->renderer);
 			deltaTime = currentTime - lastFrame;
 			lastFrame = currentTime;
-			//snprintf(windowTitle, 128, "SupaNES2 | %.0f", 1000.0f / (desiredDelta - deltaTime));
-			snprintf(windowTitle, 128, "SupaNES2 | %lu", deltaTime);
-			SDL_SetWindowTitle(as->window, windowTitle);
 		}
 	}
 	

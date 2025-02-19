@@ -53,7 +53,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		OAMAddress |= value;
 	}
 	else if (reg == 0x03) {		// OAMADDH
-		OAMAddress &= 0xFF00;
+		OAMAddress &= 0x00FF;
 		OAMAddress |= value << 8;
 		OAMFlipflop = false;
 		assert((value & 0x80) == 0);
@@ -343,7 +343,7 @@ uint16_t PPU::GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift
 	uint8_t paletteIndex = ((BGLo >> HShift) & 1) + (2 * ((BGHi >> HShift) & 1));
 
 	if (paletteIndex == 0) {
-		return CGRAM[0];
+		return CGRAM[0] | 0x8000;
 	}
 	return CGRAM[paletteIndex + palette * 4 + (BGIndex - 1) * 32];
 }

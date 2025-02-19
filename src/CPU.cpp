@@ -516,6 +516,7 @@ int CPU::DMA() {
 							if (enabledDMA == 0x00) {
 								extraCycles += 1;
 								startDMA = false;
+								printf("\033[0;36mEnding DMA\033[0m\n");
 								return extraCycles;
 							}
 						}

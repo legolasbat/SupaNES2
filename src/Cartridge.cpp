@@ -107,6 +107,9 @@ bool Cartridge::LoadROM(const char* filepath, uint16_t* excVectors) {
 	fread(&romSize, sizeof(uint8_t), 1, file);
 	printf("- ROM SIze: ");
 	int romSizeByte = (1 << romSize) * 1024;
+	if (romSizeByte != fileSize) {
+		romSizeByte = fileSize;
+	}
 	printf("%d bytes\n", romSizeByte);
 
 	// RAM Size
