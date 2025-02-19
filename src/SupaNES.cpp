@@ -20,9 +20,11 @@ SupaNES::SupaNES() {
 }
 
 int SupaNES::Clock() {
-	cpu->Clock();
-	ppu->Clock();
-	return 0;
+	int cycles = cpu->Clock();
+	for (int i = 0; i < cycles * 2; i++) {
+		ppu->Clock();
+	}
+	return cycles;
 }
 
 uint8_t SupaNES::ReadMemory(uint32_t address) {

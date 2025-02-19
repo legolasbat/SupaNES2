@@ -3,8 +3,11 @@
 #include <backends/imgui_impl_sdl3.h>
 #include <backends/imgui_impl_sdlrenderer3.h>
 #include <SDL3/SDL.h>
+#include <stdint.h>
+#include <stdio.h>
 
 #include "SDL3/SDL_render.h"
+#include "SDL3/SDL_timer.h"
 #include "SupaNES.h"
 
 typedef struct {
@@ -40,7 +43,7 @@ int main(int argc, char* argv[]) {
 		return SDL_APP_FAILURE;
 	}
 
-	if(!SDL_CreateWindowAndRenderer("Hello", 800, 600, 0, &as->window, &as->renderer)) {
+	if(!SDL_CreateWindowAndRenderer("SupaNES2", 800, 600, 0, &as->window, &as->renderer)) {
 		SDL_Log("Couldn't craete window and renderer: %s\n", SDL_GetError());
 		return SDL_APP_FAILURE;
 	}
@@ -57,9 +60,18 @@ int main(int argc, char* argv[]) {
 	ImGui_ImplSDLRenderer3_Init(as->renderer);
 
 	as->supaNES = new SupaNES();
+	int cycles = 0;
+
+	char windowTitle[128];
+	uint64_t deltaTime = 0;
+	uint64_t lastFrame = 0;
+	int fps = 60;
+	float desiredDelta = 1000.0f / fps;
 
 	// Main Loop
 	while(!done) {
+		uint64_t currentTime = SDL_GetTicks();
+		
 		HandleEvents(as);
 		
 		// Start frame
@@ -73,20 +85,27 @@ int main(int argc, char* argv[]) {
 		
 		// SupaNes clock
 		if(as->supaNES->RomLoaded) {
-			as->supaNES->Clock();
+			cycles += as->supaNES->Clock();
 
-			if (true || as->supaNES->ppu->frameCompleted) {
+			if (as->supaNES->ppu->frameCompleted) {
 				// Render
-				SDL_SetRenderDrawColor(as->renderer, 255, 225, 0, 255);
+				SDL_SetRenderDrawColor(as->renderer, 0, 0, 0, 255);
 				SDL_RenderClear(as->renderer);
 				void* texturePixels;
 				int pitch;
 				SDL_LockTexture(as->texture, NULL, &texturePixels, &pitch);
-				uint16_t* frame = as->supaNES->ppu->GetFrame(texturePixels, pitch);
+				as->supaNES->ppu->SetFrame(texturePixels, pitch);
 				SDL_UnlockTexture(as->texture);
+				//SDL_UpdateTexture(as->texture, NULL, as->supaNES->ppu->GetFrame(), 512);
 				SDL_RenderTexture(as->renderer, as->texture, NULL, NULL);
 				ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), as->renderer);
 				SDL_RenderPresent(as->renderer);
+				
+				deltaTime = currentTime - lastFrame;
+				lastFrame = currentTime;
+				//snprintf(windowTitle, 128, "SupaNES2 | %.0f", 1000.0f / (desiredDelta - deltaTime));
+				snprintf(windowTitle, 128, "SupaNES2 | %lu", deltaTime);
+				SDL_SetWindowTitle(as->window, windowTitle);
 			}
 		}
 		else {
@@ -95,6 +114,11 @@ int main(int argc, char* argv[]) {
 			SDL_RenderClear(as->renderer);
 			ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), as->renderer);
 			SDL_RenderPresent(as->renderer);
+			deltaTime = currentTime - lastFrame;
+			lastFrame = currentTime;
+			//snprintf(windowTitle, 128, "SupaNES2 | %.0f", 1000.0f / (desiredDelta - deltaTime));
+			snprintf(windowTitle, 128, "SupaNES2 | %lu", deltaTime);
+			SDL_SetWindowTitle(as->window, windowTitle);
 		}
 	}
 	

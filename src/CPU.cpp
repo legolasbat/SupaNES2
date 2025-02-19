@@ -300,21 +300,30 @@ CPU::CPU(SupaNES* supaNes) {
 }
 
 int CPU::Clock() {
-	uint8_t cycles = 0;	
-	if (startDMA) {
-		cycles = DMA();
-	} else {
-		opcode = ReadMemory((regs.PB << 16) | regs.PC);
-
-		printf("\033[0;36mPC: 0x%02x%04x OP: %s %02x\033[0m\n", regs.PB, regs.PC, opTable[opcode].name, opcode);
-		Debug();
-
-		regs.PC++;
-
-		cycles = opTable[opcode].cycles;
-		cycles += (this->*opTable[opcode].execute)();
+	int opcycles = 0;
+	if (cycles == 0) {
+		if (startDMA) {
+			opcycles = DMA();
+			cycles = opcycles;
+		} else {
+			opcode = ReadMemory((regs.PB << 16) | regs.PC);
+	
+			if (pendingDMA) {
+				startDMA = true;
+				pendingDMA = false;
+			}
+			//printf("\033[0;36mPC: 0x%02x%04x OP: %s %02x\033[0m\n", regs.PB, regs.PC, opTable[opcode].name, opcode);
+			//Debug();
+	
+			regs.PC++;
+	
+			opcycles = opTable[opcode].cycles;
+			opcycles += (this->*opTable[opcode].execute)();
+			cycles = opcycles;
+		}
 	}
-	return cycles;
+	cycles--;
+	return opcycles;
 }
 
 uint8_t CPU::ReadMemory(uint32_t address) {
@@ -336,7 +345,30 @@ void CPU::SetExcVectors(uint16_t vectors[16]) {
 	regs.PC = excVectors.ResetVector;
 }
 
-uint8_t nmi = 0xC2;
+void CPU::NMI() {
+	nmi |= 0x80;
+
+	if (NMITIMEN & 0x80) {
+		PushStack(regs.PB);
+
+		regs.PC++;
+		PushStack(regs.PC >> 8);
+		PushStack(regs.PC & 0xFF);
+
+		PushStack(regs.P);
+
+		regs.P |= IFlag;
+		regs.P &= ~DFlag;
+
+		regs.PB = 0;
+
+		regs.PC = excVectors.NMIVector;
+
+		cycles += 8;
+		// TODO: Check if Waiting
+	}
+}
+
 uint8_t CPU::ReadCPU(uint32_t address) {
 	uint8_t value = 0;
 
@@ -345,15 +377,9 @@ uint8_t CPU::ReadCPU(uint32_t address) {
 
 	if (page == 0x42) {
 		if (reg == 0x10) {
-			if (nmi == 0x42) {
-				nmi = 0xC2;
-				value = nmi;
-				return value;
-			} else if (nmi == 0xC2) {
-				nmi = 0x42;
-				value = nmi;
-				return value;
-			}
+			value = nmi & 0x80;
+			nmi = 0x02;
+			return value;
 		}
 	}
 	printf("\033[0;36mReading CPU: %06x\033[0m\n", address);
@@ -366,7 +392,10 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 	uint8_t reg = address & 0xFF;
 
 	if (page == 0x42) {
-		if (reg == 0x0D) {
+		if (reg == 0x00) {
+			NMITIMEN = value;
+		}
+		else if (reg == 0x0D) {
 			if (value & 0x1) {
 				printf("Fast ROM\n");
 				return;
@@ -378,7 +407,7 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 		else if (reg == 0x0B) {
 			if (value != 0) {
 				enabledDMA = value;
-				startDMA = true;
+				pendingDMA = true;
 				printf("\033[0;36mStarting DMA\033[0m\n");
 			}
 		}
@@ -403,10 +432,11 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 	}
 }
 
-uint8_t CPU::DMA() {
-	uint8_t cycles = 0;
+int CPU::DMA() {
+	int extraCycles = 0;
 	for (uint8_t i = 0; i < 8; i++) {
 		if (enabledDMA & (1 << i)) {
+			extraCycles += 1;
 			uint16_t BAddress = 0x2100 | DMARegisters[i][1];	// B Port Address
 			
 			uint8_t DMAControl = DMARegisters[i][0];
@@ -416,95 +446,103 @@ uint8_t CPU::DMA() {
 
 			uint32_t AAddress = DMARegisters[i][2] | (DMARegisters[i][3] << 8) | (DMARegisters[i][4] << 16);
 			uint16_t count = DMARegisters[i][5] | (DMARegisters[i][6] << 8);
-			switch (mode) {
-				case 0:
-				{
-					if (!direction) {
-						WriteMemory(BAddress, ReadMemory(AAddress));
-					} else {
-						WriteMemory(AAddress, ReadMemory(BAddress));
-					}
-					cycles += 8;
-
-					count--;
-					DMARegisters[i][5] = count & 0xFF;
-					DMARegisters[i][6] = count >> 8;
-					if (count == 0) {
-						enabledDMA &= ~(1 << i);
-						if (enabledDMA == 0x00) {
-							startDMA = false;
-							printf("\033[0;36mEnding DMA\033[0m\n");
-							return cycles;
+			do {
+				switch (mode) {
+					case 0:
+					{
+						if (!direction) {
+							WriteMemory(BAddress, ReadMemory(AAddress));
+						} else {
+							WriteMemory(AAddress, ReadMemory(BAddress));
 						}
-					}
-					AAddress += (increment == 0) ? 1 : ((increment == 2) ? -1 : 0);
-					DMARegisters[i][2] = AAddress & 0xFF;
-					DMARegisters[i][3] = (AAddress >> 8) & 0xFF;
-					DMARegisters[i][4] = (AAddress >> 16) & 0xFF;
-					break;
-				}
+						extraCycles += 1;
 
-				case 1:
-				{
-					if (!direction) {
-						WriteMemory(BAddress, ReadMemory(AAddress));
-						if (--count == 0) {
-							cycles += 7;
+						count--;
+						DMARegisters[i][5] = count & 0xFF;
+						DMARegisters[i][6] = count >> 8;
+						if (count == 0) {
 							enabledDMA &= ~(1 << i);
 							if (enabledDMA == 0x00) {
+								extraCycles += 1;
 								startDMA = false;
 								printf("\033[0;36mEnding DMA\033[0m\n");
-								return cycles;
+								return extraCycles;
 							}
 						}
-						WriteMemory(BAddress + 1, ReadMemory(AAddress + 1));
-					} else {
-						WriteMemory(AAddress, ReadMemory(BAddress));
-						if (--count == 0) {
-							cycles += 7;
+						AAddress += (increment == 0) ? 1 : ((increment == 2) ? -1 : 0);
+						DMARegisters[i][2] = AAddress & 0xFF;
+						DMARegisters[i][3] = (AAddress >> 8) & 0xFF;
+						DMARegisters[i][4] = (AAddress >> 16) & 0xFF;
+						break;
+					}
+
+					case 1:
+					{
+						if (!direction) {
+							WriteMemory(BAddress, ReadMemory(AAddress));
+							if (--count == 0) {
+								extraCycles += 1;
+								enabledDMA &= ~(1 << i);
+								if (enabledDMA == 0x00) {
+									extraCycles += 1;
+									startDMA = false;
+									printf("\033[0;36mEnding DMA\033[0m\n");
+									return extraCycles;
+								}
+							}
+							WriteMemory(BAddress + 1, ReadMemory(AAddress + 1));
+						} else {
+							WriteMemory(AAddress, ReadMemory(BAddress));
+							if (--count == 0) {
+								extraCycles += 1;
+								enabledDMA &= ~(1 << i);
+								if (enabledDMA == 0x00) {
+									extraCycles += 1;
+									startDMA = false;
+									printf("\033[0;36mEnding DMA\033[0m\n");
+									return extraCycles;
+								}
+							}
+							WriteMemory(AAddress + 1, ReadMemory(BAddress + 1));
+
+						}
+						extraCycles += 1;
+
+						count--;
+						DMARegisters[i][5] = count & 0xFF;
+						DMARegisters[i][6] = count >> 8;
+						if (count == 0) {
 							enabledDMA &= ~(1 << i);
 							if (enabledDMA == 0x00) {
+								extraCycles += 1;
 								startDMA = false;
-								printf("\033[0;36mEnding DMA\033[0m\n");
-								return cycles;
+								return extraCycles;
 							}
 						}
-						WriteMemory(AAddress + 1, ReadMemory(BAddress + 1));
-
+						AAddress += (increment == 0) ? 2 : ((increment == 2) ? -2 : 0);
+						DMARegisters[i][2] = AAddress & 0xFF;
+						DMARegisters[i][3] = (AAddress >> 8) & 0xFF;
+						DMARegisters[i][4] = (AAddress >> 16) & 0xFF;
+						break;
 					}
-					cycles += 8;
-
-					count--;
-					DMARegisters[i][5] = count & 0xFF;
-					DMARegisters[i][6] = count >> 8;
-					if (count == 0) {
-						enabledDMA &= ~(1 << i);
-						if (enabledDMA == 0x00) {
-							startDMA = false;
-							return cycles;
-						}
-					}
-					AAddress += (increment == 0) ? 2 : ((increment == 2) ? -2 : 0);
-					DMARegisters[i][2] = AAddress & 0xFF;
-					DMARegisters[i][3] = (AAddress >> 8) & 0xFF;
-					DMARegisters[i][4] = (AAddress >> 16) & 0xFF;
-					break;
 				}
-			}
+			} while (count != 0);
+			extraCycles += 1;
+			break;
 		}
 	}
-	return cycles;
+	return extraCycles;
 }
 
-bool enableLog = false;
+bool enableLog = true;
 FILE* logfile = nullptr;
 int logfileMaxSize = 7277;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/MOV/TestMOV.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/PPU/2BPP.txt", "w");
 	if (logfile) {
-		fprintf(logfile, "%02x%04x A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s %02x\n",
-				regs.PB, regs.PC, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
+		fprintf(logfile, "%02x%04x %s A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s V:%3d H:%3d F:%2d\n",
+				regs.PB, regs.PC, opTable[opcode].name, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
 				(regs.P & NFlag) ? "N" : "n",
 				(regs.P & VFlag) ? "V" : "v",
 				emulationMode ? "1" : (regs.P & MFlag) ? "M" : "m",
@@ -513,9 +551,9 @@ void CPU::Debug() {
 				(regs.P & IFlag) ? "I" : "i",
 				(regs.P & ZFlag) ? "Z" : "z",
 				(regs.P & CFlag) ? "C" : "c",
-				opcode);
+				memory->ppu->VCounter, memory->ppu->HCounter, memory->ppu->frameCounter);
 		logfileLineCount++;
-		if (logfileLineCount >= logfileMaxSize) {
+		if (regs.PC == 0x8213) {
 			fclose(logfile);
 			assert(false);
 		}

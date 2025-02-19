@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <cstring>
 #include <stdio.h>
 #include <sys/types.h>
 
@@ -12,6 +13,7 @@ PPU::PPU(SupaNES* supaNes) {
 
 	HCounter = 46;
 	VCounter = 0;
+	frameCounter = 0;
 }
 
 void PPU::Clock() {
@@ -20,14 +22,18 @@ void PPU::Clock() {
 	}
 	HCounter++;
 
-	if (HCounter >= 339) {
-		HCounter -= 339;
+	if (HCounter == 339) {
+		HCounter = 0;
 		VCounter++;
 		if (VCounter == 225) {
-			// TODO: CPU NMI
-		}
-		else if (VCounter == 262) {		// Frame Complete
+			memory->cpu->NMI();
 			frameCompleted = true;
+		}
+		else if (VCounter == 262) {
+			frameCounter++;
+			if (frameCounter == 60) {
+				frameCounter = 0;
+			}
 			VCounter = 0;
 		}
 	}
@@ -36,8 +42,8 @@ void PPU::Clock() {
 void PPU::WritePPU(uint32_t address, uint8_t value) {
 	uint8_t reg = address & 0xFF;
 
-	if (reg == 0x00) {
-		printf("\033[0;32mWritting INIDISP: %02x\033[0m\n", value);
+	if (reg == 0x00) {			// INIDISP
+		inidisp = value;
 	}
 	else if (reg == 0x01) {
 		printf("\033[0;32mWritting OBSEL: %02x\033[0m\n", value);
@@ -71,30 +77,33 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		printf("\033[0;32mWritting MOSAIC: %02x\033[0m\n", value);
 		assert(value == 0);
 	}
-	else if (reg == 0x07) {
+	else if (reg == 0x07) {		// BG1SC
 		BG1TileAddress = value;
 		printf("\033[0;32mWritting BG1SC: %02x\033[0m\n", value);
 		assert((BG1TileAddress & 0x3) == 0);
 	}
-	else if (reg == 0x08) {
+	else if (reg == 0x08) {		// BG2SC
+		BG2TileAddress = value;
 		printf("\033[0;32mWritting BG2SC: %02x\033[0m\n", value);
-		assert(value == 0);
+		assert((BG2TileAddress & 0x3) == 0);
 	}
-	else if (reg == 0x09) {
+	else if (reg == 0x09) {		// BG3SC
+		BG3TileAddress = value;
 		printf("\033[0;32mWritting BG3SC: %02x\033[0m\n", value);
-		assert(value == 0);
+		assert((BG3TileAddress & 0x3) == 0);
 	}
-	else if (reg == 0x0A) {
+	else if (reg == 0x0A) {		// BG4SC
+		BG4TileAddress = value;
 		printf("\033[0;32mWritting BG4SC: %02x\033[0m\n", value);
-		assert(value == 0);
+		assert((BG4TileAddress & 0x3) == 0);
 	}
-	else if (reg == 0x0B) {
+	else if (reg == 0x0B) {		// BG12NBA
 		BGAddress1_2 = value;
 		printf("\033[0;32mWritting BG12NBA: %02x\033[0m\n", value);
 	}
-	else if (reg == 0x0C) {
+	else if (reg == 0x0C) {		// BG34NBA
+		BGAddress3_4 = value;
 		printf("\033[0;32mWritting BG34NBA: %02x\033[0m\n", value);
-		assert(value == 0);
 	}
 	else if (reg == 0x0D) {
 		printf("\033[0;32mWritting BG1HOFS: %02x\033[0m\n", value);
@@ -130,7 +139,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	}
 	else if (reg == 0x15) {		// VMAIN
 		VMain = value;
-		printf("\033[0;32mWritting VMAIN: %02x\033[0m\n", value);
+		//printf("\033[0;32mWritting VMAIN: %02x\033[0m\n", value);
 		assert((VMain & 0x3) == 0);
 		assert((VMain & 0xC) == 0);
 	}
@@ -174,11 +183,19 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	else if (reg == 0x20) {
 		printf("\033[0;32mWritting M7Y: %02x\033[0m\n", value);
 	}
-	else if (reg == 0x21) {
-		printf("\033[0;32mWritting CGADD: %02x\033[0m\n", value);
+	else if (reg == 0x21) {		// CGADD
+		CGRAMAddress = value;
+		CGRAMFlipflop = false;
 	}
-	else if (reg == 0x22) {
-		printf("\033[0;32mWritting CGDATA: %02x\033[0m\n", value);
+	else if (reg == 0x22) {		// CGDATA
+		if (!CGRAMFlipflop) {
+			CGRAM[CGRAMAddress] = value;
+			CGRAMFlipflop = true;
+		} else {
+			CGRAM[CGRAMAddress] |= value << 8;
+			CGRAMAddress++;
+			CGRAMFlipflop = false;
+		}
 	}
 	else if (reg == 0x23) {
 		printf("\033[0;32mWritting W12SEL: %02x\033[0m\n", value);
@@ -239,7 +256,27 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 }
 
 void PPU::SetPixel(int X, int Y) {
-	uint16_t tile = ((BG1TileAddress & 0xFC) << 8)
+	if (inidisp & 0x80) {
+		SetBGDrop(X, Y, true);
+		return;
+	}
+	SetBGDrop(X, Y);
+	if (TM & 0x08) {
+		SetBGPixel(X, Y, BG4TileAddress, 4, 2);
+	}
+	if (TM & 0x04) {
+		SetBGPixel(X, Y, BG3TileAddress, 3, 2);
+	}
+	if (TM & 0x02) {
+		SetBGPixel(X, Y, BG2TileAddress, 2, 2);
+	}
+	if (TM & 0x01) {
+		SetBGPixel(X, Y, BG1TileAddress, 1, 2);
+	}
+}
+
+void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, int bpp) {
+	uint16_t tile = (((BGAddress & 0xFC) << 8) % 0x8000)	// Mod 0x8000 because we use 16bits values instead of 8bits
 					+ ((Y / 8) << 5)
 					+ (X / 8);
 	uint16_t tileWord = VRAM[tile];
@@ -255,21 +292,73 @@ void PPU::SetPixel(int X, int Y) {
 	uint8_t VShift = i;
 	uint8_t HShift = 7 - j;
 
-	uint16_t tileOffset = (BGAddress1_2 & 0xF) << 12;
+	uint16_t tileOffset = 0;
+	if (BGIndex == 1) {
+		tileOffset = (BGAddress1_2 & 0x0F) << 12;
+	}
+	else if (BGIndex == 2) {
+		tileOffset = (BGAddress1_2 & 0xF0) << 8;
+	}
+	else if (BGIndex == 3) {
+		tileOffset = (BGAddress3_4 & 0x0F) << 12;
+	}
+	else if (BGIndex == 4) {
+		tileOffset = (BGAddress3_4 & 0xF0) << 8;
+	}
 
-	uint16_t palette = 0;
+	uint16_t palette = 0x0000;
+	uint16_t tileAddress = 0;
+	//BPP2
+	tileAddress = tileOffset + tileID * 0x8 + VShift;
+	palette = GetColor2BPP(tileAddress, BGPaletteNumber, HShift, BGIndex);
+	
+	// Apply brightness
+	if ((inidisp & 0xF) != 0xF) {
+		float brightness = ((inidisp & 0xF) + 1) / 16.0f;
+		uint8_t red = palette & 0x1F;
+		uint8_t green = (palette >> 5) & 0x1F;
+		uint8_t blue = (palette >> 10) & 0x1F;
+		palette &= ~0x1F;
+		palette |= (uint8_t)(red * brightness) & 0x1F;
+		palette &= ~(0x1F << 5);
+		palette |= ((uint8_t)(green * brightness) & 0x1F) << 5;
+		palette &= ~(0x1F << 10);
+		palette |= ((uint8_t)(blue * brightness) & 0x1F) << 10;
+	}
 
-	pixels[(Y * width) + X] = palette;
+	pixels[(Y * width) + X] = palette | 0x8000;
 }
 
-uint16_t* PPU::GetFrame(void* texturePixels, int pitch) {
+void PPU::SetBGDrop(int X, int Y, bool forceBlank) {
+	if (forceBlank) {
+		pixels[(Y * width) + X] = 0x0000;
+	} else {
+		pixels[(Y * width) + X] = CGRAM[0] | 0x8000;
+	}
+}
+
+uint16_t PPU::GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift, int BGIndex) {
+	uint8_t BGLo = VRAM[charAddress] & 0xFF;
+	uint8_t BGHi = VRAM[charAddress] >> 8;
+	uint8_t paletteIndex = ((BGLo >> HShift) & 1) + (2 * ((BGHi >> HShift) & 1));
+
+	if (paletteIndex == 0) {
+		return CGRAM[0];
+	}
+	return CGRAM[paletteIndex + palette * 4 + (BGIndex - 1) * 32];
+}
+
+uint16_t* PPU::GetFrame() {
+	frameCompleted = false;
+	return pixels;
+}
+
+void PPU::SetFrame(void* texturePixels, int pitch) {
 	frameCompleted = false;
 	uint16_t* outPixels = (uint16_t*)texturePixels;
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
 			outPixels[y * (pitch / 2) + x] = pixels[y * (pitch / 2) + x];
-			outPixels[y * (pitch / 2) + x] = 0xFFFF;
 		}
 	}
-	return outPixels;
 }

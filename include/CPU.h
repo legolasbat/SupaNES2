@@ -55,19 +55,26 @@ class CPU {
 
 		void SetExcVectors(uint16_t vectors[16]);
 		
+		void NMI();
+
 		uint8_t ReadCPU(uint32_t address);
 		void WriteCPU(uint32_t address, uint8_t value);
 
 		void Debug();
 
 	private:
+		int cycles = 0;
 		
 		bool emulationMode;
 
+		uint8_t NMITIMEN;
+		uint8_t nmi;
+
 		bool startDMA = false;
+		bool pendingDMA = false;
 		uint8_t enabledDMA;
 		uint8_t DMARegisters[8][7];
-		uint8_t DMA();
+		int DMA();
 
 		struct ExcVectors{
 			uint16_t COPVector;
