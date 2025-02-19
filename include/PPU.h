@@ -29,10 +29,13 @@ class PPU {
 	private:
 
 		void SetPixel(int X, int Y);
-		void SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, int bpp);
+		void SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t bpp);
 		void SetBGDrop(int X, int Y, bool forceBlank = false);
 
-		uint16_t GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift, int BGIndex);
+		uint8_t GetColorBPPForBG(uint8_t BGIndex);
+		uint16_t GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift, uint8_t BGIndex);
+		uint16_t GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift);
+		uint16_t GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift);
 
 		uint8_t inidisp;		// INIDISP							0x2100
 

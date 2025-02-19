@@ -68,10 +68,8 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 			OAMFlipflop = false;
 		}
 	}
-	else if (reg == 0x05) {
+	else if (reg == 0x05) {		// BGMODE
 		BGMode = value;
-		printf("\033[0;32mWritting BGMODE: %02x\033[0m\n", value);
-		assert((BGMode & 0x07) == 0);
 	}
 	else if (reg == 0x06) {
 		printf("\033[0;32mWritting MOSAIC: %02x\033[0m\n", value);
@@ -262,20 +260,20 @@ void PPU::SetPixel(int X, int Y) {
 	}
 	SetBGDrop(X, Y);
 	if (TM & 0x08) {
-		SetBGPixel(X, Y, BG4TileAddress, 4, 2);
+		SetBGPixel(X, Y, BG4TileAddress, 4, GetColorBPPForBG(4));
 	}
 	if (TM & 0x04) {
-		SetBGPixel(X, Y, BG3TileAddress, 3, 2);
+		SetBGPixel(X, Y, BG3TileAddress, 3, GetColorBPPForBG(3));
 	}
 	if (TM & 0x02) {
-		SetBGPixel(X, Y, BG2TileAddress, 2, 2);
+		SetBGPixel(X, Y, BG2TileAddress, 2, GetColorBPPForBG(2));
 	}
 	if (TM & 0x01) {
-		SetBGPixel(X, Y, BG1TileAddress, 1, 2);
+		SetBGPixel(X, Y, BG1TileAddress, 1, GetColorBPPForBG(1));
 	}
 }
 
-void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, int bpp) {
+void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t bpp) {
 	uint16_t tile = (((BGAddress & 0xFC) << 8) % 0x8000)	// Mod 0x8000 because we use 16bits values instead of 8bits
 					+ ((Y / 8) << 5)
 					+ (X / 8);
@@ -308,10 +306,22 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, int bpp) 
 
 	uint16_t palette = 0x0000;
 	uint16_t tileAddress = 0;
-	//BPP2
-	tileAddress = tileOffset + tileID * 0x8 + VShift;
-	palette = GetColor2BPP(tileAddress, BGPaletteNumber, HShift, BGIndex);
-	
+	// BPP2
+	if (bpp == 2) {
+		tileAddress = tileOffset + tileID * 0x8 + VShift;
+		palette = GetColor2BPP(tileAddress, BGPaletteNumber, HShift, BGIndex);
+	}
+	// BPP4
+	else if (bpp == 4) {
+		tileAddress = tileOffset + tileID * 0x10 + VShift;
+		palette = GetColor4BPP(tileAddress, BGPaletteNumber, HShift);
+	}
+	// BPP8
+	else {
+		tileAddress = tileOffset + tileID * 0x20 + VShift;
+		palette = GetColor8BPP(tileAddress, BGPaletteNumber, HShift);
+	}
+
 	// Apply brightness
 	if ((inidisp & 0xF) != 0xF) {
 		float brightness = ((inidisp & 0xF) + 1) / 16.0f;
@@ -337,7 +347,32 @@ void PPU::SetBGDrop(int X, int Y, bool forceBlank) {
 	}
 }
 
-uint16_t PPU::GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift, int BGIndex) {
+uint8_t PPU::GetColorBPPForBG(uint8_t BGIndex) {
+	uint8_t mode = BGMode & 0x07;
+
+	if (mode == 0) {
+		return 2;
+	}
+	if (mode == 1) {
+		if (BGIndex == 3) {
+			return 2;
+		}
+		return 4;
+	}
+	if (mode == 2) {
+		return 4;
+	}
+	if (mode == 3) {
+		if (BGIndex == 1) {
+			return 8;
+		}
+		return 4;
+	}
+	assert(false && "BG Mode not found.");
+	return 0;
+}
+
+uint16_t PPU::GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift, uint8_t BGIndex) {
 	uint8_t BGLo = VRAM[charAddress] & 0xFF;
 	uint8_t BGHi = VRAM[charAddress] >> 8;
 	uint8_t paletteIndex = ((BGLo >> HShift) & 1) + (2 * ((BGHi >> HShift) & 1));
@@ -346,6 +381,40 @@ uint16_t PPU::GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift
 		return CGRAM[0] | 0x8000;
 	}
 	return CGRAM[paletteIndex + palette * 4 + (BGIndex - 1) * 32];
+}
+
+uint16_t PPU::GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift) {
+	uint8_t BGLo1 = VRAM[charAddress] & 0xFF;
+	uint8_t BGLo2 = VRAM[charAddress] >> 8;
+	uint8_t BGHi1 = VRAM[charAddress + 8] & 0xFF;
+	uint8_t BGHi2 = VRAM[charAddress + 8] >> 8;
+	uint8_t paletteIndex = ((BGLo1 >> HShift) & 1) + (2 * ((BGLo2 >> HShift) & 1))
+						+ (4 * ((BGHi1 >> HShift) & 1)) + (8 * ((BGHi2 >> HShift) & 1));
+
+	if (paletteIndex == 0) {
+		return CGRAM[0] | 0x8000;
+	}
+	return CGRAM[paletteIndex + palette * 16];
+}
+
+uint16_t PPU::GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift) {
+	uint8_t BG1 = VRAM[charAddress] & 0xFF;
+	uint8_t BG2 = VRAM[charAddress] >> 8;
+	uint8_t BG3 = VRAM[charAddress + 8] & 0xFF;
+	uint8_t BG4 = VRAM[charAddress + 8] >> 8;
+	uint8_t BG5 = VRAM[charAddress + 16] & 0xFF;
+	uint8_t BG6 = VRAM[charAddress + 16] >> 8;
+	uint8_t BG7 = VRAM[charAddress + 24] & 0xFF;
+	uint8_t BG8 = VRAM[charAddress + 24] >> 8;
+	uint8_t paletteIndex = ((BG1 >> HShift) & 1) + (2 * ((BG2 >> HShift) & 1))
+						+ (4 * ((BG3 >> HShift) & 1)) + (8 * ((BG4 >> HShift) & 1))
+						+ (16 * ((BG5 >> HShift) & 1)) + (32 * ((BG6 >> HShift) & 1))
+						+ (64 * ((BG7 >> HShift) & 1)) + (128 * ((BG8 >> HShift) & 1));
+
+	if (paletteIndex == 0) {
+		return CGRAM[0] | 0x8000;
+	}
+	return CGRAM[paletteIndex];
 }
 
 uint16_t* PPU::GetFrame() {
