@@ -1,6 +1,7 @@
 #include "Cartridge.h"
 #include "SupaNES.h"
 
+#include <cstdint>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -46,7 +47,13 @@ bool Cartridge::LoadROM(const char* filepath, uint16_t* excVectors) {
 	uint16_t checksum = 0;
 	fread(&checksumCom, sizeof(uint16_t), 1, file);
 	fread(&checksum, sizeof(uint16_t), 1, file);
-	if((checksumCom ^ checksum) == 0xFFFF || fileSize < 0xFFC0){
+	printf("CHECKSUM: %04x\n", checksum);
+	printf("CHECKSUM COM: %04x\n", checksumCom);
+	fseek(file, headerDir + 0x3C, SEEK_SET);
+	uint16_t resetVec = 0;
+	fread(&resetVec, sizeof(uint16_t), 1, file);
+	printf("RESET: %04x\n", resetVec);
+	if((checksumCom ^ checksum) == 0xFFFF || fileSize < 0xFFC0 || resetVec >= 0x8000){
 		printf("Correct checksum. LoROM\n");
 	}
 	else{
@@ -57,6 +64,12 @@ bool Cartridge::LoadROM(const char* filepath, uint16_t* excVectors) {
 		checksum = 0;
 		fread(&checksumCom, sizeof(uint16_t), 1, file);
 		fread(&checksum, sizeof(uint16_t), 1, file);
+		printf("CHECKSUM: %04x\n", checksum);
+		printf("CHECKSUM COM: %04x\n", checksumCom);
+		fseek(file, headerDir + 0x3C, SEEK_SET);
+		uint16_t resetVec = 0;
+		fread(&resetVec, sizeof(uint16_t), 1, file);
+		printf("RESET: %04x\n", resetVec);
 		if((checksumCom ^ checksum) == 0xFFFF){
 			printf("Correct checksum. HiROM\n");
 		}
