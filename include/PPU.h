@@ -29,7 +29,9 @@ class PPU {
 	private:
 
 		void SetPixel(int X, int Y);
-		void SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t bpp);
+		void SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t bpp,
+						uint8_t XSize, uint8_t YSize,
+						uint16_t HScroll, uint16_t VScroll);
 		void SetBGDrop(int X, int Y, bool forceBlank = false);
 
 		uint8_t GetColorBPPForBG(uint8_t BGIndex);
@@ -50,6 +52,11 @@ class PPU {
 		
 		uint8_t BGAddress1_2;	// BG1 and 2 Chr Address			0x210B
 		uint8_t BGAddress3_4;	// BG3 and 4 Chr Address			0x210C
+								
+		uint16_t BG1HScroll;	// BG1 Horizontal Scroll and M7HOFS	0x210D
+		bool BG1HScrollFlipflop = false;
+		uint16_t BG1VScroll;	// BG1 Vertical Scroll and M7VOFS	0x210E
+		bool BG1VScrollFlipflop = false;
 
 		uint8_t VMain;			// Video Port Control				0x2115
 		uint16_t VRAM[0x8000];

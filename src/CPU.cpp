@@ -381,6 +381,18 @@ uint8_t CPU::ReadCPU(uint32_t address) {
 			nmi = 0x02;
 			return value;
 		}
+		else if (reg == 0x12) {
+			value |= (memory->ppu->VCounter >= 225) ? 0x80 : 0x00;
+			value |= (memory->ppu->HCounter >= 0x121) ? 0x40 : 0x00;
+			// Bit 0 is Auto-Joypad Status
+			return value;
+		}
+		else if (reg == 0x18) {
+			return joypad1Low;
+		}
+		else if (reg == 0x19) {
+			return joypad1High;
+		}
 	}
 	printf("\033[0;36mReading CPU: %06x\033[0m\n", address);
 	//TODO: CPU Reading
@@ -394,6 +406,7 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 	if (page == 0x42) {
 		if (reg == 0x00) {
 			NMITIMEN = value;
+			assert((value & 0x30) == 0 && "Enabling IRQ");
 		}
 		else if (reg == 0x0D) {
 			if (value & 0x1) {

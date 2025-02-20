@@ -77,39 +77,47 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	}
 	else if (reg == 0x07) {		// BG1SC
 		BG1TileAddress = value;
-		printf("\033[0;32mWritting BG1SC: %02x\033[0m\n", value);
-		assert((BG1TileAddress & 0x3) == 0);
 	}
 	else if (reg == 0x08) {		// BG2SC
 		BG2TileAddress = value;
-		printf("\033[0;32mWritting BG2SC: %02x\033[0m\n", value);
-		assert((BG2TileAddress & 0x3) == 0);
 	}
 	else if (reg == 0x09) {		// BG3SC
 		BG3TileAddress = value;
-		printf("\033[0;32mWritting BG3SC: %02x\033[0m\n", value);
-		assert((BG3TileAddress & 0x3) == 0);
 	}
 	else if (reg == 0x0A) {		// BG4SC
 		BG4TileAddress = value;
-		printf("\033[0;32mWritting BG4SC: %02x\033[0m\n", value);
-		assert((BG4TileAddress & 0x3) == 0);
 	}
 	else if (reg == 0x0B) {		// BG12NBA
 		BGAddress1_2 = value;
-		printf("\033[0;32mWritting BG12NBA: %02x\033[0m\n", value);
 	}
 	else if (reg == 0x0C) {		// BG34NBA
 		BGAddress3_4 = value;
-		printf("\033[0;32mWritting BG34NBA: %02x\033[0m\n", value);
 	}
-	else if (reg == 0x0D) {
+	else if (reg == 0x0D) {		// BG1HOFS or M7HOFS
+		if (!BG1HScrollFlipflop) {
+			BG1HScroll &= 0xFF00;
+			BG1HScroll |= value;
+			BG1HScrollFlipflop = true;
+		} else {
+			BG1HScroll &= 0x00FF;
+			BG1HScroll |= (value << 8);
+			BG1HScrollFlipflop = false;
+		}
 		printf("\033[0;32mWritting BG1HOFS: %02x\033[0m\n", value);
-		assert(value == 0);
+		assert((BGMode & 0x7) != 7);
 	}
-	else if (reg == 0x0E) {
+	else if (reg == 0x0E) {		// BG1VOFS or M7VOFS
+		if (!BG1VScrollFlipflop) {
+			BG1VScroll &= 0xFF00;
+			BG1VScroll |= value;
+			BG1VScrollFlipflop = true;
+		} else {
+			BG1VScroll &= 0x00FF;
+			BG1VScroll |= (value << 8);
+			BG1VScrollFlipflop = false;
+		}
 		printf("\033[0;32mWritting BG1VOFS: %02x\033[0m\n", value);
-		assert(value == 0);
+		assert((BGMode & 0x7) != 7);
 	}
 	else if (reg == 0x0F) {
 		printf("\033[0;32mWritting BG2HOFS: %02x\033[0m\n", value);
@@ -260,23 +268,38 @@ void PPU::SetPixel(int X, int Y) {
 	}
 	SetBGDrop(X, Y);
 	if (TM & 0x08) {
-		SetBGPixel(X, Y, BG4TileAddress, 4, GetColorBPPForBG(4));
+		SetBGPixel(X, Y, BG4TileAddress, 4, GetColorBPPForBG(4),
+				(BG4TileAddress & 0x1) ? 64 : 32, (BG4TileAddress & 0x2) ? 64 : 32,
+				0, 0);
 	}
 	if (TM & 0x04) {
-		SetBGPixel(X, Y, BG3TileAddress, 3, GetColorBPPForBG(3));
+		SetBGPixel(X, Y, BG3TileAddress, 3, GetColorBPPForBG(3),
+				(BG3TileAddress & 0x1) ? 64 : 32, (BG3TileAddress & 0x2) ? 64 : 32,
+				0, 0);
 	}
 	if (TM & 0x02) {
-		SetBGPixel(X, Y, BG2TileAddress, 2, GetColorBPPForBG(2));
+		SetBGPixel(X, Y, BG2TileAddress, 2, GetColorBPPForBG(2),
+				(BG2TileAddress & 0x1) ? 64 : 32, (BG2TileAddress & 0x2) ? 64 : 32,
+				0, 0);
 	}
 	if (TM & 0x01) {
-		SetBGPixel(X, Y, BG1TileAddress, 1, GetColorBPPForBG(1));
+		SetBGPixel(X, Y, BG1TileAddress, 1, GetColorBPPForBG(1),
+				(BG1TileAddress & 0x1) ? 64 : 32, (BG1TileAddress & 0x2) ? 64 : 32,
+				BG1HScroll, BG1VScroll);
 	}
 }
 
-void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t bpp) {
+void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t bpp,
+						uint8_t XSize, uint8_t YSize,
+						uint16_t HScroll, uint16_t VScroll) {
+	int XScrolled = (X + HScroll) % (8 * XSize);
+	int YScrolled = (Y + VScroll) % (8 * YSize);
+
 	uint16_t tile = (((BGAddress & 0xFC) << 8) % 0x8000)	// Mod 0x8000 because we use 16bits values instead of 8bits
-					+ ((Y / 8) << 5)
-					+ (X / 8);
+					+ ((((XSize == 64) ? (YScrolled % 256) : YScrolled) / 8) << 5)
+					+ ((XScrolled % 256) / 8)
+					+ (XScrolled / 0x100) * 0x400
+					+ (XSize / 64) * ((YScrolled / 0x100) * 0x800);
 	uint16_t tileWord = VRAM[tile];
 
 	uint16_t tileID = tileWord & 0x3FF;
@@ -285,10 +308,10 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 	bool BGFlipX = tileWord & 0x4000;
 	bool BGFlipY = tileWord & 0x8000;
 
-	uint8_t i = Y % 8;
-	uint8_t j = X % 8;
-	uint8_t VShift = i;
-	uint8_t HShift = 7 - j;
+	uint8_t i = YScrolled % 8;
+	uint8_t j = XScrolled % 8;
+	uint8_t VShift = i + (-2 * i + 7) * BGFlipY;
+	uint8_t HShift = (7 - j) + (2 * j - 7) * BGFlipX;
 
 	uint16_t tileOffset = 0;
 	if (BGIndex == 1) {

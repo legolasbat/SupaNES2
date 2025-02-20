@@ -62,6 +62,9 @@ class CPU {
 
 		void Debug();
 
+		uint8_t joypad1Low;			// 0x4218
+		uint8_t joypad1High;		// 0x4219
+
 	private:
 		int cycles = 0;
 		

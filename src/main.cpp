@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "SDL3/SDL_scancode.h"
 #include "SupaNES.h"
 
 typedef struct {
@@ -150,13 +151,55 @@ void HandleEvents(AppState* appstate) {
 		ImGui_ImplSDL3_ProcessEvent(&event);
 		if (event.type == SDL_EVENT_KEY_DOWN) {
 			switch(event.key.scancode) {
-				case SDL_SCANCODE_Q:
+				case SDL_SCANCODE_ESCAPE:	// QUIT
 					done = true;
 					break;
 
 				case SDL_SCANCODE_T:
+				{
 					const char* testFile = "/home/legolasbat/Documentos/C/SupaNES2/Tests/CPU/ADC-Passed/CPUADC.sfc";
 					appstate->supaNES->InsertROM(testFile);
+					break;
+				}
+				case SDL_SCANCODE_UP:
+				case SDL_SCANCODE_W:		// Up bottom (reset down bottom, hardware limitations)
+					appstate->supaNES->cpu->joypad1High |= 0x08;
+					appstate->supaNES->cpu->joypad1High &= ~0x04;
+					break;
+				case SDL_SCANCODE_DOWN:
+				case SDL_SCANCODE_S:		// Down bottom (reset up bottom, hardware limitations)
+					appstate->supaNES->cpu->joypad1High |= 0x04;
+					appstate->supaNES->cpu->joypad1High &= ~0x08;
+					break;
+				case SDL_SCANCODE_LEFT:
+				case SDL_SCANCODE_A:		// Left bottom (reset right bottom, hardware limitations)
+					appstate->supaNES->cpu->joypad1High |= 0x02;
+					appstate->supaNES->cpu->joypad1High &= ~0x01;
+					break;
+				case SDL_SCANCODE_RIGHT:
+				case SDL_SCANCODE_D:		// Right bottom (reset left bottom, hardware limitations)
+					appstate->supaNES->cpu->joypad1High |= 0x01;
+					appstate->supaNES->cpu->joypad1High &= ~0x02;
+					break;
+			}
+		}
+		if (event.type == SDL_EVENT_KEY_UP) {
+			switch(event.key.scancode) {
+				case SDL_SCANCODE_UP:
+				case SDL_SCANCODE_W:		// Up bottom
+					appstate->supaNES->cpu->joypad1High &= ~0x08;
+					break;
+				case SDL_SCANCODE_DOWN:
+				case SDL_SCANCODE_S:		// Down bottom
+					appstate->supaNES->cpu->joypad1High &= ~0x04;
+					break;
+				case SDL_SCANCODE_LEFT:
+				case SDL_SCANCODE_A:		// Left bottom
+					appstate->supaNES->cpu->joypad1High &= ~0x02;
+					break;
+				case SDL_SCANCODE_RIGHT:
+				case SDL_SCANCODE_D:		// Right bottom
+					appstate->supaNES->cpu->joypad1High &= ~0x01;
 					break;
 			}
 		}
