@@ -313,7 +313,7 @@ int CPU::Clock() {
 				pendingDMA = false;
 			}
 			//printf("\033[0;36mPC: 0x%02x%04x OP: %s %02x\033[0m\n", regs.PB, regs.PC, opTable[opcode].name, opcode);
-			//Debug();
+			Debug();
 	
 			regs.PC++;
 	
@@ -433,10 +433,8 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 		uint8_t dmaChannel = (reg & 0xF0) >> 4;
 		reg &= 0xF;
 
-		if (dmaChannel < 8 && reg < 7) {
+		if (dmaChannel < 8 && reg < 11) {
 			DMARegisters[dmaChannel][reg] = value;
-		} else {
-			assert(false && "HDMA");
 		}
 	}
 	else {
@@ -548,12 +546,12 @@ int CPU::DMA() {
 	return extraCycles;
 }
 
-bool enableLog = true;
+bool enableLog = false;
 FILE* logfile = nullptr;
 int logfileMaxSize = 7277;
 int logfileLineCount = 0;
 void CPU::Debug() {
-	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Documentos/C/SupaNES2/Tests/PPU/2BPP.txt", "w");
+	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Descargas/SMW_log.txt", "w");
 	if (logfile) {
 		fprintf(logfile, "%02x%04x %s A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s V:%3d H:%3d F:%2d\n",
 				regs.PB, regs.PC, opTable[opcode].name, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
@@ -566,8 +564,8 @@ void CPU::Debug() {
 				(regs.P & ZFlag) ? "Z" : "z",
 				(regs.P & CFlag) ? "C" : "c",
 				memory->ppu->VCounter, memory->ppu->HCounter, memory->ppu->frameCounter);
-		logfileLineCount++;
-		if (regs.PC == 0x8213) {
+		//logfileLineCount++;
+		if (!enableLog) {
 			fclose(logfile);
 			assert(false);
 		}

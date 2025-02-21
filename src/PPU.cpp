@@ -56,7 +56,6 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		OAMAddress &= 0x00FF;
 		OAMAddress |= value << 8;
 		OAMFlipflop = false;
-		assert((value & 0x80) == 0);
 	}
 	else if (reg == 0x04) {		// OAMDATA
 		if (!OAMFlipflop) {
@@ -211,6 +210,9 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		if (VMain & 0x80) {
 			VRAMAddress++;
 		}
+	}
+	else if (reg == 0x1A) {
+		printf("\033[0;32mWritting M7SEL: %02x\033[0m\n", value);
 	}
 	else if (reg == 0x1B) {
 		printf("\033[0;32mWritting M7A: %02x\033[0m\n", value);

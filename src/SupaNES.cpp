@@ -126,7 +126,7 @@ uint8_t SupaNES::ReadMemoryQ2(uint32_t address) {
 
 	// WRAM
 	if (memoryBank == 0x7E || memoryBank == 0x7F) {
-		value = WRAM[address % 0x200000];
+		value = WRAM[address % 0x20000];
 	}
 	else {
 		printf("%06x\n", address);

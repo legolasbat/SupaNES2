@@ -76,7 +76,7 @@ class CPU {
 		bool startDMA = false;
 		bool pendingDMA = false;
 		uint8_t enabledDMA;
-		uint8_t DMARegisters[8][7];
+		uint8_t DMARegisters[8][11];
 		int DMA();
 
 		struct ExcVectors{
