@@ -38,8 +38,7 @@ uint8_t SupaNES::ReadMemory(uint32_t address) {
 		value = ReadMemoryQ1(address);
 	}
 	else if (memoryBank < 0x80) {
-		//TODO: Read Q2
-		assert(false && "Reading Q2" && address);
+		value = ReadMemoryQ2(address);
 	}
 	else if (memoryBank < 0xC0) {
 		//TODO: Read Q3
@@ -61,9 +60,7 @@ void SupaNES::WriteMemory(uint32_t address, uint8_t value) {
 		WriteMemoryQ1(address, value);
 	}
 	else if (memoryBank < 0x80) {
-		//TODO: Write Q2
-		printf("%06X\n", address);
-		assert(false && "Writting Q2");
+		WriteMemoryQ2(address, value);
 	}
 	else if (memoryBank < 0xC0) {
 		//TODO: Write Q3
@@ -77,6 +74,7 @@ void SupaNES::WriteMemory(uint32_t address, uint8_t value) {
 	}
 }
 
+uint8_t apuData[4] = {0xAA, 0, 0, 0};
 uint8_t SupaNES::ReadMemoryQ1(uint32_t address) {
 	uint8_t value = 0;
 
@@ -86,12 +84,32 @@ uint8_t SupaNES::ReadMemoryQ1(uint32_t address) {
 	}
 	else if (memoryPage == 0x21) {
 		//TODO: Make PPU, APU and WRAM
-		printf("%06X\n", address);
+		printf("Reading %06X\n", address);
+		if ((address & 0xFF) == 0x40) {
+			value = apuData[0];
+			apuData[0] = 0xAA;
+			return value;
+		}
+		else if ((address & 0xFF) == 0x41) {
+			value = apuData[1];
+			apuData[1] = 0xBB;
+			return value;
+		}
+		else if ((address & 0xFF) == 0x42) {
+			value = apuData[2];
+			apuData[2] = 0x00;
+			return value;
+		}
+		else if ((address & 0xFF) == 0x43) {
+			value = apuData[3];
+			apuData[3] = 0x00;
+			return value;
+		}
 		assert(false && "Reading Q1 Page 21");
 	}
 	else if (memoryPage == 0x40) {
 		// Reading Joypad register
-		printf("%06X\n", address);
+		printf("Read %06X\n", address);
 		assert(false && "Reading Q1 Page 40");
 	}
 	else if (memoryPage == 0x42 || memoryPage == 0x43) {
@@ -103,6 +121,19 @@ uint8_t SupaNES::ReadMemoryQ1(uint32_t address) {
 	return value;
 }
 
+uint8_t SupaNES::ReadMemoryQ2(uint32_t address) {
+	uint8_t value = 0;
+
+	// WRAM
+	if (memoryBank == 0x7E || memoryBank == 0x7F) {
+		value = WRAM[address % 0x200000];
+	}
+	else {
+		printf("%06x\n", address);
+		assert(false && "Reading Q2");
+	}
+	return value;
+}
 
 void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
 	// WRAM
@@ -117,7 +148,19 @@ void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
 		}
 		// APU
 		else if ((address & 0xFF) <= 0x43) {
-			assert(false && "Writting APU");
+			//assert(false && "Writting APU");
+			if ((address & 0xFF) == 0x40) {
+				apuData[0] = value;
+			}
+			else if ((address & 0xFF) == 0x41) {
+				apuData[1] = value;
+			}
+			else if ((address & 0xFF) == 0x42) {
+				apuData[2] = value;
+			}
+			else if ((address & 0xFF) == 0x43) {
+				apuData[3] = value;
+			}
 		}
 		// WRAM
 		else if ((address & 0xFF) == 0x80) {	// Write/Read
@@ -135,12 +178,12 @@ void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
 			WRAMAddress &= 0xFFFF;
 			WRAMAddress |= value << 16;
 		} else {
-			printf("Page 21: %06X\n", address);
+			printf("Write Page 21: %06X\n", address);
 		}
 	}
 	else if (memoryPage == 0x40) {
 		// Writting Joypad register
-		printf("Page 40: %06X\n", address);
+		printf("Write Page 40: %06X\n", address);
 	}
 	// CPU
 	else if (memoryPage == 0x42 || memoryPage == 0x43) {
@@ -148,8 +191,19 @@ void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
 	}
 	else if (memoryPage >= 0x80) {
 		//TODO: Writting cartridge
-		printf("%06X\n", address);
+		printf("Write %06X\n", address);
 		assert(false && "Writting Q1 Cart");
+	}
+}
+
+void SupaNES::WriteMemoryQ2(uint32_t address, uint8_t value) {
+	// WRAM
+	if (memoryBank == 0x7E || memoryBank == 0x7F) {
+		WRAM[address % 0x20000] = value;
+	}
+	else {
+		printf("%06x\n", address);
+		assert(false && "Writting Q2");
 	}
 }
 

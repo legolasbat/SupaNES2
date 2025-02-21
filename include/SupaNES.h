@@ -3,6 +3,7 @@
 #include "CPU.h"
 #include "PPU.h"
 #include "Cartridge.h"
+#include <cstdint>
 
 class SupaNES {
 	public:
@@ -31,6 +32,8 @@ class SupaNES {
 		uint8_t memoryPage;
 
 		uint8_t ReadMemoryQ1(uint32_t address);
+		uint8_t ReadMemoryQ2(uint32_t address);
 
 		void WriteMemoryQ1(uint32_t address, uint8_t value);
+		void WriteMemoryQ2(uint32_t address, uint8_t value);
 };
