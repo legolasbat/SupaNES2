@@ -58,6 +58,21 @@ class PPU {
 		uint16_t BG1VScroll;	// BG1 Vertical Scroll and M7VOFS	0x210E
 		bool BG1VScrollFlipflop = false;
 
+		uint16_t BG2HScroll;	// BG2 Horizontal Scroll			0x210F
+		bool BG2HScrollFlipflop = false;
+		uint16_t BG2VScroll;	// BG2 Vertical Scroll				0x2110
+		bool BG2VScrollFlipflop = false;
+		
+		uint16_t BG3HScroll;	// BG3 Horizontal Scroll			0x2111
+		bool BG3HScrollFlipflop = false;
+		uint16_t BG3VScroll;	// BG3 Vertical Scroll				0x2112
+		bool BG3VScrollFlipflop = false;
+		
+		uint16_t BG4HScroll;	// BG4 Horizontal Scroll			0x2113
+		bool BG4HScrollFlipflop = false;
+		uint16_t BG4VScroll;	// BG4 Vertical Scroll				0x2114
+		bool BG4VScrollFlipflop = false;
+		
 		uint8_t VMain;			// Video Port Control				0x2115
 		uint16_t VRAM[0x8000];
 		uint16_t VRAMAddress;	// VRAM Address						0x2116/7

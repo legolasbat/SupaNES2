@@ -119,29 +119,71 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		printf("\033[0;32mWritting BG1VOFS: %02x\033[0m\n", value);
 		assert((BGMode & 0x7) != 7);
 	}
-	else if (reg == 0x0F) {
-		printf("\033[0;32mWritting BG2HOFS: %02x\033[0m\n", value);
-		assert(value == 0);
+	else if (reg == 0x0F) {		// BG2HOFS
+		if (!BG2HScrollFlipflop) {
+			BG2HScroll &= 0xFF00;
+			BG2HScroll |= value;
+			BG2HScrollFlipflop = true;
+		} else {
+			BG2HScroll &= 0x00FF;
+			BG2HScroll |= (value << 8);
+			BG2HScrollFlipflop = false;
+		}
 	}
-	else if (reg == 0x10) {
-		printf("\033[0;32mWritting BG2VOFS: %02x\033[0m\n", value);
-		assert(value == 0);
+	else if (reg == 0x10) {		// BG2VOFS
+		if (!BG2VScrollFlipflop) {
+			BG2VScroll &= 0xFF00;
+			BG2VScroll |= value;
+			BG2VScrollFlipflop = true;
+		} else {
+			BG2VScroll &= 0x00FF;
+			BG2VScroll |= (value << 8);
+			BG2VScrollFlipflop = false;
+		}
 	}
-	else if (reg == 0x11) {
-		printf("\033[0;32mWritting BG3HOFS: %02x\033[0m\n", value);
-		assert(value == 0);
+	else if (reg == 0x11) {		// BG3HOFS
+		if (!BG3HScrollFlipflop) {
+			BG3HScroll &= 0xFF00;
+			BG3HScroll |= value;
+			BG3HScrollFlipflop = true;
+		} else {
+			BG3HScroll &= 0x00FF;
+			BG3HScroll |= (value << 8);
+			BG3HScrollFlipflop = false;
+		}
 	}
-	else if (reg == 0x12) {
-		printf("\033[0;32mWritting BG3VOFS: %02x\033[0m\n", value);
-		assert(value == 0);
+	else if (reg == 0x12) {		// BG3VOFS
+		if (!BG3VScrollFlipflop) {
+			BG3VScroll &= 0xFF00;
+			BG3VScroll |= value;
+			BG3VScrollFlipflop = true;
+		} else {
+			BG3VScroll &= 0x00FF;
+			BG3VScroll |= (value << 8);
+			BG3VScrollFlipflop = false;
+		}
 	}
-	else if (reg == 0x13) {
-		printf("\033[0;32mWritting BG4HOFS: %02x\033[0m\n", value);
-		assert(value == 0);
+	else if (reg == 0x13) {		// BG4HOFS
+		if (!BG4HScrollFlipflop) {
+			BG4HScroll &= 0xFF00;
+			BG4HScroll |= value;
+			BG4HScrollFlipflop = true;
+		} else {
+			BG4HScroll &= 0x00FF;
+			BG4HScroll |= (value << 8);
+			BG4HScrollFlipflop = false;
+		}
 	}
-	else if (reg == 0x14) {
-		printf("\033[0;32mWritting BG4VOFS: %02x\033[0m\n", value);
-		assert(value == 0);
+	else if (reg == 0x14) {		// BG4VOFS
+		if (!BG4VScrollFlipflop) {
+			BG4VScroll &= 0xFF00;
+			BG4VScroll |= value;
+			BG4VScrollFlipflop = true;
+		} else {
+			BG4VScroll &= 0x00FF;
+			BG4VScroll |= (value << 8);
+			BG4VScrollFlipflop = false;
+		}
 	}
 	else if (reg == 0x15) {		// VMAIN
 		VMain = value;
@@ -270,17 +312,17 @@ void PPU::SetPixel(int X, int Y) {
 	if (TM & 0x08) {
 		SetBGPixel(X, Y, BG4TileAddress, 4, GetColorBPPForBG(4),
 				(BG4TileAddress & 0x1) ? 64 : 32, (BG4TileAddress & 0x2) ? 64 : 32,
-				0, 0);
+				BG4HScroll, BG4VScroll);
 	}
 	if (TM & 0x04) {
 		SetBGPixel(X, Y, BG3TileAddress, 3, GetColorBPPForBG(3),
 				(BG3TileAddress & 0x1) ? 64 : 32, (BG3TileAddress & 0x2) ? 64 : 32,
-				0, 0);
+				BG3HScroll, BG3VScroll);
 	}
 	if (TM & 0x02) {
 		SetBGPixel(X, Y, BG2TileAddress, 2, GetColorBPPForBG(2),
 				(BG2TileAddress & 0x1) ? 64 : 32, (BG2TileAddress & 0x2) ? 64 : 32,
-				0, 0);
+				BG2HScroll, BG2VScroll);
 	}
 	if (TM & 0x01) {
 		SetBGPixel(X, Y, BG1TileAddress, 1, GetColorBPPForBG(1),
@@ -345,6 +387,10 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 		palette = GetColor8BPP(tileAddress, BGPaletteNumber, HShift);
 	}
 
+	if ((palette & 0x8000) == 0) {
+		return;
+	}
+
 	// Apply brightness
 	if ((inidisp & 0xF) != 0xF) {
 		float brightness = ((inidisp & 0xF) + 1) / 16.0f;
@@ -359,14 +405,14 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 		palette |= ((uint8_t)(blue * brightness) & 0x1F) << 10;
 	}
 
-	pixels[(Y * width) + X] = palette | 0x8000;
+	pixels[(Y * width) + X] = palette;
 }
 
 void PPU::SetBGDrop(int X, int Y, bool forceBlank) {
 	if (forceBlank) {
 		pixels[(Y * width) + X] = 0x0000;
 	} else {
-		pixels[(Y * width) + X] = CGRAM[0] | 0x8000;
+		pixels[(Y * width) + X] = CGRAM[0];
 	}
 }
 
@@ -401,9 +447,9 @@ uint16_t PPU::GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift
 	uint8_t paletteIndex = ((BGLo >> HShift) & 1) + (2 * ((BGHi >> HShift) & 1));
 
 	if (paletteIndex == 0) {
-		return CGRAM[0] | 0x8000;
+		return CGRAM[0];
 	}
-	return CGRAM[paletteIndex + palette * 4 + (BGIndex - 1) * 32];
+	return CGRAM[paletteIndex + palette * 4 + (BGIndex - 1) * 32] | 0x8000;
 }
 
 uint16_t PPU::GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift) {
@@ -415,9 +461,9 @@ uint16_t PPU::GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift
 						+ (4 * ((BGHi1 >> HShift) & 1)) + (8 * ((BGHi2 >> HShift) & 1));
 
 	if (paletteIndex == 0) {
-		return CGRAM[0] | 0x8000;
+		return CGRAM[0];
 	}
-	return CGRAM[paletteIndex + palette * 16];
+	return CGRAM[paletteIndex + palette * 16] | 0x8000;
 }
 
 uint16_t PPU::GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift) {
@@ -435,9 +481,9 @@ uint16_t PPU::GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift
 						+ (64 * ((BG7 >> HShift) & 1)) + (128 * ((BG8 >> HShift) & 1));
 
 	if (paletteIndex == 0) {
-		return CGRAM[0] | 0x8000;
+		return CGRAM[0];
 	}
-	return CGRAM[paletteIndex];
+	return CGRAM[paletteIndex] | 0x8000;
 }
 
 uint16_t* PPU::GetFrame() {
@@ -450,7 +496,7 @@ void PPU::SetFrame(void* texturePixels, int pitch) {
 	uint16_t* outPixels = (uint16_t*)texturePixels;
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
-			outPixels[y * (pitch / 2) + x] = pixels[y * (pitch / 2) + x];
+			outPixels[y * (pitch / 2) + x] = pixels[y * (pitch / 2) + x] | 0x8000;
 		}
 	}
 }
