@@ -71,9 +71,8 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	else if (reg == 0x05) {		// BGMODE
 		BGMode = value;
 	}
-	else if (reg == 0x06) {
-		printf("\033[0;32mWritting MOSAIC: %02x\033[0m\n", value);
-		assert(value == 0);
+	else if (reg == 0x06) {		// MOSAIC
+		mosaic = value;
 	}
 	else if (reg == 0x07) {		// BG1SC
 		BG1TileAddress = value;
@@ -387,8 +386,19 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 		palette = GetColor8BPP(tileAddress, BGPaletteNumber, HShift);
 	}
 
-	if ((palette & 0x8000) == 0) {
+	if ((palette & 0x8000) == 0 && mosaic == 0) {
 		return;
+	}
+
+	uint8_t mosaicSize = 0;
+	if (mosaic & (1 << (BGIndex - 1)) && (mosaic & 0xF0) >= 0x10) {
+		mosaicSize = mosaic >> 4;
+	}
+	if (mosaicSize >= 1) {
+		mosaicSize++;
+		if (Y % mosaicSize != 0 || X % mosaicSize != 0) {
+			palette = pixels[((Y - (Y % mosaicSize)) * width) + (X - (X % mosaicSize))];
+		}
 	}
 
 	// Apply brightness

@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "SDL3/SDL_scancode.h"
+#include "SDL3/SDL_video.h"
 #include "SupaNES.h"
 
 typedef struct {
@@ -16,6 +16,10 @@ typedef struct {
 	SupaNES* supaNES;
 } AppState;
 
+const int width = 256;
+const int height = 224;
+int windowSizeMultiplier = 3;
+
 // Main loop bool
 bool done = false;
 
@@ -24,6 +28,8 @@ bool BG1Selected = true;
 bool BG2Selected = true;
 bool BG3Selected = true;
 bool BG4Selected = true;
+
+bool pause = false;
 
 void SDLCALL openFileCallback(void* userdata, const char* const* filelist, int filter);
 void HandleEvents(AppState* appstate);
@@ -41,12 +47,13 @@ int main(int argc, char* argv[]) {
 	if(!as) {
 		return SDL_APP_FAILURE;
 	}
-
-	if(!SDL_CreateWindowAndRenderer("SupaNES2", 800, 600, 0, &as->window, &as->renderer)) {
+	
+	if(!SDL_CreateWindowAndRenderer("SupaNES2", width * windowSizeMultiplier, height * windowSizeMultiplier,
+									0, &as->window, &as->renderer)) {
 		SDL_Log("Couldn't craete window and renderer: %s\n", SDL_GetError());
 		return SDL_APP_FAILURE;
 	}
-	as->texture = SDL_CreateTexture(as->renderer, SDL_PIXELFORMAT_ABGR1555, SDL_TEXTUREACCESS_STREAMING, 256, 224);
+	as->texture = SDL_CreateTexture(as->renderer, SDL_PIXELFORMAT_ABGR1555, SDL_TEXTUREACCESS_STREAMING, width, height);
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -72,7 +79,7 @@ int main(int argc, char* argv[]) {
 		uint64_t currentTime = SDL_GetTicks();
 		
 		// SupaNes clock
-		if(as->supaNES->RomLoaded) {
+		if(!pause && as->supaNES->RomLoaded) {
 			cycles += as->supaNES->Clock();
 
 			if (as->supaNES->ppu->frameCompleted) {
@@ -96,8 +103,12 @@ int main(int argc, char* argv[]) {
 				SDL_LockTexture(as->texture, NULL, &texturePixels, &pitch);
 				as->supaNES->ppu->SetFrame(texturePixels, pitch);
 				SDL_UnlockTexture(as->texture);
-				//SDL_UpdateTexture(as->texture, NULL, as->supaNES->ppu->GetFrame(), 512);
-				SDL_RenderTexture(as->renderer, as->texture, NULL, NULL);
+				int windowWidth;
+				int windowHeight;
+				SDL_GetWindowSize(as->window, &windowWidth, &windowHeight);
+				SDL_FRect destRect = { 0.0f, ImGui::GetFrameHeight(),
+										(float)windowWidth, windowHeight - ImGui::GetFrameHeight()};
+				SDL_RenderTexture(as->renderer, as->texture, NULL, &destRect);
 				ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), as->renderer);
 				SDL_RenderPresent(as->renderer);
 				
@@ -120,8 +131,17 @@ int main(int argc, char* argv[]) {
 			ImGui::Render();
 		
 			// Render
-			SDL_SetRenderDrawColor(as->renderer, 255, 0, 0, 255);
-			SDL_RenderClear(as->renderer);
+			if (as->supaNES->RomLoaded) {
+				int windowWidth;
+				int windowHeight;
+				SDL_GetWindowSize(as->window, &windowWidth, &windowHeight);
+				SDL_FRect destRect = { 0.0f, ImGui::GetFrameHeight(),
+										(float)windowWidth, windowHeight - ImGui::GetFrameHeight()};
+				SDL_RenderTexture(as->renderer, as->texture, NULL, &destRect);
+			} else {
+				SDL_SetRenderDrawColor(as->renderer, 255, 0, 0, 255);
+				SDL_RenderClear(as->renderer);
+			}
 			ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), as->renderer);
 			SDL_RenderPresent(as->renderer);
 			deltaTime = currentTime - lastFrame;
@@ -161,6 +181,23 @@ void HandleEvents(AppState* appstate) {
 					appstate->supaNES->InsertROM(testFile);
 					break;
 				}
+				case SDL_SCANCODE_P:
+					pause = !pause;
+					break;
+
+				case SDL_SCANCODE_H:		// B bottom
+					appstate->supaNES->cpu->joypad1High |= 0x80;
+					break;
+				case SDL_SCANCODE_Y:		// Y bottom
+					appstate->supaNES->cpu->joypad1High |= 0x40;
+					break;
+				case SDL_SCANCODE_RSHIFT:
+				case SDL_SCANCODE_LSHIFT:	// Select bottom
+					appstate->supaNES->cpu->joypad1High |= 0x20;
+					break;
+				case SDL_SCANCODE_RETURN:	// Start bottom
+					appstate->supaNES->cpu->joypad1High |= 0x10;
+					break;
 				case SDL_SCANCODE_UP:
 				case SDL_SCANCODE_W:		// Up bottom (reset down bottom, hardware limitations)
 					appstate->supaNES->cpu->joypad1High |= 0x08;
@@ -181,10 +218,35 @@ void HandleEvents(AppState* appstate) {
 					appstate->supaNES->cpu->joypad1High |= 0x01;
 					appstate->supaNES->cpu->joypad1High &= ~0x02;
 					break;
+				case SDL_SCANCODE_J:		// A bottom
+					appstate->supaNES->cpu->joypad1Low |= 0x80;
+					break;
+				case SDL_SCANCODE_U:		// X bottom
+					appstate->supaNES->cpu->joypad1Low |= 0x40;
+					break;
+				case SDL_SCANCODE_Q:		// L bottom
+					appstate->supaNES->cpu->joypad1Low |= 0x20;
+					break;
+				case SDL_SCANCODE_E:		// R bottom
+					appstate->supaNES->cpu->joypad1Low |= 0x10;
+					break;
 			}
 		}
 		if (event.type == SDL_EVENT_KEY_UP) {
 			switch(event.key.scancode) {
+				case SDL_SCANCODE_H:		// B bottom
+					appstate->supaNES->cpu->joypad1High &= ~0x80;
+					break;
+				case SDL_SCANCODE_Y:		// Y bottom
+					appstate->supaNES->cpu->joypad1High &= ~0x40;
+					break;
+				case SDL_SCANCODE_RSHIFT:
+				case SDL_SCANCODE_LSHIFT:	// Select bottom
+					appstate->supaNES->cpu->joypad1High &= ~0x20;
+					break;
+				case SDL_SCANCODE_RETURN:	// Start bottom
+					appstate->supaNES->cpu->joypad1High &= ~0x10;
+					break;
 				case SDL_SCANCODE_UP:
 				case SDL_SCANCODE_W:		// Up bottom
 					appstate->supaNES->cpu->joypad1High &= ~0x08;
@@ -200,6 +262,18 @@ void HandleEvents(AppState* appstate) {
 				case SDL_SCANCODE_RIGHT:
 				case SDL_SCANCODE_D:		// Right bottom
 					appstate->supaNES->cpu->joypad1High &= ~0x01;
+					break;
+				case SDL_SCANCODE_J:		// A bottom
+					appstate->supaNES->cpu->joypad1Low &= ~0x80;
+					break;
+				case SDL_SCANCODE_U:		// X bottom
+					appstate->supaNES->cpu->joypad1Low &= ~0x40;
+					break;
+				case SDL_SCANCODE_Q:		// L bottom
+					appstate->supaNES->cpu->joypad1Low &= ~0x20;
+					break;
+				case SDL_SCANCODE_E:		// R bottom
+					appstate->supaNES->cpu->joypad1Low &= ~0x10;
 					break;
 			}
 		}

@@ -1,4 +1,5 @@
 #include "SupaNES.h"
+#include "Cartridge.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -153,6 +154,16 @@ void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
 }
 
 bool SupaNES::InsertROM(const char* filepath) {
+	if (RomLoaded) {
+		cpu->~CPU();
+		cpu = new CPU(this);
+		ppu->~PPU();
+		ppu = new PPU(this);
+		cart->~Cartridge();
+		cart = new Cartridge(this);
+		RomLoaded = false;
+	}
+
 	uint16_t excVectors[16];
 	if (!cart->LoadROM(filepath, excVectors)) {
 		return false;

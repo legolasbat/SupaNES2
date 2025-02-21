@@ -45,6 +45,10 @@ class PPU {
 		uint16_t OAMAddress;	// OAM Address						0x2102/3
 		bool OAMFlipflop;
 
+		uint8_t BGMode;			// BG Mode and Character Size		0x2105
+	
+		uint8_t mosaic;			// Mosaic - Screen Pixelation		0x2106
+
 		uint8_t BG1TileAddress;	// BG1 Tilemap Address and Size		0x2107
 		uint8_t BG2TileAddress;	// BG2 Tilemap Address and Size		0x2108
 		uint8_t BG3TileAddress;	// BG3 Tilemap Address and Size		0x2109
@@ -77,8 +81,6 @@ class PPU {
 		uint16_t VRAM[0x8000];
 		uint16_t VRAMAddress;	// VRAM Address						0x2116/7
 
-		uint8_t BGMode;			// BG Mode and Character Size		0x2105
-		
 		uint16_t CGRAM[0x100];
 		uint8_t CGRAMAddress;
 		bool CGRAMFlipflop;
