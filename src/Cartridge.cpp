@@ -118,7 +118,7 @@ bool Cartridge::LoadROM(const char* filepath, uint16_t* excVectors) {
 	// ROM Size
 	uint8_t romSize = 0;
 	fread(&romSize, sizeof(uint8_t), 1, file);
-	printf("- ROM SIze: ");
+	printf("- ROM Size: ");
 	int romSizeByte = (1 << romSize) * 1024;
 	if (romSizeByte != fileSize) {
 		romSizeByte = fileSize;
