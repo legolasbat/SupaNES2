@@ -80,7 +80,7 @@ uint8_t SupaNES::ReadMemoryQ1(uint32_t address) {
 
 	// WRAM
 	if (memoryPage < 0x20) {
-		value = WRAM[address];
+		value = WRAM[address % 0x2000];
 	}
 	else if (memoryPage == 0x21) {
 		//TODO: Make PPU, APU and WRAM
@@ -138,7 +138,7 @@ uint8_t SupaNES::ReadMemoryQ2(uint32_t address) {
 void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
 	// WRAM
 	if (memoryPage < 0x20) {
-		WRAM[address] = value;
+		WRAM[address % 0x2000] = value;
 	}
 	else if (memoryPage == 0x21) {
 		//TODO: Make PPU, APU and WRAM
@@ -164,7 +164,9 @@ void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
 		}
 		// WRAM
 		else if ((address & 0xFF) == 0x80) {	// Write/Read
-			WRAM[WRAMAddress++] = value;
+			WRAM[WRAMAddress] = value;
+			WRAMAddress++;
+			WRAMAddress = WRAMAddress % 0x20000;
 		}
 		else if ((address & 0xFF) == 0x81) {	// Low Address
 			WRAMAddress &= 0x1FF00;

@@ -64,6 +64,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		} else {
 			OAM[OAMAddress] |= value << 8;
 			OAMAddress++;
+			OAMAddress = OAMAddress & 0x110;
 			OAMFlipflop = false;
 		}
 	}
@@ -202,6 +203,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		VRAM[VRAMAddress] |= value;
 		if (!(VMain & 0x80)) {
 			VRAMAddress++;
+			VRAMAddress = VRAMAddress % 0x8000;
 		}
 	}
 	else if (reg == 0x19) {		// VMDATAH
@@ -209,6 +211,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		VRAM[VRAMAddress] |= value << 8;
 		if (VMain & 0x80) {
 			VRAMAddress++;
+			VRAMAddress = VRAMAddress % 0x8000;
 		}
 	}
 	else if (reg == 0x1A) {
@@ -243,6 +246,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		} else {
 			CGRAM[CGRAMAddress] |= value << 8;
 			CGRAMAddress++;
+			CGRAMAddress = CGRAMAddress % 0x100;
 			CGRAMFlipflop = false;
 		}
 	}
