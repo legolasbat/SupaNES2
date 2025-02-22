@@ -322,6 +322,16 @@ void Cartridge::WriteRom(uint32_t address, uint8_t value) {
 	//TODO: Cartridge SRAM
 }
 
+uint8_t Cartridge::ReadRam(uint32_t address) {
+	uint8_t value = 0;
+
+	return value;
+}
+
+void Cartridge::WriteRam(uint32_t address, uint8_t value) {
+
+}
+
 Cartridge::~Cartridge() {
 	free(ROM);
 }

@@ -129,8 +129,11 @@ uint8_t SupaNES::ReadMemoryQ2(uint32_t address) {
 		value = WRAM[address % 0x20000];
 	}
 	else {
-		printf("%06x\n", address);
-		assert(false && "Reading Q2");
+		if (memoryPage < 0x80) {
+			value = cart->ReadRam(address);
+		} else {
+			value = cart->ReadRom(address);
+		}
 	}
 	return value;
 }
@@ -192,7 +195,6 @@ void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
 		cpu->WriteCPU(address, value);
 	}
 	else if (memoryPage >= 0x80) {
-		//TODO: Writting cartridge
 		printf("Write %06X\n", address);
 		assert(false && "Writting Q1 Cart");
 	}
@@ -204,8 +206,12 @@ void SupaNES::WriteMemoryQ2(uint32_t address, uint8_t value) {
 		WRAM[address % 0x20000] = value;
 	}
 	else {
-		printf("%06x\n", address);
-		assert(false && "Writting Q2");
+		if (memoryPage < 0x80) {
+			cart->WriteRam(address, value);
+		} else {
+			printf("%06x\n", address);
+			assert(false && "Writting ROM Q2");
+		}
 	}
 }
 

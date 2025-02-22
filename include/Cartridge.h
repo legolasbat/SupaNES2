@@ -19,6 +19,9 @@ class Cartridge {
 		uint8_t ReadRom(uint32_t address);
 		void WriteRom(uint32_t address, uint8_t value);
 
+		uint8_t ReadRam(uint32_t address);
+		void WriteRam(uint32_t address, uint8_t value);
+
 	private:
 		bool CheckCartridgeType(const uint8_t* cartType);
 		bool CheckRegion(const uint8_t* region);
