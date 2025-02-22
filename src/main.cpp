@@ -201,22 +201,26 @@ void HandleEvents(AppState* appstate) {
 				case SDL_SCANCODE_UP:
 				case SDL_SCANCODE_W:		// Up bottom (reset down bottom, hardware limitations)
 					appstate->supaNES->cpu->joypad1High |= 0x08;
-					appstate->supaNES->cpu->joypad1High &= ~0x04;
+					if (appstate->supaNES->cpu->joypad1High & 0x04)
+						appstate->supaNES->cpu->joypad1High &= ~0x04;
 					break;
 				case SDL_SCANCODE_DOWN:
 				case SDL_SCANCODE_S:		// Down bottom (reset up bottom, hardware limitations)
 					appstate->supaNES->cpu->joypad1High |= 0x04;
-					appstate->supaNES->cpu->joypad1High &= ~0x08;
+					if (appstate->supaNES->cpu->joypad1High & 0x08)
+						appstate->supaNES->cpu->joypad1High &= ~0x08;
 					break;
 				case SDL_SCANCODE_LEFT:
 				case SDL_SCANCODE_A:		// Left bottom (reset right bottom, hardware limitations)
 					appstate->supaNES->cpu->joypad1High |= 0x02;
-					appstate->supaNES->cpu->joypad1High &= ~0x01;
+					if (appstate->supaNES->cpu->joypad1High & 0x01)
+						appstate->supaNES->cpu->joypad1High &= ~0x01;
 					break;
 				case SDL_SCANCODE_RIGHT:
 				case SDL_SCANCODE_D:		// Right bottom (reset left bottom, hardware limitations)
 					appstate->supaNES->cpu->joypad1High |= 0x01;
-					appstate->supaNES->cpu->joypad1High &= ~0x02;
+					if (appstate->supaNES->cpu->joypad1High & 0x02)
+						appstate->supaNES->cpu->joypad1High &= ~0x02;
 					break;
 				case SDL_SCANCODE_J:		// A bottom
 					appstate->supaNES->cpu->joypad1Low |= 0x80;
