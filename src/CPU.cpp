@@ -26,6 +26,9 @@ CPU::CPU(SupaNES* supaNes) {
 
 	regs.P = 0x34;
 
+	joypad1Low = 0;
+	joypad1High = 0;
+
 	opTable[0x00] = {"BRK", &CPU::BRK, AddMode::Implied, 7};
 	opTable[0x01] = {"ORA", &CPU::ORA, AddMode::DirectPageIndirectX, 6};
 	opTable[0x02] = {"COP", &CPU::COP, AddMode::Implied, 7};
@@ -313,7 +316,7 @@ int CPU::Clock() {
 				pendingDMA = false;
 			}
 			//printf("\033[0;36mPC: 0x%02x%04x OP: %s %02x\033[0m\n", regs.PB, regs.PC, opTable[opcode].name, opcode);
-			Debug();
+			//Debug();
 	
 			regs.PC++;
 	
@@ -378,6 +381,7 @@ uint8_t CPU::ReadCPU(uint32_t address) {
 		if (reg == 0x10) {
 			nmi |= 0x02;
 			value = nmi;
+			nmi &= ~0x80;
 			return value;
 		}
 		else if (reg == 0x12) {
