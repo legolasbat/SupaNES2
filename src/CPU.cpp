@@ -351,7 +351,6 @@ void CPU::NMI() {
 	if (NMITIMEN & 0x80) {
 		PushStack(regs.PB);
 
-		regs.PC++;
 		PushStack(regs.PC >> 8);
 		PushStack(regs.PC & 0xFF);
 
@@ -377,8 +376,8 @@ uint8_t CPU::ReadCPU(uint32_t address) {
 
 	if (page == 0x42) {
 		if (reg == 0x10) {
-			value = nmi & 0x80;
-			nmi = 0x02;
+			nmi |= 0x02;
+			value = nmi;
 			return value;
 		}
 		else if (reg == 0x12) {
@@ -480,10 +479,10 @@ int CPU::DMA() {
 								return extraCycles;
 							}
 						}
+						DMARegisters[i][4] = (AAddress >> 16) & 0xFF;
 						AAddress += (increment == 0) ? 1 : ((increment == 2) ? -1 : 0);
 						DMARegisters[i][2] = AAddress & 0xFF;
 						DMARegisters[i][3] = (AAddress >> 8) & 0xFF;
-						DMARegisters[i][4] = (AAddress >> 16) & 0xFF;
 						break;
 					}
 
@@ -531,10 +530,10 @@ int CPU::DMA() {
 								return extraCycles;
 							}
 						}
+						DMARegisters[i][4] = (AAddress >> 16) & 0xFF;
 						AAddress += (increment == 0) ? 2 : ((increment == 2) ? -2 : 0);
 						DMARegisters[i][2] = AAddress & 0xFF;
 						DMARegisters[i][3] = (AAddress >> 8) & 0xFF;
-						DMARegisters[i][4] = (AAddress >> 16) & 0xFF;
 						break;
 					}
 				}
@@ -570,60 +569,17 @@ void CPU::Debug() {
 			assert(false);
 		}
 	} else {
-		printf("%02x%04x", regs.PB, regs.PC);
-		printf(" A:%04x", regs.A.HL);
-		printf(" X:%04x", regs.X.HL);
-		printf(" Y:%04x", regs.Y.HL);
-		printf(" S:%04x", regs.SP);
-		printf(" D:%04x", regs.DP);
-		printf(" DB:%02x ", regs.DB);
-		
-		if (regs.P & NFlag) {
-			printf("N");
-		} else {
-			printf("n");
-		}
-		if (regs.P & VFlag) {
-			printf("V");
-		} else {
-			printf("v");
-		}
-		if (emulationMode) {
-			printf("1B");
-		} else {
-			if (regs.P & MFlag) {
-				printf("M");
-			} else {
-				printf("m");
-			}
-			if (regs.P & XFlag) {
-				printf("X");
-			} else {
-				printf("x");
-			}
-		}
-		if (regs.P & DFlag) {
-			printf("D");
-		} else {
-			printf("d");
-		}
-		if (regs.P & IFlag) {
-			printf("I");
-		} else {
-			printf("i");
-		}
-		if (regs.P & ZFlag) {
-			printf("Z");
-		} else {
-			printf("z");
-		}
-		if (regs.P & CFlag) {
-			printf("C");
-		} else {
-			printf("c");
-		}
-
-		printf("\n");
+		printf("%02x%04x %s A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s V:%3d H:%3d F:%2d\n",
+			regs.PB, regs.PC, opTable[opcode].name, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
+			(regs.P & NFlag) ? "N" : "n",
+			(regs.P & VFlag) ? "V" : "v",
+			emulationMode ? "1" : (regs.P & MFlag) ? "M" : "m",
+			emulationMode ? "B" : (regs.P & XFlag) ? "X" : "x",
+			(regs.P & DFlag) ? "D" : "d",
+			(regs.P & IFlag) ? "I" : "i",
+			(regs.P & ZFlag) ? "Z" : "z",
+			(regs.P & CFlag) ? "C" : "c",
+			memory->ppu->VCounter, memory->ppu->HCounter, memory->ppu->frameCounter);
 	}
 }
 
@@ -2096,6 +2052,14 @@ uint8_t CPU::PLD() {
 
 uint8_t CPU::PLP() {
 	regs.P = PullStack();
+	if (emulationMode) {
+		SetFlag(MFlag, true);
+		SetFlag(XFlag, true);
+	}
+	if (regs.P & XFlag) {
+		regs.X.HL &= 0xFF;
+		regs.Y.HL &= 0xFF;
+	}
 	return 0;
 }
 
