@@ -186,9 +186,6 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	}
 	else if (reg == 0x15) {		// VMAIN
 		VMain = value;
-		//printf("\033[0;32mWritting VMAIN: %02x\033[0m\n", value);
-		assert((VMain & 0x3) == 0);
-		assert((VMain & 0xC) == 0);
 	}
 	else if (reg == 0x16) {		// VMAADDL
 		VRAMAddress &= 0xFF00;
@@ -199,18 +196,70 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		VRAMAddress |= value << 8;
 	}
 	else if (reg == 0x18) {		// VMDATAL
-		VRAM[VRAMAddress] &= 0xFF00;
-		VRAM[VRAMAddress] |= value;
+		uint16_t remapAddress = VRAMAddress;
+		if ((VMain & 0xC) != 0) {
+			if ((VMain & 0xC) == 0x4) {
+				uint8_t lower = VRAMAddress & 0xFF;
+				remapAddress &= 0xFF00;
+				remapAddress |= (lower >> 5) | (lower << 3);
+			}
+			else if ((VMain & 0xC) == 0x8) {
+				uint16_t lower = VRAMAddress & 0x1FF;
+				remapAddress &= 0xFE00;
+				remapAddress |= (lower >> 6) | (lower << 3);
+			}
+			else if ((VMain & 0xC) == 0xC) {
+				uint16_t lower = VRAMAddress & 0x3FF;
+				remapAddress &= 0xFC00;
+				remapAddress |= (lower >> 7) | (lower << 3);
+			}
+		}
+		VRAM[remapAddress] &= 0xFF00;
+		VRAM[remapAddress] |= value;
 		if (!(VMain & 0x80)) {
-			VRAMAddress++;
+			if ((VMain & 0x3) == 0) {
+				VRAMAddress++;
+			}
+			else if ((VMain & 0x3) == 1) {
+				VRAMAddress += 32;
+			}
+			else {
+				VRAMAddress += 128;
+			}
 			VRAMAddress = VRAMAddress % 0x8000;
 		}
 	}
 	else if (reg == 0x19) {		// VMDATAH
-		VRAM[VRAMAddress] &= 0x00FF;
-		VRAM[VRAMAddress] |= value << 8;
+		uint16_t remapAddress = VRAMAddress;
+		if ((VMain & 0xC) != 0) {
+			if ((VMain & 0xC) == 0x4) {
+				uint8_t lower = VRAMAddress & 0xFF;
+				remapAddress &= 0xFF00;
+				remapAddress |= (lower >> 5) | (lower << 3);
+			}
+			else if ((VMain & 0xC) == 0x8) {
+				uint16_t lower = VRAMAddress & 0x1FF;
+				remapAddress &= 0xFE00;
+				remapAddress |= (lower >> 6) | (lower << 3);
+			}
+			else if ((VMain & 0xC) == 0xC) {
+				uint16_t lower = VRAMAddress & 0x3FF;
+				remapAddress &= 0xFC00;
+				remapAddress |= (lower >> 7) | (lower << 3);
+			}
+		}
+		VRAM[remapAddress] &= 0x00FF;
+		VRAM[remapAddress] |= value << 8;
 		if (VMain & 0x80) {
-			VRAMAddress++;
+			if ((VMain & 0x3) == 0) {
+				VRAMAddress++;
+			}
+			else if ((VMain & 0x3) == 1) {
+				VRAMAddress += 32;
+			}
+			else {
+				VRAMAddress += 128;
+			}
 			VRAMAddress = VRAMAddress % 0x8000;
 		}
 	}
