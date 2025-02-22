@@ -1895,7 +1895,7 @@ uint8_t CPU::MVN() {
 		regs.PC--;
 	}
 
-	return 0;
+	return 7;
 }
 
 uint8_t CPU::MVP() {
@@ -1920,7 +1920,7 @@ uint8_t CPU::MVP() {
 		regs.PC--;
 	}
 
-	return 0;
+	return 7;
 }
 
 uint8_t CPU::NOP() {
