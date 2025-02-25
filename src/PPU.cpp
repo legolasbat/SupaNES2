@@ -517,7 +517,11 @@ uint16_t PPU::GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift
 	if (paletteIndex == 0) {
 		return CGRAM[0];
 	}
-	return CGRAM[paletteIndex + palette * 4 + (BGIndex - 1) * 32] | 0x8000;
+	uint8_t mode = BGMode & 0x07;
+	if (mode == 0) {
+		return CGRAM[paletteIndex + palette * 4 + (BGIndex - 1) * 32] | 0x8000;
+	}
+	return CGRAM[paletteIndex + palette * 4] | 0x8000;
 }
 
 uint16_t PPU::GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift) {
