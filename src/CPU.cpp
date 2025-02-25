@@ -641,6 +641,7 @@ void CPU::Debug() {
 				(regs.P & ZFlag) ? "Z" : "z",
 				(regs.P & CFlag) ? "C" : "c",
 				memory->ppu->VCounter, memory->ppu->HCounter, memory->ppu->frameCounter);
+		fflush(logfile);
 		//logfileLineCount++;
 		if (!enableLog) {
 			fclose(logfile);
