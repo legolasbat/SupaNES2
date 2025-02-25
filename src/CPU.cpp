@@ -1832,8 +1832,8 @@ uint8_t CPU::JMP() {
 
 		case AddMode::AbsoluteIndirect:
 		{
-			uint16_t indirectAddres = ReadMemory(regs.PC++);
-			indirectAddres |= ReadMemory(regs.PC++) << 8;
+			uint16_t indirectAddres = ReadMemory((regs.PB << 16) | regs.PC++);
+			indirectAddres |= ReadMemory((regs.PB << 16) | regs.PC++) << 8;
 			
 			fetchAddress = ReadMemory(indirectAddres);
 			fetchAddress |= ReadMemory((indirectAddres + 1) & 0xFFFF) << 8;
@@ -1843,8 +1843,8 @@ uint8_t CPU::JMP() {
 
 		case AddMode::AbsoluteIndexedIndirectX:
 		{
-			uint16_t indirectAddres = ReadMemory(regs.PC++);
-			indirectAddres |= ReadMemory(regs.PC++) << 8;
+			uint16_t indirectAddres = ReadMemory((regs.PB << 16) | regs.PC++);
+			indirectAddres |= ReadMemory((regs.PB << 16) | regs.PC++) << 8;
 			
 			fetchAddress = ReadMemory((regs.PB << 16) | ((indirectAddres + regs.X.HL) & 0xFFFF));
 			fetchAddress |= ReadMemory((regs.PB << 16) | ((indirectAddres + regs.X.HL + 1) & 0xFFFF)) << 8;
@@ -1880,8 +1880,8 @@ uint8_t CPU::JSR() {
 		ABS();
 	}
 	else {
-		uint16_t indirectAddres = ReadMemory(regs.PC++);
-		indirectAddres |= ReadMemory(regs.PC++) << 8;
+		uint16_t indirectAddres = ReadMemory((regs.PB << 16) | regs.PC++);
+		indirectAddres |= ReadMemory((regs.PB << 16) | regs.PC++) << 8;
 			
 		fetchAddress = ReadMemory((regs.PB << 16) | ((indirectAddres + regs.X.HL) & 0xFFFF));
 		fetchAddress |= ReadMemory((regs.PB << 16) | ((indirectAddres + regs.X.HL + 1) & 0xFFFF)) << 8;
