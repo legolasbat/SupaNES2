@@ -56,6 +56,8 @@ class CPU {
 		void SetExcVectors(uint16_t vectors[16]);
 		
 		void NMI();
+		bool CheckIRQ();
+		void IRQ();
 
 		uint8_t ReadCPU(uint32_t address);
 		void WriteCPU(uint32_t address, uint8_t value);
@@ -72,6 +74,11 @@ class CPU {
 
 		uint8_t NMITIMEN;
 		uint8_t nmi;
+
+		uint16_t HTIME;				// 0x4207/8
+		uint16_t VTIME;				// 0x4209/A
+
+		bool TIMEUP;				// 0x4211
 
 		bool startDMA = false;
 		bool pendingDMA = false;

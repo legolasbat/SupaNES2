@@ -308,7 +308,11 @@ int CPU::Clock() {
 		if (startDMA) {
 			opcycles = DMA();
 			cycles = opcycles;
-		} else {
+		}
+		else if (CheckIRQ()) {
+			IRQ();
+		}
+		else {
 			opcode = ReadMemory((regs.PB << 16) | regs.PC);
 	
 			if (pendingDMA) {
@@ -371,6 +375,57 @@ void CPU::NMI() {
 	}
 }
 
+bool CPU::CheckIRQ() {
+	// IRQ Interrupts disable
+	if (regs.P & IFlag) {
+		return false;
+	}
+
+	// IRQ Interrupts enable
+	if (NMITIMEN & 0x30) {
+		bool VCheck = NMITIMEN & 0x20;
+		bool HCheck = NMITIMEN & 0x10;
+
+		if (VCheck && HCheck) {
+			if (memory->ppu->VCounter == VTIME) {
+				if (memory->ppu->HCounter >= HTIME) {
+					return true;
+				}
+			}
+		}
+		else if (VCheck) {
+			if (memory->ppu->VCounter == VTIME) {
+				return true;
+			}
+		}
+		else if (HCheck) {
+			if (memory->ppu->HCounter == HTIME) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+void CPU::IRQ() {
+	TIMEUP = true;
+	PushStack(regs.PB);
+
+	PushStack(regs.PC >> 8);
+	PushStack(regs.PC & 0xFF);
+
+	PushStack(regs.P);
+
+	regs.P |= IFlag;
+	regs.P &= ~DFlag;
+
+	regs.PB = 0;
+
+	regs.PC = excVectors.IRQVector;
+
+	cycles += 8;
+}
+
 uint8_t CPU::ReadCPU(uint32_t address) {
 	uint8_t value = 0;
 
@@ -383,6 +438,10 @@ uint8_t CPU::ReadCPU(uint32_t address) {
 			value = nmi;
 			nmi &= ~0x80;
 			return value;
+		}
+		else if (reg == 0x11) {
+			value = TIMEUP ? 0x80 : 0x00;
+			TIMEUP = false;
 		}
 		else if (reg == 0x12) {
 			value |= (memory->ppu->VCounter >= 225) ? 0x80 : 0x00;
@@ -407,9 +466,24 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 	uint8_t reg = address & 0xFF;
 
 	if (page == 0x42) {
-		if (reg == 0x00) {
+		if (reg == 0x00) {		// NMITIMEN
 			NMITIMEN = value;
-			assert((value & 0x30) == 0 && "Enabling IRQ");
+		}
+		else if (reg == 0x07) {
+			HTIME &= 0xFF00;
+			HTIME |= value;
+		}
+		else if (reg == 0x08) {
+			HTIME &= 0x00FF;
+			HTIME |= value << 8;
+		}
+		else if (reg == 0x09) {
+			VTIME &= 0xFF00;
+			VTIME |= value;
+		}
+		else if (reg == 0x0A) {
+			VTIME &= 0x00FF;
+			VTIME |= value << 8;
 		}
 		else if (reg == 0x0D) {
 			if (value & 0x1) {
