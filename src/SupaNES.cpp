@@ -5,9 +5,9 @@
 #include <stdio.h>
 
 SupaNES::SupaNES() {
-	// TODO: Add APU
 	cpu = new CPU(this);
 	ppu = new PPU(this);
+	apu = new APU(this);
 	cart = new Cartridge(this);
 	
 	RomLoaded = false;
@@ -221,6 +221,8 @@ bool SupaNES::InsertROM(const char* filepath) {
 		cpu = new CPU(this);
 		ppu->~PPU();
 		ppu = new PPU(this);
+		apu->~APU();
+		apu = new APU(this);
 		cart->~Cartridge();
 		cart = new Cartridge(this);
 		RomLoaded = false;

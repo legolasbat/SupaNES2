@@ -2,6 +2,7 @@
 
 #include "CPU.h"
 #include "PPU.h"
+#include "APU.h"
 #include "Cartridge.h"
 #include <cstdint>
 
@@ -9,7 +10,7 @@ class SupaNES {
 	public:
 		CPU* cpu;
 		PPU* ppu;
-		// Add APU
+		APU* apu;
 		Cartridge* cart;
 		
 		bool RomLoaded;
