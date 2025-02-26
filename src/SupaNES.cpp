@@ -74,7 +74,6 @@ void SupaNES::WriteMemory(uint32_t address, uint8_t value) {
 	}
 }
 
-uint8_t apuData[4] = {0xAA, 0, 0, 0};
 uint8_t SupaNES::ReadMemoryQ1(uint32_t address) {
 	uint8_t value = 0;
 
@@ -86,24 +85,16 @@ uint8_t SupaNES::ReadMemoryQ1(uint32_t address) {
 		//TODO: Make PPU, APU and WRAM
 		printf("Reading %06X\n", address);
 		if ((address & 0xFF) == 0x40) {
-			value = apuData[0];
-			apuData[0] = 0xAA;
-			return value;
+			return apu->ReadAPUPorts(address);
 		}
 		else if ((address & 0xFF) == 0x41) {
-			value = apuData[1];
-			apuData[1] = 0xBB;
-			return value;
+			return apu->ReadAPUPorts(address);
 		}
 		else if ((address & 0xFF) == 0x42) {
-			value = apuData[2];
-			apuData[2] = 0x00;
-			return value;
+			return apu->ReadAPUPorts(address);
 		}
 		else if ((address & 0xFF) == 0x43) {
-			value = apuData[3];
-			apuData[3] = 0x00;
-			return value;
+			return apu->ReadAPUPorts(address);
 		}
 		assert(false && "Reading Q1 Page 21");
 	}
@@ -151,19 +142,7 @@ void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
 		}
 		// APU
 		else if ((address & 0xFF) <= 0x43) {
-			//assert(false && "Writting APU");
-			if ((address & 0xFF) == 0x40) {
-				apuData[0] = value;
-			}
-			else if ((address & 0xFF) == 0x41) {
-				apuData[1] = value;
-			}
-			else if ((address & 0xFF) == 0x42) {
-				apuData[2] = value;
-			}
-			else if ((address & 0xFF) == 0x43) {
-				apuData[3] = value;
-			}
+			apu->WriteCPUPorts(address, value);
 		}
 		// WRAM
 		else if ((address & 0xFF) == 0x80) {	// Write/Read
