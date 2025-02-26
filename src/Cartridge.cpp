@@ -291,7 +291,7 @@ uint8_t Cartridge::ReadRom(uint32_t address) {
 		if (page >= 0x80) {
 			// ROM
 			if (bank >= 0x80) {
-				//TODO: ROM Mirror
+				value = ROM[(((address & 0xFF0000) - 0x800000) / 2) + (address & 0x7FFF)];
 			}
 			// Mirror ROM
 			else {
