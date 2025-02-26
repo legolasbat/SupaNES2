@@ -2,7 +2,6 @@
 #include "SupaNES.h"
 
 #include <cassert>
-#include <cstdint>
 #include <stdio.h>
 
 CPU::CPU(SupaNES* supaNes) {

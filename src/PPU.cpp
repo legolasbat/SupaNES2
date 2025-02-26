@@ -3,10 +3,7 @@
 #include "SupaNES.h"
 
 #include <cassert>
-#include <cstdint>
-#include <cstring>
 #include <stdio.h>
-#include <sys/types.h>
 
 PPU::PPU(SupaNES* supaNes) {
 	memory = supaNes;

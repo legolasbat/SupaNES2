@@ -1,12 +1,9 @@
-#include <cstdint>
 #include <imgui.h>
 #include <backends/imgui_impl_sdl3.h>
 #include <backends/imgui_impl_sdlrenderer3.h>
 #include <SDL3/SDL.h>
-#include <stdint.h>
 #include <stdio.h>
 
-#include "SDL3/SDL_video.h"
 #include "SupaNES.h"
 
 typedef struct {
