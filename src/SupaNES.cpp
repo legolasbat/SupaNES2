@@ -1,5 +1,4 @@
 #include "SupaNES.h"
-#include "Cartridge.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -25,6 +24,7 @@ int SupaNES::Clock() {
 	for (int i = 0; i < cycles * 2; i++) {
 		ppu->Clock();
 	}
+	int apuCycles = apu->Clock();
 	return cycles;
 }
 
@@ -83,7 +83,6 @@ uint8_t SupaNES::ReadMemoryQ1(uint32_t address) {
 	}
 	else if (memoryPage == 0x21) {
 		//TODO: Make PPU, APU and WRAM
-		printf("Reading %06X\n", address);
 		if ((address & 0xFF) == 0x40) {
 			return apu->ReadAPUPorts(address);
 		}
@@ -96,6 +95,7 @@ uint8_t SupaNES::ReadMemoryQ1(uint32_t address) {
 		else if ((address & 0xFF) == 0x43) {
 			return apu->ReadAPUPorts(address);
 		}
+		printf("Reading %06X\n", address);
 		assert(false && "Reading Q1 Page 21");
 	}
 	else if (memoryPage == 0x40) {

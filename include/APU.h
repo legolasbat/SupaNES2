@@ -10,6 +10,8 @@ class APU {
 
 		APU(SupaNES* supaNes);
 
+		int Clock();
+
 		// Internal registers
 
 		// Program Counter
@@ -33,6 +35,9 @@ class APU {
 
 	private:
 
+		int cycles = 0;
+		uint8_t opcode;
+
 		// Page 0: 0x0000 - 0x00EF
 		uint8_t page0[0xF0];
 
@@ -48,7 +53,48 @@ class APU {
 		// Memory: 0x0200 - 0xFFFF
 		uint8_t RAM[0xFE00];
 
+		uint8_t ReadAPUMemory(uint16_t address);
+		void WriteAPUMemory(uint16_t address, uint8_t value);
+
 		// Read and Write IO APU to CPU
 		uint8_t ReadCPUPorts(uint8_t address);
 		void WriteAPUPorts(uint8_t address, uint8_t value);
+
+		void SetFlag(uint8_t flag, bool state);
+
+		void CheckNFlag(uint8_t value);
+		void CheckZFlag(uint8_t value);
+
+		enum class AddMode {
+			Implied,
+			Immediate,
+			ZeroPageX
+		};
+
+		struct Instruction {
+			char name[5];
+			uint8_t (APU::*execute)(void);
+			AddMode addMode;
+			uint8_t cycles;
+		};
+		Instruction opTable[0x100];
+
+		uint8_t fetched;
+
+		uint8_t FetchValue(AddMode addMode);
+		uint8_t WriteValue(AddMode addMode, uint8_t value, bool read = false);
+
+		uint8_t IMM();
+
+		uint8_t BNE();
+		uint8_t BRA();
+		uint8_t CMP();
+		uint8_t DEX();
+		uint8_t LDA();
+		uint8_t LDX();
+		uint8_t MOV();
+		uint8_t STA();
+		uint8_t TXS();
+
+		uint8_t XXX();
 };
