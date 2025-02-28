@@ -68,7 +68,9 @@ class APU {
 		enum class AddMode {
 			Implied,
 			Immediate,
-			ZeroPageX
+			ZeroPage,
+			ZeroPageX,
+			IndirectY
 		};
 
 		struct Instruction {
@@ -87,14 +89,23 @@ class APU {
 		uint8_t IMM();
 
 		uint8_t BNE();
+		uint8_t BPL();
 		uint8_t BRA();
 		uint8_t CMP();
+		uint8_t CPY();
 		uint8_t DEX();
+		uint8_t INY();
 		uint8_t LDA();
 		uint8_t LDX();
+		uint8_t LDY();
+		uint8_t LDW();
 		uint8_t MOV();
 		uint8_t STA();
+		uint8_t STW();
+		uint8_t STY();
+		uint8_t TAX();
 		uint8_t TXS();
+		uint8_t TYA();
 
 		uint8_t XXX();
 };
