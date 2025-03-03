@@ -70,6 +70,7 @@ class APU {
 			Immediate,
 			ZeroPage,
 			ZeroPageIndexX,
+			ZeroPageIndexY,
 			ZeroPageX,
 			ZeroPageIncX,
 			Absolute,
@@ -105,13 +106,16 @@ class APU {
 		void AbsoluteX();
 		void AbsoluteY();
 
+		uint8_t ADCA();
 		uint8_t ANDA();
+		uint8_t ASL();
 		uint8_t BBC();
 		uint8_t BBS();
 		uint8_t BEQ();
 		uint8_t BNE();
 		uint8_t BPL();
 		uint8_t BRA();
+		uint8_t CLC();
 		uint8_t CLP();
 		uint8_t CMP();
 		uint8_t CPA();
@@ -131,9 +135,20 @@ class APU {
 		uint8_t LDW();
 		uint8_t MOV();
 		uint8_t ORA();
+		uint8_t PHA();
+		uint8_t PHP();
+		uint8_t PHX();
+		uint8_t PHY();
+		uint8_t PLA();
+		uint8_t PLP();
+		uint8_t PLX();
+		uint8_t PLY();
 		uint8_t RTS();
+		uint8_t SEC();
+		uint8_t SEP();
 		uint8_t STA();
 		uint8_t STW();
+		uint8_t STX();
 		uint8_t STY();
 		uint8_t TAX();
 		uint8_t TAY();
