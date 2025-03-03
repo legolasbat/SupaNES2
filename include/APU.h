@@ -12,6 +12,8 @@ class APU {
 
 		int Clock();
 
+		void Debug();
+
 		// Internal registers
 
 		// Program Counter
@@ -73,6 +75,7 @@ class APU {
 			ZeroPageIndexY,
 			ZeroPageX,
 			ZeroPageIncX,
+			ZeroPageY,
 			Absolute,
 			AbsoluteX,
 			AbsoluteY,
@@ -102,11 +105,17 @@ class APU {
 		void ZeroPageX();
 		void ZeroPageIncX();
 		void ZeroPageIndexX();
+		void ZeroPageIndexY();
+		void ZeroPageY();
 		void Absolute();
 		void AbsoluteX();
 		void AbsoluteY();
+		void IndirectX();
+		void IndirectY();
 
 		uint8_t ADCA();
+		uint8_t ADCW();
+		uint8_t ADC();
 		uint8_t ANDA();
 		uint8_t ASL();
 		uint8_t BBC();
@@ -119,6 +128,7 @@ class APU {
 		uint8_t CLP();
 		uint8_t CMP();
 		uint8_t CPA();
+		uint8_t CPW();
 		uint8_t CPX();
 		uint8_t CPY();
 		uint8_t DBNZ();
