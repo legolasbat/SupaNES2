@@ -69,7 +69,13 @@ class APU {
 			Implied,
 			Immediate,
 			ZeroPage,
+			ZeroPageIndexX,
 			ZeroPageX,
+			ZeroPageIncX,
+			Absolute,
+			AbsoluteX,
+			AbsoluteY,
+			IndirectX,
 			IndirectY
 		};
 
@@ -82,19 +88,39 @@ class APU {
 		Instruction opTable[0x100];
 
 		uint8_t fetched;
+		uint16_t fetchAddress;
 
-		uint8_t FetchValue(AddMode addMode);
-		uint8_t WriteValue(AddMode addMode, uint8_t value, bool read = false);
+		uint8_t PullStack();
+		void PushStack(uint8_t value);
 
-		uint8_t IMM();
+		void FetchValue(AddMode addMode);
+		void WriteValue(AddMode addMode, uint8_t value, bool read = false);
 
+		void IMM();
+		void ZeroPage();
+		void ZeroPageX();
+		void ZeroPageIncX();
+		void ZeroPageIndexX();
+		void Absolute();
+		void AbsoluteX();
+
+		uint8_t ANDA();
+		uint8_t BEQ();
 		uint8_t BNE();
 		uint8_t BPL();
 		uint8_t BRA();
+		uint8_t CLP();
 		uint8_t CMP();
+		uint8_t CPA();
+		uint8_t CPX();
 		uint8_t CPY();
 		uint8_t DEX();
+		uint8_t EORA();
+		uint8_t INC();
+		uint8_t INX();
 		uint8_t INY();
+		uint8_t JMP();
+		uint8_t JSR();
 		uint8_t LDA();
 		uint8_t LDX();
 		uint8_t LDY();
@@ -104,6 +130,7 @@ class APU {
 		uint8_t STW();
 		uint8_t STY();
 		uint8_t TAX();
+		uint8_t TAY();
 		uint8_t TXS();
 		uint8_t TYA();
 
