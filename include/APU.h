@@ -184,6 +184,9 @@ class APU {
 		uint8_t PLX();
 		uint8_t PLY();
 		uint8_t RTS();
+		uint8_t SBCA();
+		uint8_t SBCW();
+		uint8_t SBC();
 		uint8_t SEC();
 		uint8_t SEP();
 		uint8_t SET();

@@ -202,7 +202,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x97] = {"ADC", &APU::ADCA, AddMode::IndirectY, 6};
 	opTable[0x98] = {"ADC", &APU::ADC, AddMode::ZeroPage, 5};
 	opTable[0x99] = {"ADC", &APU::ADC, AddMode::ZeroPageX, 5};
-	opTable[0x9A] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x9A] = {"SBCW", &APU::SBCW, AddMode::ZeroPage, 5};
 	opTable[0x9B] = {"DEC", &APU::DEC, AddMode::ZeroPageIndexX, 5};
 	opTable[0x9C] = {"DEC", &APU::DEC, AddMode::Implied, 2};
 	opTable[0x9D] = {"", &APU::XXX, AddMode::Implied, 2};
@@ -213,12 +213,12 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0xA1] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0xA2] = {"SET", &APU::SET, AddMode::ZeroPage, 4};
 	opTable[0xA3] = {"BBS", &APU::BBS, AddMode::ZeroPage, 5};
-	opTable[0xA4] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0xA5] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0xA6] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0xA7] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0xA8] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0xA9] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0xA4] = {"SBC", &APU::SBCA, AddMode::ZeroPage, 3};
+	opTable[0xA5] = {"SBC", &APU::SBCA, AddMode::Absolute, 4};
+	opTable[0xA6] = {"SBC", &APU::SBCA, AddMode::ZeroPageX, 3};
+	opTable[0xA7] = {"SBC", &APU::SBCA, AddMode::IndirectX, 6};
+	opTable[0xA8] = {"SBC", &APU::SBCA, AddMode::Immediate, 2};
+	opTable[0xA9] = {"SBC", &APU::SBC, AddMode::ZeroPage, 6};
 	opTable[0xAA] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0xAB] = {"INC", &APU::INC, AddMode::ZeroPage, 4};
 	opTable[0xAC] = {"INC", &APU::INC, AddMode::Absolute, 5};
@@ -230,12 +230,12 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0xB1] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0xB2] = {"CLR", &APU::CLR, AddMode::ZeroPage, 4};
 	opTable[0xB3] = {"BBC", &APU::BBC, AddMode::ZeroPage, 5};
-	opTable[0xB4] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0xB5] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0xB6] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0xB7] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0xB8] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0xB9] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0xB4] = {"SBC", &APU::SBCA, AddMode::ZeroPageIndexX, 4};
+	opTable[0xB5] = {"SBC", &APU::SBCA, AddMode::AbsoluteX, 5};
+	opTable[0xB6] = {"SBC", &APU::SBCA, AddMode::AbsoluteY, 5};
+	opTable[0xB7] = {"SBC", &APU::SBCA, AddMode::IndirectY, 6};
+	opTable[0xB8] = {"SBC", &APU::SBC, AddMode::ZeroPage, 5};
+	opTable[0xB9] = {"SBC", &APU::SBC, AddMode::ZeroPageX, 5};
 	opTable[0xBA] = {"LDW", &APU::LDW, AddMode::Immediate, 5};
 	opTable[0xBB] = {"INC", &APU::INC, AddMode::ZeroPageIndexX, 5};
 	opTable[0xBC] = {"INC", &APU::INC, AddMode::Implied, 2};
@@ -869,7 +869,7 @@ uint8_t APU::ADC() {
 	CheckZFlag(result);
 
 	SetFlag(CFlag, result < A);
-	SetFlag(HFlag, ((A & 0xF) + (fetched & 0xF) + 1) & 0x10);
+	SetFlag(HFlag, ((A & 0xF) + (fetched & 0xF) + carry) & 0x10);
 
 	SetFlag(VFlag, (int8_t)result < -128 || result > 127);
 
@@ -1609,6 +1609,86 @@ uint8_t APU::PLY() {
 uint8_t APU::RTS() {
 	PC = PullStack();
 	PC |= PullStack() << 8;
+
+	return 0;
+}
+
+uint8_t APU::SBCA() {
+	FetchValue(opTable[opcode].addMode);
+
+	uint8_t carry = (PSW & CFlag) ? 0 : 1;
+
+	uint8_t result = A - fetched - carry;
+
+	CheckNFlag(result);
+	CheckZFlag(result);
+
+	SetFlag(CFlag, result < A);
+	SetFlag(HFlag, (A ^ ~fetched ^ result) & 0x10);
+
+	SetFlag(VFlag, (int8_t)result < -128 || result > 127);
+
+	A = result;
+
+	return 0;
+}
+
+uint8_t APU::SBCW() {
+	uint8_t address = ReadAPUMemory(PC++);
+	uint16_t offset = 0;
+	if (PSW & PFlag) {
+		offset += 0x100;
+	}
+
+	uint16_t value = ReadAPUMemory(address + offset);
+	value |= ReadAPUMemory((address + 1) + offset) << 8;
+
+	uint16_t YA = A + (Y << 8);
+	uint16_t result = YA - value;
+
+	CheckNFlag(result >> 8);
+	SetFlag(ZFlag, result == 0);
+
+	SetFlag(CFlag, result < YA);
+	SetFlag(HFlag, (YA ^ ~value ^ result) & 0x1000);
+
+	SetFlag(VFlag, (int16_t)result < -32768 || result > 32767);
+
+	A = result & 0xFF;
+	Y = result >> 8;
+
+	return 0;
+}
+
+uint8_t APU::SBC() {
+	uint8_t value = 0;
+	if (opcode == 0xB9) {
+		FetchValue(AddMode::ZeroPageY);
+		value = fetched;
+	}
+	else if (opcode == 0xB8) {
+		FetchValue(AddMode::Immediate);
+		value = fetched;
+	}
+	else if (opcode == 0xA9) {
+		FetchValue(AddMode::ZeroPage);
+		value = fetched;
+	}
+	FetchValue(opTable[opcode].addMode);
+
+	uint8_t carry = (PSW & CFlag) ? 0 : 1;
+
+	uint8_t result = fetched - value - carry;
+
+	CheckNFlag(result);
+	CheckZFlag(result);
+
+	SetFlag(CFlag, result < A);
+	SetFlag(HFlag, (A ^ ~fetched ^ result) & 0x10);
+
+	SetFlag(VFlag, (int8_t)result < -128 || result > 127);
+
+	WriteValue(opTable[opcode].addMode, result, true);
 
 	return 0;
 }
