@@ -53,7 +53,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x0B] = {"ASL", &APU::ASL, AddMode::ZeroPage, 4};
 	opTable[0x0C] = {"ASL", &APU::ASL, AddMode::Absolute, 5};
 	opTable[0x0D] = {"PHP", &APU::PHP, AddMode::Implied, 4};
-	opTable[0x0E] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x0E] = {"SET", &APU::TSET, AddMode::Absolute, 6};
 	opTable[0x0F] = {"", &APU::XXX, AddMode::Implied, 2};
 	
 	opTable[0x10] = {"BPL", &APU::BPL, AddMode::Implied, 2};
@@ -87,10 +87,10 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x2B] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x2C] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x2D] = {"PHA", &APU::PHA, AddMode::Implied, 4};
-	opTable[0x2E] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x2E] = {"CBNE", &APU::CBNE, AddMode::ZeroPage, 5};
 	opTable[0x2F] = {"BRA", &APU::BRA, AddMode::Immediate, 4};
 	
-	opTable[0x30] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x30] = {"BMI", &APU::BMI, AddMode::Implied, 2};
 	opTable[0x31] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x32] = {"CLR", &APU::CLR, AddMode::ZeroPage, 4};
 	opTable[0x33] = {"BBC", &APU::BBC, AddMode::ZeroPage, 5};
@@ -100,7 +100,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x37] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x38] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x39] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x3A] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x3A] = {"INW", &APU::INW, AddMode::ZeroPage, 6};
 	opTable[0x3B] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x3C] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x3D] = {"INX", &APU::INX, AddMode::Implied, 2};
@@ -118,10 +118,10 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x48] = {"EORA", &APU::EORA, AddMode::Immediate, 2};
 	opTable[0x49] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x4A] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x4B] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x4C] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x4B] = {"LSR", &APU::LSR, AddMode::ZeroPage, 4};
+	opTable[0x4C] = {"LSR", &APU::LSR, AddMode::Absolute, 5};
 	opTable[0x4D] = {"PHX", &APU::PHX, AddMode::Implied, 4};
-	opTable[0x4E] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x4E] = {"CLR", &APU::TCLR, AddMode::Absolute, 6};
 	opTable[0x4F] = {"", &APU::XXX, AddMode::Implied, 2};
 	
 	opTable[0x50] = {"", &APU::XXX, AddMode::Implied, 2};
@@ -135,10 +135,10 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x58] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x59] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x5A] = {"CPW", &APU::CPW, AddMode::ZeroPage, 4};
-	opTable[0x5B] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x5C] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x5B] = {"LSR", &APU::LSR, AddMode::ZeroPageIndexX, 5};
+	opTable[0x5C] = {"LSR", &APU::LSR, AddMode::Implied, 2};
 	opTable[0x5D] = {"TAX", &APU::TAX, AddMode::Implied, 2};
-	opTable[0x5E] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x5E] = {"CPY", &APU::CPY, AddMode::Absolute, 4};
 	opTable[0x5F] = {"JMP", &APU::JMP, AddMode::Implied, 3};
 	
 	opTable[0x60] = {"CLC", &APU::CLC, AddMode::Implied, 2};
@@ -155,7 +155,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x6B] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x6C] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x6D] = {"PHY", &APU::PHY, AddMode::Implied, 4};
-	opTable[0x6E] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x6E] = {"DBNZ", &APU::DBNZ, AddMode::ZeroPage, 5};
 	opTable[0x6F] = {"RTS", &APU::RTS, AddMode::Implied, 5};
 	
 	opTable[0x70] = {"", &APU::XXX, AddMode::Implied, 2};
@@ -163,15 +163,15 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x72] = {"CLR", &APU::CLR, AddMode::ZeroPage, 4};
 	opTable[0x73] = {"BBC", &APU::BBC, AddMode::ZeroPage, 5};
 	opTable[0x74] = {"CMP", &APU::CPA, AddMode::ZeroPageIndexX, 4};
-	opTable[0x75] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x76] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x77] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x75] = {"CMP", &APU::CPA, AddMode::AbsoluteX, 5};
+	opTable[0x76] = {"CMP", &APU::CPA, AddMode::AbsoluteY, 5};
+	opTable[0x77] = {"CMP", &APU::CPA, AddMode::IndirectY, 6};
 	opTable[0x78] = {"CMP", &APU::CMP, AddMode::Immediate, 5};
 	opTable[0x79] = {"CMP", &APU::CMP, AddMode::ZeroPageY, 5};
 	opTable[0x7A] = {"ADW", &APU::ADCW, AddMode::ZeroPage, 5};
 	opTable[0x7B] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x7C] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x7D] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x7D] = {"TXA", &APU::TXA, AddMode::Implied, 2};
 	opTable[0x7E] = {"CPY", &APU::CPY, AddMode::ZeroPage, 3};
 	opTable[0x7F] = {"", &APU::XXX, AddMode::Implied, 2};
 	
@@ -186,13 +186,13 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x88] = {"ADC", &APU::ADCA, AddMode::Immediate, 2};
 	opTable[0x89] = {"ADC", &APU::ADC, AddMode::ZeroPage, 6};
 	opTable[0x8A] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x8B] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x8C] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x8B] = {"DEC", &APU::DEC, AddMode::ZeroPage, 4};
+	opTable[0x8C] = {"DEC", &APU::DEC, AddMode::Absolute, 5};
 	opTable[0x8D] = {"LDY", &APU::LDY, AddMode::Immediate, 2};
 	opTable[0x8E] = {"PLP", &APU::PLP, AddMode::Implied, 4};
 	opTable[0x8F] = {"MOV", &APU::MOV, AddMode::Immediate, 5};
 	
-	opTable[0x90] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x90] = {"BCC", &APU::BCC, AddMode::Implied, 2};
 	opTable[0x91] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x92] = {"CLR", &APU::CLR, AddMode::ZeroPage, 4};
 	opTable[0x93] = {"BBC", &APU::BBC, AddMode::ZeroPage, 5};
@@ -203,11 +203,11 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x98] = {"ADC", &APU::ADC, AddMode::ZeroPage, 5};
 	opTable[0x99] = {"ADC", &APU::ADC, AddMode::ZeroPageX, 5};
 	opTable[0x9A] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x9B] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x9C] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x9B] = {"DEC", &APU::DEC, AddMode::ZeroPageIndexX, 5};
+	opTable[0x9C] = {"DEC", &APU::DEC, AddMode::Implied, 2};
 	opTable[0x9D] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x9E] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x9F] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x9F] = {"XCN", &APU::XCN, AddMode::Implied, 5};
 	
 	opTable[0xA0] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0xA1] = {"", &APU::XXX, AddMode::Implied, 2};
@@ -258,7 +258,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0xCC] = {"STY", &APU::STY, AddMode::Absolute, 5};
 	opTable[0xCD] = {"LDX", &APU::LDX, AddMode::Immediate, 2};
 	opTable[0xCE] = {"PLX", &APU::PLX, AddMode::Implied, 4};
-	opTable[0xCF] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0xCF] = {"MUL", &APU::MUL, AddMode::Implied, 9};
 	
 	opTable[0xD0] = {"BNE", &APU::BNE, AddMode::Implied, 2};
 	opTable[0xD1] = {"", &APU::XXX, AddMode::Implied, 2};
@@ -272,9 +272,9 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0xD9] = {"STX", &APU::STX, AddMode::ZeroPageIndexY, 5};
 	opTable[0xDA] = {"STW", &APU::STW, AddMode::Immediate, 5};
 	opTable[0xDB] = {"STY", &APU::STY, AddMode::ZeroPageIndexX, 5};
-	opTable[0xDC] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0xDC] = {"DEY", &APU::DEY, AddMode::Implied, 2};
 	opTable[0xDD] = {"TYA", &APU::TYA, AddMode::Implied, 2};
-	opTable[0xDE] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0xDE] = {"CBNE", &APU::CBNE, AddMode::ZeroPageIndexX, 6};
 	opTable[0xDF] = {"", &APU::XXX, AddMode::Implied, 2};
 	
 	opTable[0xE0] = {"", &APU::XXX, AddMode::Implied, 2};
@@ -301,7 +301,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0xF4] = {"LDA", &APU::LDA, AddMode::ZeroPageIndexX, 4};
 	opTable[0xF5] = {"LDA", &APU::LDA, AddMode::AbsoluteX, 5};
 	opTable[0xF6] = {"LDA", &APU::LDA, AddMode::AbsoluteY, 5};
-	opTable[0xF7] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0xF7] = {"LDA", &APU::LDA, AddMode::IndirectY, 6};
 	opTable[0xF8] = {"LDX", &APU::LDX, AddMode::ZeroPage, 3};
 	opTable[0xF9] = {"LDX", &APU::LDX, AddMode::ZeroPageIndexY, 4};
 	opTable[0xFA] = {"", &APU::XXX, AddMode::Implied, 2};
@@ -937,6 +937,16 @@ uint8_t APU::BBS() {
 	return 0;
 }
 
+uint8_t APU::BCC() {
+	int8_t offset = ReadAPUMemory(PC++);
+	if (!(PSW & CFlag)) {
+		PC += offset;
+		return 2;
+	}
+
+	return 0;
+}
+
 uint8_t APU::BCS() {
 	int8_t offset = ReadAPUMemory(PC++);
 	if (PSW & CFlag) {
@@ -950,6 +960,16 @@ uint8_t APU::BCS() {
 uint8_t APU::BEQ() {
 	int8_t offset = ReadAPUMemory(PC++);
 	if (PSW & ZFlag) {
+		PC += offset;
+		return 2;
+	}
+
+	return 0;
+}
+
+uint8_t APU::BMI() {
+	int8_t offset = ReadAPUMemory(PC++);
+	if (PSW & NFlag) {
 		PC += offset;
 		return 2;
 	}
@@ -984,6 +1004,18 @@ uint8_t APU::BRA() {
 	return 0;
 }
 
+uint8_t APU::CBNE() {
+	FetchValue(opTable[opcode].addMode);
+	int8_t offset = ReadAPUMemory(PC++);
+
+	if (A != fetched) {
+		PC += offset;
+		return 2;
+	}
+
+	return 0;
+}
+
 uint8_t APU::CLC() {
 	SetFlag(CFlag, false);
 
@@ -1003,6 +1035,18 @@ uint8_t APU::CLR() {
 	fetched &= ~(1 << bit);
 
 	WriteValue(opTable[opcode].addMode, fetched, true);
+
+	return 0;
+}
+
+uint8_t APU::TCLR() {
+	FetchValue(opTable[opcode].addMode);
+
+	uint8_t result = A - fetched;
+	CheckNFlag(result);
+	CheckZFlag(result);
+
+	WriteValue(opTable[opcode].addMode, fetched & ~A, true);
 
 	return 0;
 }
@@ -1112,13 +1156,39 @@ uint8_t APU::CPY() {
 }
 
 uint8_t APU::DBNZ() {
-	int8_t offset = ReadAPUMemory(PC++);
-	Y--;
-
-	if (Y != 0) {
-		PC += offset;
-		return 2;
+	if (opcode == 0x6E) {
+		FetchValue(opTable[opcode].addMode);
+	} else {
+		Y--;
 	}
+	int8_t offset = ReadAPUMemory(PC++);
+
+	if (opcode == 0x6E) {
+		fetched--;
+		WriteValue(opTable[opcode].addMode, fetched, true);
+		if (fetched != 0) {
+			PC += offset;
+			return 2;
+		}
+	} else {
+		if (Y != 0) {
+			PC += offset;
+			return 2;
+		}
+	}
+	return 0;
+}
+
+uint8_t APU::DEC() {
+	FetchValue(opTable[opcode].addMode);
+
+	fetched--;
+
+	CheckNFlag(fetched);
+	CheckZFlag(fetched);
+
+	WriteValue(opTable[opcode].addMode, fetched, true);
+
 	return 0;
 }
 
@@ -1127,6 +1197,15 @@ uint8_t APU::DEX() {
 
 	CheckNFlag(X);
 	CheckZFlag(X);
+
+	return 0;
+}
+
+uint8_t APU::DEY() {
+	Y--;
+
+	CheckNFlag(Y);
+	CheckZFlag(Y);
 
 	return 0;
 }
@@ -1150,6 +1229,27 @@ uint8_t APU::INC() {
 	CheckZFlag(fetched);
 
 	WriteValue(opTable[opcode].addMode, fetched, true);
+
+	return 0;
+}
+
+uint8_t APU::INW() {
+	uint8_t address = ReadAPUMemory(PC++);
+	uint16_t offset = 0;
+	if (PSW & PFlag) {
+		offset += 0x100;
+	}
+
+	uint16_t value = ReadAPUMemory(address + offset);
+	value |= ReadAPUMemory((address + 1) + offset) << 8;
+
+	value++;
+
+	SetFlag(NFlag, value & 0x8000);
+	SetFlag(ZFlag, value == 0);
+
+	WriteAPUMemory(address + offset, value & 0xFF);
+	WriteAPUMemory((address + 1) + offset, value >> 8);
 
 	return 0;
 }
@@ -1251,6 +1351,16 @@ uint8_t APU::LDW() {
 	return 0;
 }
 
+uint8_t APU::LSR() {
+	FetchValue(opTable[opcode].addMode);
+	SetFlag(CFlag, fetched & 0x01);
+	fetched >>= 1;
+
+	WriteValue(opTable[opcode].addMode, fetched, true);
+
+	return 0;
+}
+
 uint8_t APU::MOV() {
 	FetchValue(opTable[opcode].addMode);
 	
@@ -1261,6 +1371,17 @@ uint8_t APU::MOV() {
 	}
 
 	WriteAPUMemory(address, fetched);
+
+	return 0;
+}
+
+uint8_t APU::MUL() {
+	uint16_t result = Y * A;
+	A = result & 0xFF;
+	Y = result >> 8;
+
+	CheckNFlag(Y);
+	CheckZFlag(Y);
 
 	return 0;
 }
@@ -1352,6 +1473,18 @@ uint8_t APU::SET() {
 	return 0;
 }
 
+uint8_t APU::TSET() {
+	FetchValue(opTable[opcode].addMode);
+
+	uint8_t result = A - fetched;
+	CheckNFlag(result);
+	CheckZFlag(result);
+
+	WriteValue(opTable[opcode].addMode, fetched | A, true);
+
+	return 0;
+}
+
 uint8_t APU::STA() {
 	WriteValue(opTable[opcode].addMode, A);
 
@@ -1402,6 +1535,15 @@ uint8_t APU::TAY() {
 	return 0;
 }
 
+uint8_t APU::TXA() {
+	A = X;
+
+	CheckNFlag(A);
+	CheckZFlag(A);
+
+	return 0;
+}
+
 uint8_t APU::TXS() {
 	SP = X;
 
@@ -1410,6 +1552,15 @@ uint8_t APU::TXS() {
 
 uint8_t APU::TYA() {
 	A = Y;
+
+	CheckNFlag(A);
+	CheckZFlag(A);
+
+	return 0;
+}
+
+uint8_t APU::XCN() {
+	A = (A >> 4) | (A << 4);
 
 	CheckNFlag(A);
 	CheckZFlag(A);
