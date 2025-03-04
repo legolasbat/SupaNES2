@@ -157,6 +157,8 @@ class APU {
 		uint8_t DEX();
 		uint8_t DEY();
 		uint8_t EORA();
+		uint8_t EOR();
+		uint8_t EORC();
 		uint8_t INC();
 		uint8_t INW();
 		uint8_t INX();

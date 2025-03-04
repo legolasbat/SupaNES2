@@ -116,7 +116,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x46] = {"EORA", &APU::EORA, AddMode::ZeroPageX, 3};
 	opTable[0x47] = {"EORA", &APU::EORA, AddMode::IndirectX, 6};
 	opTable[0x48] = {"EORA", &APU::EORA, AddMode::Immediate, 2};
-	opTable[0x49] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x49] = {"EOR", &APU::EOR, AddMode::ZeroPage, 6};
 	opTable[0x4A] = {"ANDC", &APU::ANDC, AddMode::Implied, 4};
 	opTable[0x4B] = {"LSR", &APU::LSR, AddMode::ZeroPage, 4};
 	opTable[0x4C] = {"LSR", &APU::LSR, AddMode::Absolute, 5};
@@ -131,9 +131,9 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x54] = {"EORA", &APU::EORA, AddMode::ZeroPageIndexX, 4};
 	opTable[0x55] = {"EORA", &APU::EORA, AddMode::AbsoluteX, 5};
 	opTable[0x56] = {"EORA", &APU::EORA, AddMode::AbsoluteY, 5};
-	opTable[0x57] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x58] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x59] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x57] = {"EORA", &APU::EORA, AddMode::IndirectY, 6};
+	opTable[0x58] = {"EOR", &APU::EOR, AddMode::ZeroPage, 5};
+	opTable[0x59] = {"EOR", &APU::EOR, AddMode::ZeroPageX, 5};
 	opTable[0x5A] = {"CPW", &APU::CPW, AddMode::ZeroPage, 4};
 	opTable[0x5B] = {"LSR", &APU::LSR, AddMode::ZeroPageIndexX, 5};
 	opTable[0x5C] = {"LSR", &APU::LSR, AddMode::Implied, 2};
@@ -185,7 +185,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x87] = {"ADC", &APU::ADCA, AddMode::IndirectX, 6};
 	opTable[0x88] = {"ADC", &APU::ADCA, AddMode::Immediate, 2};
 	opTable[0x89] = {"ADC", &APU::ADC, AddMode::ZeroPage, 6};
-	opTable[0x8A] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x8A] = {"EORC", &APU::EORC, AddMode::Implied, 5};
 	opTable[0x8B] = {"DEC", &APU::DEC, AddMode::ZeroPage, 4};
 	opTable[0x8C] = {"DEC", &APU::DEC, AddMode::Absolute, 5};
 	opTable[0x8D] = {"LDY", &APU::LDY, AddMode::Immediate, 2};
@@ -1286,6 +1286,51 @@ uint8_t APU::EORA() {
 
 	CheckNFlag(A);
 	CheckZFlag(A);
+
+	return 0;
+}
+
+uint8_t APU::EOR() {
+	uint8_t value = 0;
+	if (opcode == 0x59) {
+		FetchValue(AddMode::ZeroPageY);
+		value = fetched;
+	}
+	else if (opcode == 0x58) {
+		FetchValue(AddMode::Immediate);
+		value = fetched;
+	}
+	else if (opcode == 0x49) {
+		FetchValue(AddMode::ZeroPage);
+		value = fetched;
+	}
+	FetchValue(opTable[opcode].addMode);
+
+	fetched ^= value;
+
+	CheckNFlag(fetched);
+	CheckZFlag(fetched);
+
+	WriteValue(opTable[opcode].addMode, fetched, true);
+
+	return 0;
+}
+
+uint8_t APU::EORC() {
+	uint16_t address = ReadAPUMemory(PC++);
+	address |= ReadAPUMemory(PC++) << 8;
+
+	uint8_t bit = (address & 0xE000) >> 13;
+	address &= 0x1FFF;
+
+	uint8_t value = ReadAPUMemory(address);
+
+	if (PSW & CFlag) {
+		SetFlag(CFlag, (value & (1 << bit)) == 0);
+	}
+	else {
+		SetFlag(CFlag, value & (1 << bit));
+	}
 
 	return 0;
 }
