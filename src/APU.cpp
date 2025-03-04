@@ -84,8 +84,8 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x28] = {"AND", &APU::ANDA, AddMode::Immediate, 2};
 	opTable[0x29] = {"AND", &APU::AND, AddMode::ZeroPage, 6};
 	opTable[0x2A] = {"ORC", &APU::ORC, AddMode::Implied, 5};
-	opTable[0x2B] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x2C] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x2B] = {"ROL", &APU::ROL, AddMode::ZeroPage, 4};
+	opTable[0x2C] = {"ROL", &APU::ROL, AddMode::Absolute, 5};
 	opTable[0x2D] = {"PHA", &APU::PHA, AddMode::Implied, 4};
 	opTable[0x2E] = {"CBNE", &APU::CBNE, AddMode::ZeroPage, 5};
 	opTable[0x2F] = {"BRA", &APU::BRA, AddMode::Immediate, 4};
@@ -101,8 +101,8 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x38] = {"AND", &APU::AND, AddMode::ZeroPage, 5};
 	opTable[0x39] = {"AND", &APU::AND, AddMode::ZeroPageX, 5};
 	opTable[0x3A] = {"INW", &APU::INW, AddMode::ZeroPage, 6};
-	opTable[0x3B] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x3C] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x3B] = {"ROL", &APU::ROL, AddMode::ZeroPageIndexX, 5};
+	opTable[0x3C] = {"ROL", &APU::ROL, AddMode::Implied, 2};
 	opTable[0x3D] = {"INX", &APU::INX, AddMode::Implied, 2};
 	opTable[0x3E] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x3F] = {"JSR", &APU::JSR, AddMode::Implied, 8};
@@ -290,7 +290,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0xEA] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0xEB] = {"LDY", &APU::LDY, AddMode::ZeroPage, 3};
 	opTable[0xEC] = {"LDY", &APU::LDY, AddMode::Absolute, 4};
-	opTable[0xED] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0xED] = {"NOTC", &APU::NOTC, AddMode::Implied, 3};
 	opTable[0xEE] = {"PLY", &APU::PLY, AddMode::Implied, 4};
 	opTable[0xEF] = {"", &APU::XXX, AddMode::Implied, 2};
 	
@@ -1516,6 +1516,14 @@ uint8_t APU::MUL() {
 	return 0;
 }
 
+uint8_t APU::NOTC() {
+	bool carry = PSW & CFlag;
+
+	SetFlag(CFlag, !carry);
+
+	return 0;
+}
+
 uint8_t APU::ORA() {
 	FetchValue(opTable[opcode].addMode);
 	A |= fetched;
@@ -1617,6 +1625,24 @@ uint8_t APU::PLX() {
 
 uint8_t APU::PLY() {
 	Y = PullStack();
+
+	return 0;
+}
+
+uint8_t APU::ROL() {
+	FetchValue(opTable[opcode].addMode);
+
+	uint8_t carry = (PSW & CFlag) ? 0x01 : 0x00;
+
+	SetFlag(CFlag, fetched & 0x80);
+
+	fetched <<= 1;
+	fetched |= carry;
+
+	CheckNFlag(fetched);
+	CheckZFlag(fetched);
+
+	WriteValue(opTable[opcode].addMode, fetched, true);
 
 	return 0;
 }
