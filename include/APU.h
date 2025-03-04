@@ -120,12 +120,14 @@ class APU {
 		uint8_t ASL();
 		uint8_t BBC();
 		uint8_t BBS();
+		uint8_t BCS();
 		uint8_t BEQ();
 		uint8_t BNE();
 		uint8_t BPL();
 		uint8_t BRA();
 		uint8_t CLC();
 		uint8_t CLP();
+		uint8_t CLR();
 		uint8_t CMP();
 		uint8_t CPA();
 		uint8_t CPW();
@@ -156,6 +158,7 @@ class APU {
 		uint8_t RTS();
 		uint8_t SEC();
 		uint8_t SEP();
+		uint8_t SET();
 		uint8_t STA();
 		uint8_t STW();
 		uint8_t STX();
