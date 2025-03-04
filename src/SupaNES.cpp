@@ -19,12 +19,23 @@ SupaNES::SupaNES() {
 	}
 }
 
+int64_t scheduler_CPU_SPC700 = 0;
+const uint32_t CPU_MASTER_CLOCK = 21477270;
+const uint32_t SPC700_MASTER_CLOCK = 24567000;
+
 int SupaNES::Clock() {
-	int cycles = cpu->Clock();
-	for (int i = 0; i < cycles * 2; i++) {
-		ppu->Clock();
+	int cycles = 0;
+	if (scheduler_CPU_SPC700 >= 0) {
+		cycles = cpu->Clock();
+		for (int i = 0; i < cycles * 2; i++) {
+			ppu->Clock();
+		}
+		scheduler_CPU_SPC700 -= cycles * 6 * SPC700_MASTER_CLOCK;
 	}
-	int apuCycles = apu->Clock();
+	else {
+		cycles = apu->Clock();
+		scheduler_CPU_SPC700 += cycles * 24 * CPU_MASTER_CLOCK;
+	}
 	return cycles;
 }
 

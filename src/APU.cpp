@@ -1,7 +1,6 @@
 #include "APU.h"
 
 #include <cassert>
-#include <cstdint>
 #include <cstdio>
 
 #define NFlag 0x80	// Negative flag
@@ -327,6 +326,7 @@ int APU::Clock() {
 		opcycles += (this->*opTable[opcode].execute)();
 		cycles = opcycles;
 	}
+	CheckTimers();
 
 	cycles--;
 	return opcycles;
@@ -370,6 +370,46 @@ void APU::Debug() {
 	}
 }
 
+void APU::CheckTimers() {
+	timer0++;
+	timer1++;
+	timer2++;
+
+	if (timer0 == 128) {
+		timer0 = 0;
+		if (registers0[1] & 0x1) {
+			timer0Ticks++;
+			if (registers1[2] == timer0Ticks) {
+				registers1[5]++;
+				registers1[5] &= 0xF;
+				timer0Ticks = 0;
+			}
+		}
+	}
+	if (timer1 == 128) {
+		timer1 = 0;
+		if (registers0[1] & 0x2) {
+			timer1Ticks++;
+			if (registers1[3] == timer1Ticks) {
+				registers1[6]++;
+				registers1[6] &= 0xF;
+				timer1Ticks = 0;
+			}
+		}
+	}
+	if (timer2 == 16) {
+		timer2 = 0;
+		if (registers0[1] & 0x4) {
+			timer2Ticks++;
+			if (registers1[4] == timer2Ticks) {
+				registers1[7]++;
+				registers1[7] &= 0xF;
+				timer2Ticks = 0;
+			}
+		}
+	}
+}
+
 uint8_t APU::ReadAPUMemory(uint16_t address) {
 	uint8_t value = 0;
 
@@ -389,6 +429,10 @@ uint8_t APU::ReadAPUMemory(uint16_t address) {
 		else {
 			assert((address <= 0xF9 || address >= 0xFD) && "Reading APU: FA-FC");
 			value = registers1[address - 0xF8];
+			if (address >= 0xFD) {
+				registers1[address - 0xF8] = 0;
+				printf("Reading Counter\n");
+			}
 		}
 	}
 	// Page 1
@@ -412,6 +456,23 @@ void APU::WriteAPUMemory(uint16_t address, uint8_t value) {
 	else if (address <= 0x00FF) {
 		if (address <= 0xF3) {
 			registers0[address- 0xF0] = value;
+			if (address == 0xF1) {
+				// Writting always reset
+				timer0Ticks = 0;
+				timer1Ticks = 0;
+				timer2Ticks = 0;
+
+				// Reset ports 2 & 3
+				if (value & 0x20) {
+					CPUPorts[2] = 0;
+					CPUPorts[3] = 0;
+				}
+				// Reset ports 0 & 1
+				if (value & 0x10) {
+					CPUPorts[0] = 0;
+					CPUPorts[1] = 0;
+				}
+			}
 		}
 		else if (address <= 0xF7) {
 			WriteAPUPorts(address, value);
@@ -419,6 +480,9 @@ void APU::WriteAPUMemory(uint16_t address, uint8_t value) {
 		else {
 			assert(address <= 0xFC && "Writting APU: FD-FF");
 			registers1[address - 0xF8] = value;
+			if (value != 0) {
+				printf("Setting Timer\n");
+			}
 		}
 	}
 	// Page 1

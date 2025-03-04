@@ -55,6 +55,17 @@ class APU {
 		// Memory: 0x0200 - 0xFFFF
 		uint8_t RAM[0xFE00];
 
+		// Timers
+		// Timers 0 and 1 ticks at 128 clock cycles (~8000hz) and Timer 2 ticks at 16 clock cycles (~64000hz)
+		uint8_t timer0 = 0;
+		uint8_t timer0Ticks = 0;
+		uint8_t timer1 = 0;
+		uint8_t timer1Ticks = 0;
+		uint8_t timer2 = 0;
+		uint8_t timer2Ticks = 0;
+
+		void CheckTimers();
+
 		uint8_t ReadAPUMemory(uint16_t address);
 		void WriteAPUMemory(uint16_t address, uint8_t value);
 
