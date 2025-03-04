@@ -82,7 +82,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x26] = {"AND", &APU::ANDA, AddMode::ZeroPageX, 3};
 	opTable[0x27] = {"AND", &APU::ANDA, AddMode::IndirectX, 6};
 	opTable[0x28] = {"AND", &APU::ANDA, AddMode::Immediate, 2};
-	opTable[0x29] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x29] = {"AND", &APU::AND, AddMode::ZeroPage, 6};
 	opTable[0x2A] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x2B] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x2C] = {"", &APU::XXX, AddMode::Implied, 2};
@@ -97,9 +97,9 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x34] = {"AND", &APU::ANDA, AddMode::ZeroPageIndexX, 4};
 	opTable[0x35] = {"AND", &APU::ANDA, AddMode::AbsoluteX, 5};
 	opTable[0x36] = {"AND", &APU::ANDA, AddMode::AbsoluteY, 5};
-	opTable[0x37] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x38] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x39] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x37] = {"AND", &APU::ANDA, AddMode::IndirectY, 6};
+	opTable[0x38] = {"AND", &APU::AND, AddMode::ZeroPage, 5};
+	opTable[0x39] = {"AND", &APU::AND, AddMode::ZeroPageX, 5};
 	opTable[0x3A] = {"INW", &APU::INW, AddMode::ZeroPage, 6};
 	opTable[0x3B] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x3C] = {"", &APU::XXX, AddMode::Implied, 2};
@@ -117,7 +117,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x47] = {"EORA", &APU::EORA, AddMode::IndirectX, 6};
 	opTable[0x48] = {"EORA", &APU::EORA, AddMode::Immediate, 2};
 	opTable[0x49] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x4A] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x4A] = {"ANDC", &APU::ANDC, AddMode::Implied, 4};
 	opTable[0x4B] = {"LSR", &APU::LSR, AddMode::ZeroPage, 4};
 	opTable[0x4C] = {"LSR", &APU::LSR, AddMode::Absolute, 5};
 	opTable[0x4D] = {"PHX", &APU::PHX, AddMode::Implied, 4};
@@ -151,7 +151,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x67] = {"CMP", &APU::CPA, AddMode::IndirectX, 6};
 	opTable[0x68] = {"CMP", &APU::CPA, AddMode::Immediate, 2};
 	opTable[0x69] = {"CMP", &APU::CMP, AddMode::ZeroPage, 6};
-	opTable[0x6A] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x6A] = {"ANDC", &APU::ANDC, AddMode::Implied, 4};
 	opTable[0x6B] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x6C] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x6D] = {"PHY", &APU::PHY, AddMode::Implied, 4};
@@ -431,7 +431,6 @@ uint8_t APU::ReadAPUMemory(uint16_t address) {
 			value = registers1[address - 0xF8];
 			if (address >= 0xFD) {
 				registers1[address - 0xF8] = 0;
-				printf("Reading Counter\n");
 			}
 		}
 	}
@@ -480,9 +479,6 @@ void APU::WriteAPUMemory(uint16_t address, uint8_t value) {
 		else {
 			assert(address <= 0xFC && "Writting APU: FD-FF");
 			registers1[address - 0xF8] = value;
-			if (value != 0) {
-				printf("Setting Timer\n");
-			}
 		}
 	}
 	// Page 1
@@ -512,7 +508,7 @@ void APU::WriteAPUPorts(uint8_t address, uint8_t value) {
 uint8_t APU::ReadAPUPorts(uint8_t address) {
 	uint8_t index = address & 0x3;
 
-	printf("Reading APU Port %02x: %02x\n", address, APUPorts[index]);
+	//printf("Reading APU Port %02x: %02x\n", address, APUPorts[index]);
 
 	return APUPorts[index];
 }
@@ -522,7 +518,7 @@ void APU::WriteCPUPorts(uint8_t address, uint8_t value) {
 
 	CPUPorts[index] = value;
 	
-	printf("Writting APU Port %02x: %02x\n", address, value);
+	//printf("Writting APU Port %02x: %02x\n", address, value);
 }
 
 void APU::SetFlag(uint8_t flag, bool state) {
@@ -888,6 +884,53 @@ uint8_t APU::ANDA() {
 
 	CheckNFlag(A);
 	CheckZFlag(A);
+
+	return 0;
+}
+
+uint8_t APU::AND() {
+	uint8_t value = 0;
+	if (opcode == 0x39) {
+		FetchValue(AddMode::ZeroPageY);
+		value = fetched;
+	}
+	else if (opcode == 0x38) {
+		FetchValue(AddMode::Immediate);
+		value = fetched;
+	}
+	else if (opcode == 0x29) {
+		FetchValue(AddMode::ZeroPage);
+		value = fetched;
+	}
+	FetchValue(opTable[opcode].addMode);
+
+	fetched &= value;
+
+	CheckNFlag(fetched);
+	CheckZFlag(fetched);
+
+	WriteValue(opTable[opcode].addMode, fetched, true);
+
+	return 0;
+}
+
+uint8_t APU::ANDC() {
+	uint16_t address = ReadAPUMemory(PC++);
+	address |= ReadAPUMemory(PC++) << 8;
+
+	uint8_t bit = (address & 0xE000) >> 13;
+	address &= 0x1FFF;
+
+	uint8_t value = ReadAPUMemory(address);
+
+	if (PSW & CFlag) {
+		if (opcode == 0x4A) {
+			SetFlag(CFlag, value & (1 << bit));
+		}
+		else {
+			SetFlag(CFlag, (value & (1 << bit)) == 0);
+		}
+	}
 
 	return 0;
 }

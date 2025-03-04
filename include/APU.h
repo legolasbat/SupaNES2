@@ -128,6 +128,8 @@ class APU {
 		uint8_t ADCW();
 		uint8_t ADC();
 		uint8_t ANDA();
+		uint8_t AND();
+		uint8_t ANDC();
 		uint8_t ASL();
 		uint8_t BBC();
 		uint8_t BBS();
