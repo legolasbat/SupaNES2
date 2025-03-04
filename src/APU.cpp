@@ -277,7 +277,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0xDE] = {"CBNE", &APU::CBNE, AddMode::ZeroPageIndexX, 6};
 	opTable[0xDF] = {"", &APU::XXX, AddMode::Implied, 2};
 	
-	opTable[0xE0] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0xE0] = {"CLV", &APU::CLV, AddMode::Implied, 2};
 	opTable[0xE1] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0xE2] = {"SET", &APU::SET, AddMode::ZeroPage, 4};
 	opTable[0xE3] = {"BBS", &APU::BBS, AddMode::ZeroPage, 5};
@@ -1047,6 +1047,12 @@ uint8_t APU::TCLR() {
 	CheckZFlag(result);
 
 	WriteValue(opTable[opcode].addMode, fetched & ~A, true);
+
+	return 0;
+}
+
+uint8_t APU::CLV() {
+	PSW &= ~(VFlag | HFlag);
 
 	return 0;
 }

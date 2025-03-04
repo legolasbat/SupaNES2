@@ -143,6 +143,7 @@ class APU {
 		uint8_t CLP();
 		uint8_t CLR();
 		uint8_t TCLR();
+		uint8_t CLV();
 		uint8_t CMP();
 		uint8_t CPA();
 		uint8_t CPW();
