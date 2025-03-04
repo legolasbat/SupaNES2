@@ -151,6 +151,7 @@ class APU {
 		uint8_t CPY();
 		uint8_t DBNZ();
 		uint8_t DEC();
+		uint8_t DEW();
 		uint8_t DEX();
 		uint8_t DEY();
 		uint8_t EORA();

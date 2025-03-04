@@ -66,7 +66,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x17] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x18] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x19] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x1A] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x1A] = {"DEW", &APU::DEW, AddMode::ZeroPage, 6};
 	opTable[0x1B] = {"ASL", &APU::ASL, AddMode::ZeroPageIndexX, 5};
 	opTable[0x1C] = {"ASL", &APU::ASL, AddMode::Implied, 2};
 	opTable[0x1D] = {"DEX", &APU::DEX, AddMode::Implied, 2};
@@ -1194,6 +1194,27 @@ uint8_t APU::DEC() {
 	CheckZFlag(fetched);
 
 	WriteValue(opTable[opcode].addMode, fetched, true);
+
+	return 0;
+}
+
+uint8_t APU::DEW() {
+	uint8_t address = ReadAPUMemory(PC++);
+	uint16_t offset = 0;
+	if (PSW & PFlag) {
+		offset += 0x100;
+	}
+
+	uint16_t value = ReadAPUMemory(address + offset);
+	value |= ReadAPUMemory((address + 1) + offset) << 8;
+
+	value--;
+
+	SetFlag(NFlag, value & 0x8000);
+	SetFlag(ZFlag, value == 0);
+
+	WriteAPUMemory(address + offset, value & 0xFF);
+	WriteAPUMemory((address + 1) + offset, value >> 8);
 
 	return 0;
 }
