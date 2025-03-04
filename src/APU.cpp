@@ -48,8 +48,8 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x06] = {"ORA", &APU::ORA, AddMode::ZeroPageX, 3};
 	opTable[0x07] = {"ORA", &APU::ORA, AddMode::IndirectX, 6};
 	opTable[0x08] = {"ORA", &APU::ORA, AddMode::Immediate, 2};
-	opTable[0x09] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x0A] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x09] = {"OR", &APU::OR, AddMode::ZeroPage, 6};
+	opTable[0x0A] = {"ORC", &APU::ORC, AddMode::Implied, 5};
 	opTable[0x0B] = {"ASL", &APU::ASL, AddMode::ZeroPage, 4};
 	opTable[0x0C] = {"ASL", &APU::ASL, AddMode::Absolute, 5};
 	opTable[0x0D] = {"PHP", &APU::PHP, AddMode::Implied, 4};
@@ -63,9 +63,9 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x14] = {"ORA", &APU::ORA, AddMode::ZeroPageIndexX, 4};
 	opTable[0x15] = {"ORA", &APU::ORA, AddMode::AbsoluteX, 5};
 	opTable[0x16] = {"ORA", &APU::ORA, AddMode::AbsoluteY, 5};
-	opTable[0x17] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x18] = {"", &APU::XXX, AddMode::Implied, 2};
-	opTable[0x19] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x17] = {"ORA", &APU::ORA, AddMode::IndirectY, 6};
+	opTable[0x18] = {"OR", &APU::OR, AddMode::ZeroPage, 5};
+	opTable[0x19] = {"OR", &APU::OR, AddMode::ZeroPageX, 5};
 	opTable[0x1A] = {"DEW", &APU::DEW, AddMode::ZeroPage, 6};
 	opTable[0x1B] = {"ASL", &APU::ASL, AddMode::ZeroPageIndexX, 5};
 	opTable[0x1C] = {"ASL", &APU::ASL, AddMode::Implied, 2};
@@ -83,7 +83,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x27] = {"AND", &APU::ANDA, AddMode::IndirectX, 6};
 	opTable[0x28] = {"AND", &APU::ANDA, AddMode::Immediate, 2};
 	opTable[0x29] = {"AND", &APU::AND, AddMode::ZeroPage, 6};
-	opTable[0x2A] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x2A] = {"ORC", &APU::ORC, AddMode::Implied, 5};
 	opTable[0x2B] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x2C] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0x2D] = {"PHA", &APU::PHA, AddMode::Implied, 4};
@@ -1507,6 +1507,53 @@ uint8_t APU::ORA() {
 
 	CheckNFlag(A);
 	CheckZFlag(A);
+
+	return 0;
+}
+
+uint8_t APU::OR() {
+	uint8_t value = 0;
+	if (opcode == 0x19) {
+		FetchValue(AddMode::ZeroPageY);
+		value = fetched;
+	}
+	else if (opcode == 0x18) {
+		FetchValue(AddMode::Immediate);
+		value = fetched;
+	}
+	else if (opcode == 0x09) {
+		FetchValue(AddMode::ZeroPage);
+		value = fetched;
+	}
+	FetchValue(opTable[opcode].addMode);
+
+	fetched |= value;
+
+	CheckNFlag(fetched);
+	CheckZFlag(fetched);
+
+	WriteValue(opTable[opcode].addMode, fetched, true);
+
+	return 0;
+}
+
+uint8_t APU::ORC() {
+	uint16_t address = ReadAPUMemory(PC++);
+	address |= ReadAPUMemory(PC++) << 8;
+
+	uint8_t bit = (address & 0xE000) >> 13;
+	address &= 0x1FFF;
+
+	uint8_t value = ReadAPUMemory(address);
+
+	if (!(PSW & CFlag)) {
+		if (opcode == 0x0A) {
+			SetFlag(CFlag, value & (1 << bit));
+		}
+		else {
+			SetFlag(CFlag, (value & (1 << bit)) == 0);
+		}
+	}
 
 	return 0;
 }

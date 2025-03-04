@@ -173,6 +173,8 @@ class APU {
 		uint8_t MOV();
 		uint8_t MUL();
 		uint8_t ORA();
+		uint8_t OR();
+		uint8_t ORC();
 		uint8_t PHA();
 		uint8_t PHP();
 		uint8_t PHX();
