@@ -93,8 +93,8 @@ class CPU {
 		};
 		DMA Dma[8];
 
-		uint8_t enabledDMA;
-		uint8_t enabledHDMA;
+		uint8_t enabledDMA = 0;
+		uint8_t enabledHDMA = 0;
 		int DMA();
 
 		struct ExcVectors{

@@ -599,6 +599,7 @@ void CPU::StartHDMA() {
 						} else {
 							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
 						}
+						Dma[i].tableAddress++;
 						break;
 					}
 
@@ -611,6 +612,7 @@ void CPU::StartHDMA() {
 							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
 							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
 						}
+						Dma[i].tableAddress += 2;
 						break;
 					}
 
@@ -623,6 +625,7 @@ void CPU::StartHDMA() {
 							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
 							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
 						}
+						Dma[i].tableAddress += 2;
 						break;
 					}
 
@@ -639,6 +642,7 @@ void CPU::StartHDMA() {
 							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 2));
 							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 3));
 						}
+						Dma[i].tableAddress += 4;
 						break;
 					}
 
@@ -674,6 +678,7 @@ void CPU::ResetHDMA() {
 						} else {
 							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
 						}
+						Dma[i].tableAddress++;
 						break;
 					}
 
@@ -686,6 +691,7 @@ void CPU::ResetHDMA() {
 							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
 							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
 						}
+						Dma[i].tableAddress += 2;
 						break;
 					}
 
@@ -698,6 +704,7 @@ void CPU::ResetHDMA() {
 							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
 							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
 						}
+						Dma[i].tableAddress += 2;
 						break;
 					}
 
@@ -714,6 +721,7 @@ void CPU::ResetHDMA() {
 							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 2));
 							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 3));
 						}
+						Dma[i].tableAddress += 4;
 						break;
 					}
 
