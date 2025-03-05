@@ -2,6 +2,7 @@
 #include "SupaNES.h"
 
 #include <cassert>
+#include <cstdint>
 #include <stdio.h>
 
 #define NFlag 0x80	// Negative flag
@@ -477,36 +478,41 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 		if (reg == 0x00) {		// NMITIMEN
 			NMITIMEN = value;
 		}
-		else if (reg == 0x07) {
+		else if (reg == 0x07) {	// HTIMEL
 			HTIME &= 0xFF00;
 			HTIME |= value;
 		}
-		else if (reg == 0x08) {
+		else if (reg == 0x08) {	// HTIMEH
 			HTIME &= 0x00FF;
 			HTIME |= value << 8;
 		}
-		else if (reg == 0x09) {
+		else if (reg == 0x09) {	// VTIMEL
 			VTIME &= 0xFF00;
 			VTIME |= value;
 		}
-		else if (reg == 0x0A) {
+		else if (reg == 0x0A) {	// VTIMEH
 			VTIME &= 0x00FF;
 			VTIME |= value << 8;
 		}
-		else if (reg == 0x0D) {
+		else if (reg == 0x0B) {	// MDMAEN
+			if (value != 0) {
+				enabledDMA = value;
+				pendingDMA = true;
+				printf("\033[0;36mStarting DMA\033[0m\n");
+			}
+		}
+		else if (reg == 0x0C) {	// HDMAEN
+			if (value != 0) {
+				enabledHDMA = value;
+			}
+		}
+		else if (reg == 0x0D) {	// MEMSEL
 			if (value & 0x1) {
 				printf("Fast ROM\n");
 				return;
 			} else {
 				printf("Slow ROM\n");
 				return;
-			}
-		}
-		else if (reg == 0x0B) {
-			if (value != 0) {
-				enabledDMA = value;
-				pendingDMA = true;
-				printf("\033[0;36mStarting DMA\033[0m\n");
 			}
 		}
 		else {
@@ -519,12 +525,204 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 		reg &= 0xF;
 
 		if (dmaChannel < 8 && reg < 11) {
-			DMARegisters[dmaChannel][reg] = value;
+			if (reg == 0x0) {		// DMAPx
+				Dma[dmaChannel].direction = value & 0x80;
+				Dma[dmaChannel].indirect = value & 0x40;
+				Dma[dmaChannel].increment = (value >> 3) & 0x03;
+				Dma[dmaChannel].mode = value & 0x7;
+			}
+			else if (reg == 0x1) {	// BBADx
+				Dma[dmaChannel].BAddress = 0x2100 | value;
+			}
+			else if (reg == 0x2) {	// A1TxL
+				Dma[dmaChannel].AAddress &= 0xFF00;
+				Dma[dmaChannel].AAddress |= value;
+			}
+			else if (reg == 0x3) {	// A1TxH
+				Dma[dmaChannel].AAddress &= 0x00FF;
+				Dma[dmaChannel].AAddress |= (value << 8);
+			}
+			else if (reg == 0x4) {	// A1Bx
+				Dma[dmaChannel].ABank = value;
+			}
+			else if (reg == 0x5) {	// DASxL
+				Dma[dmaChannel].count &= 0xFFFF00;
+				Dma[dmaChannel].count |= value;
+			}
+			else if (reg == 0x6) {	// DASxH
+				Dma[dmaChannel].count &= 0xFF00FF;
+				Dma[dmaChannel].count |= (value << 8);
+			}
+			else if (reg == 0x7) {	// DASBx
+				Dma[dmaChannel].count &= 0x00FFFF;
+				Dma[dmaChannel].count |= (value << 16);
+			}
+			else if (reg == 0x8) {	// A2AxL
+				Dma[dmaChannel].tableAddress &= 0xFF00;
+				Dma[dmaChannel].tableAddress |= value;
+			}
+			else if (reg == 0x9) {	// A2AxH
+				Dma[dmaChannel].tableAddress &= 0x00FF;
+				Dma[dmaChannel].tableAddress |= (value << 8);
+			}
+			else if (reg == 0xA) {	// NTRLx
+				Dma[dmaChannel].repeat = value & 0x80;
+				Dma[dmaChannel].lineCounter = value & 0x7F;
+			}
+		}
+		else {
+			printf("\033[0;36mWritting CPU: %06x = %02x\033[0m\n", address, value);
+			//TODO: CPU Writting
 		}
 	}
-	else {
-	printf("\033[0;36mWritting CPU: %06x = %02x\033[0m\n", address, value);
-	//TODO: CPU Writting
+}
+
+void CPU::StartHDMA() {
+	for (uint8_t i = 0; i < 8; i++) {
+		if ((enabledHDMA & (1 << i)) && !Dma[i].finished) {
+			if (--Dma[i].lineCounter != 0) {
+				continue;
+			}
+
+			uint8_t tableEntry = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
+			Dma[i].repeat = tableEntry & 0x80;
+			Dma[i].lineCounter = tableEntry & 0x7F;
+			Dma[i].tableAddress++;
+			if (Dma[i].indirect) {
+				assert(false && "HDMA Indirect");
+			} else {
+				switch (Dma[i].mode) {
+					case 0:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
+						} else {
+							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
+						}
+						break;
+					}
+
+					case 1:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
+							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16)));
+						} else {
+							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
+							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
+						}
+						break;
+					}
+
+					case 2:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16)));
+						} else {
+							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
+							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
+						}
+						break;
+					}
+
+					case 3:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16)));
+							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].tableAddress + 2 | (Dma[i].ABank << 16)));
+							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].tableAddress + 3 | (Dma[i].ABank << 16)));
+						} else {
+							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
+							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
+							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 2));
+							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 3));
+						}
+						break;
+					}
+
+					default:
+						assert(false && "DMA Mode not handled");
+				}
+			}
+			if (ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)) == 0) {
+				Dma[i].finished = true;
+			}
+		}
+	}
+}
+
+void CPU::ResetHDMA() {
+	for (uint8_t i = 0; i < 8; i++) {
+		if (enabledHDMA & (1 << i)) {
+			Dma[i].finished = false;
+			Dma[i].tableAddress = Dma[i].AAddress;
+			uint8_t tableEntry = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
+			Dma[i].repeat = tableEntry & 0x80;
+			Dma[i].lineCounter = tableEntry & 0x7F;
+			Dma[i].tableAddress++;
+
+			if (Dma[i].indirect) {
+				assert(false && "HDMA Indirect");
+			} else {
+				switch (Dma[i].mode) {
+					case 0:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
+						} else {
+							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
+						}
+						break;
+					}
+
+					case 1:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
+							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16)));
+						} else {
+							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
+							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
+						}
+						break;
+					}
+
+					case 2:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16)));
+						} else {
+							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
+							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
+						}
+						break;
+					}
+
+					case 3:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16)));
+							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].tableAddress + 2 | (Dma[i].ABank << 16)));
+							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].tableAddress + 3 | (Dma[i].ABank << 16)));
+						} else {
+							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
+							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
+							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 2));
+							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 3));
+						}
+						break;
+					}
+
+					default:
+						printf("Mode: %d\n", Dma[i].mode);
+						assert(false && "DMA Mode not handled");
+				}
+			}
+		}
 	}
 }
 
@@ -533,30 +731,21 @@ int CPU::DMA() {
 	for (uint8_t i = 0; i < 8; i++) {
 		if (enabledDMA & (1 << i)) {
 			extraCycles += 1;
-			uint16_t BAddress = 0x2100 | DMARegisters[i][1];	// B Port Address
 			
-			uint8_t DMAControl = DMARegisters[i][0];
-			bool direction = DMAControl & 0x80;					// False: Write to BAddress; True: Read from BAddress
-			uint8_t increment = (DMAControl >> 3) & 0x03;		// 00: Increment; 10: Decrement; x1: Nothing
-			uint8_t mode = DMAControl & 0x07;
-
-			uint32_t AAddress = DMARegisters[i][2] | (DMARegisters[i][3] << 8) | (DMARegisters[i][4] << 16);
-			uint16_t count = DMARegisters[i][5] | (DMARegisters[i][6] << 8);
 			do {
-				switch (mode) {
+				switch (Dma[i].mode) {
 					case 0:
 					{
-						if (!direction) {
-							WriteMemory(BAddress, ReadMemory(AAddress));
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].AAddress | (Dma[i].ABank << 16)));
 						} else {
-							WriteMemory(AAddress, ReadMemory(BAddress));
+							WriteMemory(Dma[i].AAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
 						}
 						extraCycles += 1;
 
-						count--;
-						DMARegisters[i][5] = count & 0xFF;
-						DMARegisters[i][6] = count >> 8;
-						if (count == 0) {
+						Dma[i].count--;
+						Dma[i].count &= 0xFFFF;
+						if (Dma[i].count == 0) {
 							enabledDMA &= ~(1 << i);
 							if (enabledDMA == 0x00) {
 								extraCycles += 1;
@@ -565,18 +754,15 @@ int CPU::DMA() {
 								return extraCycles;
 							}
 						}
-						DMARegisters[i][4] = (AAddress >> 16) & 0xFF;
-						AAddress += (increment == 0) ? 1 : ((increment == 2) ? -1 : 0);
-						DMARegisters[i][2] = AAddress & 0xFF;
-						DMARegisters[i][3] = (AAddress >> 8) & 0xFF;
+						Dma[i].AAddress += (Dma[i].increment == 0) ? 1 : ((Dma[i].increment == 2) ? -1 : 0);
 						break;
 					}
 
 					case 1:
 					{
-						if (!direction) {
-							WriteMemory(BAddress, ReadMemory(AAddress));
-							if (--count == 0) {
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].AAddress | (Dma[i].ABank << 16)));
+							if (--Dma[i].count == 0) {
 								extraCycles += 1;
 								enabledDMA &= ~(1 << i);
 								if (enabledDMA == 0x00) {
@@ -586,10 +772,10 @@ int CPU::DMA() {
 									return extraCycles;
 								}
 							}
-							WriteMemory(BAddress + 1, ReadMemory(AAddress + 1));
+							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].AAddress + 1 | (Dma[i].ABank << 16)));
 						} else {
-							WriteMemory(AAddress, ReadMemory(BAddress));
-							if (--count == 0) {
+							WriteMemory(Dma[i].AAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
+							if (--Dma[i].count == 0) {
 								extraCycles += 1;
 								enabledDMA &= ~(1 << i);
 								if (enabledDMA == 0x00) {
@@ -599,15 +785,13 @@ int CPU::DMA() {
 									return extraCycles;
 								}
 							}
-							WriteMemory(AAddress + 1, ReadMemory(BAddress + 1));
-
+							WriteMemory(Dma[i].AAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
 						}
 						extraCycles += 1;
 
-						count--;
-						DMARegisters[i][5] = count & 0xFF;
-						DMARegisters[i][6] = count >> 8;
-						if (count == 0) {
+						Dma[i].count--;
+						Dma[i].count &= 0xFFFF;
+						if (Dma[i].count == 0) {
 							enabledDMA &= ~(1 << i);
 							if (enabledDMA == 0x00) {
 								extraCycles += 1;
@@ -616,14 +800,13 @@ int CPU::DMA() {
 								return extraCycles;
 							}
 						}
-						DMARegisters[i][4] = (AAddress >> 16) & 0xFF;
-						AAddress += (increment == 0) ? 2 : ((increment == 2) ? -2 : 0);
-						DMARegisters[i][2] = AAddress & 0xFF;
-						DMARegisters[i][3] = (AAddress >> 8) & 0xFF;
+						Dma[i].AAddress += (Dma[i].increment == 0) ? 2 : ((Dma[i].increment == 2) ? -2 : 0);
 						break;
 					}
+					default:
+						assert(false && "DMA Mode not handled");
 				}
-			} while (count != 0);
+			} while (Dma[i].count != 0);
 			extraCycles += 1;
 			break;
 		}

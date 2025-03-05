@@ -19,7 +19,10 @@ void PPU::Clock() {
 	}
 	HCounter++;
 
-	if (HCounter == 339) {
+	if (HCounter == 256) {
+		memory->cpu->StartHDMA();
+	}
+	else if (HCounter == 339) {
 		HCounter = 0;
 		VCounter++;
 		if (VCounter == 225) {
@@ -32,6 +35,7 @@ void PPU::Clock() {
 				frameCounter = 0;
 			}
 			VCounter = 0;
+			memory->cpu->ResetHDMA();
 		}
 	}
 }

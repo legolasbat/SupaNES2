@@ -50,6 +50,9 @@ class CPU {
 		bool CheckIRQ();
 		void IRQ();
 
+		void ResetHDMA();
+		void StartHDMA();
+
 		uint8_t ReadCPU(uint32_t address);
 		void WriteCPU(uint32_t address, uint8_t value);
 
@@ -73,8 +76,25 @@ class CPU {
 
 		bool startDMA = false;
 		bool pendingDMA = false;
+
+		struct DMA {
+			bool direction = false;			// False: Write to BAddress; True: Read from BAddress
+			bool indirect = false;			// HDMA False: Direct Table; True: Indirect Table
+			uint8_t increment = 0;			// 00: Increment; 10: Decrement; X1: Nothing
+			uint8_t mode = 0;				// Transfer Unit
+			uint16_t BAddress = 0x2100;		// B Port Address (PPU IO Registers)
+			uint8_t ABank = 0;				// Bank of memory
+			uint16_t AAddress = 0;			// A Port Address (Memory)
+			uint32_t count = 0;				// Countdown of bytes to transfer in DMA; Indirect Address in HDMA
+			uint16_t tableAddress = 0;		// HDMA Table Address
+			bool repeat = false;			// HDMA repeat
+			uint8_t lineCounter = 0;		// HDMA amount of scanlines it has to wait
+			bool finished = false;			// Has the HDMA finished?
+		};
+		DMA Dma[8];
+
 		uint8_t enabledDMA;
-		uint8_t DMARegisters[8][11];
+		uint8_t enabledHDMA;
 		int DMA();
 
 		struct ExcVectors{
