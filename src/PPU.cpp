@@ -462,7 +462,7 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 
 	// Apply brightness
 	if ((inidisp & 0xF) != 0xF) {
-		float brightness = ((inidisp & 0xF) + 1) / 16.0f;
+		double brightness = (inidisp & 0xF) / (double)0xF;
 		uint8_t red = palette & 0x1F;
 		uint8_t green = (palette >> 5) & 0x1F;
 		uint8_t blue = (palette >> 10) & 0x1F;
@@ -481,7 +481,21 @@ void PPU::SetBGDrop(int X, int Y, bool forceBlank) {
 	if (forceBlank) {
 		pixels[(Y * width) + X] = 0x0000;
 	} else {
-		pixels[(Y * width) + X] = CGRAM[0];
+		uint16_t palette = CGRAM[0];
+		// Apply brightness
+		if ((inidisp & 0xF) != 0xF) {
+			double brightness = (inidisp & 0xF) / (double)0xF;
+			uint8_t red = palette & 0x1F;
+			uint8_t green = (palette >> 5) & 0x1F;
+			uint8_t blue = (palette >> 10) & 0x1F;
+			palette &= ~0x1F;
+			palette |= (uint8_t)(red * brightness) & 0x1F;
+			palette &= ~(0x1F << 5);
+			palette |= ((uint8_t)(green * brightness) & 0x1F) << 5;
+			palette &= ~(0x1F << 10);
+			palette |= ((uint8_t)(blue * brightness) & 0x1F) << 10;
+		}
+		pixels[(Y * width) + X] = palette;
 	}
 }
 
