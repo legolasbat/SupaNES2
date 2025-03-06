@@ -85,7 +85,8 @@ class CPU {
 			uint16_t BAddress = 0x2100;		// B Port Address (PPU IO Registers)
 			uint8_t ABank = 0;				// Bank of memory
 			uint16_t AAddress = 0;			// A Port Address (Memory)
-			uint32_t count = 0;				// Countdown of bytes to transfer in DMA; Indirect Address in HDMA
+			uint16_t count = 0;				// Countdown of bytes to transfer in DMA; Indirect Address in HDMA
+			uint8_t indirectBank = 0;		// Indirect Bank in HDMA
 			uint16_t tableAddress = 0;		// HDMA Table Address
 			bool repeat = false;			// HDMA repeat
 			uint8_t lineCounter = 0;		// HDMA amount of scanlines it has to wait

@@ -546,16 +546,15 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 				Dma[dmaChannel].ABank = value;
 			}
 			else if (reg == 0x5) {	// DASxL
-				Dma[dmaChannel].count &= 0xFFFF00;
+				Dma[dmaChannel].count &= 0xFF00;
 				Dma[dmaChannel].count |= value;
 			}
 			else if (reg == 0x6) {	// DASxH
-				Dma[dmaChannel].count &= 0xFF00FF;
+				Dma[dmaChannel].count &= 0x00FF;
 				Dma[dmaChannel].count |= (value << 8);
 			}
 			else if (reg == 0x7) {	// DASBx
-				Dma[dmaChannel].count &= 0x00FFFF;
-				Dma[dmaChannel].count |= (value << 16);
+				Dma[dmaChannel].indirectBank = value;
 			}
 			else if (reg == 0x8) {	// A2AxL
 				Dma[dmaChannel].tableAddress &= 0xFF00;
@@ -589,7 +588,67 @@ void CPU::StartHDMA() {
 			Dma[i].lineCounter = tableEntry & 0x7F;
 			Dma[i].tableAddress++;
 			if (Dma[i].indirect) {
-				assert(false && "HDMA Indirect");
+				Dma[i].count = ReadMemory(Dma[i].tableAddress);
+				Dma[i].count |= ReadMemory(Dma[i].tableAddress + 1);
+				Dma[i].tableAddress += 2;
+				switch (Dma[i].mode) {
+					case 0:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
+						} else {
+							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
+						}
+						Dma[i].count++;
+						break;
+					}
+
+					case 1:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
+							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16)));
+						} else {
+							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
+							WriteMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 1));
+						}
+						Dma[i].count += 2;
+						break;
+					}
+
+					case 2:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16)));
+						} else {
+							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
+							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 1));
+						}
+						Dma[i].count += 2;
+						break;
+					}
+
+					case 3:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count+ 1 | (Dma[i].indirectBank << 16)));
+							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].count + 2 | (Dma[i].indirectBank << 16)));
+							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].count + 3 | (Dma[i].indirectBank << 16)));
+						} else {
+							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
+							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 1));
+							WriteMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 2));
+							WriteMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 3));
+						}
+						Dma[i].count += 4;
+						break;
+					}
+
+					default:
+						assert(false && "DMA Mode not handled");
+				}
 			} else {
 				switch (Dma[i].mode) {
 					case 0:
@@ -668,7 +727,67 @@ void CPU::ResetHDMA() {
 			Dma[i].tableAddress++;
 
 			if (Dma[i].indirect) {
-				assert(false && "HDMA Indirect");
+				Dma[i].count = ReadMemory(Dma[i].tableAddress);
+				Dma[i].count |= ReadMemory(Dma[i].tableAddress + 1);
+				Dma[i].tableAddress += 2;
+				switch (Dma[i].mode) {
+					case 0:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
+						} else {
+							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
+						}
+						Dma[i].count++;
+						break;
+					}
+
+					case 1:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
+							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16)));
+						} else {
+							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
+							WriteMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 1));
+						}
+						Dma[i].count += 2;
+						break;
+					}
+
+					case 2:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16)));
+						} else {
+							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
+							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 1));
+						}
+						Dma[i].count += 2;
+						break;
+					}
+
+					case 3:
+					{
+						if (!Dma[i].direction) {
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
+							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count+ 1 | (Dma[i].indirectBank << 16)));
+							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].count + 2 | (Dma[i].indirectBank << 16)));
+							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].count + 3 | (Dma[i].indirectBank << 16)));
+						} else {
+							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
+							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 1));
+							WriteMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 2));
+							WriteMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 3));
+						}
+						Dma[i].count += 4;
+						break;
+					}
+
+					default:
+						assert(false && "DMA Mode not handled");
+				}
 			} else {
 				switch (Dma[i].mode) {
 					case 0:
