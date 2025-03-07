@@ -312,10 +312,9 @@ CPU::CPU(SupaNES* supaNes) {
 
 int CPU::Clock() {
 	int opcycles = 0;
-	if (cycles == 0) {
+	if (cycles <= 0) {
 		if (startDMA) {
-			opcycles = DMA();
-			cycles = opcycles;
+			DMA();
 		}
 		else if (CheckIRQ()) {
 			IRQ();
@@ -590,159 +589,9 @@ void CPU::StartHDMA() {
 				Dma[i].count = ReadMemory(Dma[i].tableAddress);
 				Dma[i].count |= ReadMemory(Dma[i].tableAddress + 1);
 				Dma[i].tableAddress += 2;
-				switch (Dma[i].mode) {
-					case 0:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
-						} else {
-							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
-						}
-						Dma[i].count++;
-						break;
-					}
-
-					case 1:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16)));
-						} else {
-							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 1));
-						}
-						Dma[i].count += 2;
-						break;
-					}
-
-					case 2:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16)));
-						} else {
-							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 1));
-						}
-						Dma[i].count += 2;
-						break;
-					}
-
-					case 3:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count+ 1 | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].count + 2 | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].count + 3 | (Dma[i].indirectBank << 16)));
-						} else {
-							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 1));
-							WriteMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 2));
-							WriteMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 3));
-						}
-						Dma[i].count += 4;
-						break;
-					}
-
-					case 4:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].count+ 1 | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress + 2, ReadMemory(Dma[i].count + 2 | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress + 3, ReadMemory(Dma[i].count + 3 | (Dma[i].indirectBank << 16)));
-						} else {
-							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 1));
-							WriteMemory(Dma[i].count + 2 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 2));
-							WriteMemory(Dma[i].count + 3 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 3));
-						}
-						Dma[i].count += 4;
-						break;
-					}
-
-					default:
-						assert(false && "DMA Mode not handled");
-				}
+				TransferDMA(Dma[i].count, Dma[i].indirectBank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
 			} else {
-				switch (Dma[i].mode) {
-					case 0:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
-						} else {
-							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
-						}
-						Dma[i].tableAddress++;
-						break;
-					}
-
-					case 1:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16)));
-						} else {
-							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
-						}
-						Dma[i].tableAddress += 2;
-						break;
-					}
-
-					case 2:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16)));
-						} else {
-							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
-						}
-						Dma[i].tableAddress += 2;
-						break;
-					}
-
-					case 3:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].tableAddress + 2 | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].tableAddress + 3 | (Dma[i].ABank << 16)));
-						} else {
-							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
-							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 2));
-							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 3));
-						}
-						Dma[i].tableAddress += 4;
-						break;
-					}
-
-					case 4:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress + 2, ReadMemory(Dma[i].tableAddress + 2 | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress + 3, ReadMemory(Dma[i].tableAddress + 3 | (Dma[i].ABank << 16)));
-						} else {
-							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
-							WriteMemory(Dma[i].tableAddress + 2 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 2));
-							WriteMemory(Dma[i].tableAddress + 3 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 3));
-						}
-						Dma[i].tableAddress += 4;
-						break;
-					}
-
-
-
-					default:
-						assert(false && "DMA Mode not handled");
-				}
+				TransferDMA(Dma[i].tableAddress, Dma[i].ABank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
 			}
 			if (ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)) == 0) {
 				Dma[i].finished = true;
@@ -765,247 +614,135 @@ void CPU::ResetHDMA() {
 				Dma[i].count = ReadMemory(Dma[i].tableAddress);
 				Dma[i].count |= ReadMemory(Dma[i].tableAddress + 1);
 				Dma[i].tableAddress += 2;
-				switch (Dma[i].mode) {
-					case 0:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
-						} else {
-							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
-						}
-						Dma[i].count++;
-						break;
-					}
-
-					case 1:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16)));
-						} else {
-							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 1));
-						}
-						Dma[i].count += 2;
-						break;
-					}
-
-					case 2:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16)));
-						} else {
-							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 1));
-						}
-						Dma[i].count += 2;
-						break;
-					}
-
-					case 3:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count+ 1 | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].count + 2 | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].count + 3 | (Dma[i].indirectBank << 16)));
-						} else {
-							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 1));
-							WriteMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 2));
-							WriteMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 3));
-						}
-						Dma[i].count += 4;
-						break;
-					}
-
-					case 4:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].count | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].count+ 1 | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress + 2, ReadMemory(Dma[i].count + 2 | (Dma[i].indirectBank << 16)));
-							WriteMemory(Dma[i].BAddress + 3, ReadMemory(Dma[i].count + 3 | (Dma[i].indirectBank << 16)));
-						} else {
-							WriteMemory(Dma[i].count | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].count + 1 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 1));
-							WriteMemory(Dma[i].count + 2 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 2));
-							WriteMemory(Dma[i].count + 3 | (Dma[i].indirectBank << 16), ReadMemory(Dma[i].BAddress + 3));
-						}
-						Dma[i].count += 4;
-						break;
-					}
-
-					default:
-						assert(false && "DMA Mode not handled");
-				}
+				TransferDMA(Dma[i].count, Dma[i].indirectBank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
 			} else {
-				switch (Dma[i].mode) {
-					case 0:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
-						} else {
-							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
-						}
-						Dma[i].tableAddress++;
-						break;
-					}
-
-					case 1:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16)));
-						} else {
-							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
-						}
-						Dma[i].tableAddress += 2;
-						break;
-					}
-
-					case 2:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16)));
-						} else {
-							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
-						}
-						Dma[i].tableAddress += 2;
-						break;
-					}
-
-					case 3:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].tableAddress + 2 | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].tableAddress + 3 | (Dma[i].ABank << 16)));
-						} else {
-							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
-							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 2));
-							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 3));
-						}
-						Dma[i].tableAddress += 4;
-						break;
-					}
-
-					case 4:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress + 2, ReadMemory(Dma[i].tableAddress + 2 | (Dma[i].ABank << 16)));
-							WriteMemory(Dma[i].BAddress + 3, ReadMemory(Dma[i].tableAddress + 3 | (Dma[i].ABank << 16)));
-						} else {
-							WriteMemory(Dma[i].tableAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
-							WriteMemory(Dma[i].tableAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
-							WriteMemory(Dma[i].tableAddress + 2 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 2));
-							WriteMemory(Dma[i].tableAddress + 3 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 3));
-						}
-						Dma[i].tableAddress += 4;
-						break;
-					}
-
-					default:
-						printf("Mode: %d\n", Dma[i].mode);
-						assert(false && "DMA Mode not handled");
-				}
+				TransferDMA(Dma[i].tableAddress, Dma[i].ABank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
 			}
 		}
 	}
 }
 
-int CPU::DMA() {
-	int extraCycles = 0;
+void CPU::DMA() {
 	for (uint8_t i = 0; i < 8; i++) {
 		if (enabledDMA & (1 << i)) {
-			extraCycles += 1;
-			
-			do {
-				switch (Dma[i].mode) {
-					case 0:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].AAddress | (Dma[i].ABank << 16)));
-						} else {
-							WriteMemory(Dma[i].AAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
-						}
-						extraCycles += 1;
-
-						Dma[i].count--;
-						if (Dma[i].count == 0) {
-							enabledDMA &= ~(1 << i);
-							if (enabledDMA == 0x00) {
-								extraCycles += 1;
-								startDMA = false;
-								printf("\033[0;36mEnding DMA\033[0m\n");
-								return extraCycles;
-							}
-						}
-						Dma[i].AAddress += (Dma[i].increment == 0) ? 1 : ((Dma[i].increment == 2) ? -1 : 0);
-						break;
-					}
-
-					case 1:
-					{
-						if (!Dma[i].direction) {
-							WriteMemory(Dma[i].BAddress, ReadMemory(Dma[i].AAddress | (Dma[i].ABank << 16)));
-							if (--Dma[i].count == 0) {
-								extraCycles += 1;
-								enabledDMA &= ~(1 << i);
-								if (enabledDMA == 0x00) {
-									extraCycles += 1;
-									startDMA = false;
-									printf("\033[0;36mEnding DMA\033[0m\n");
-									return extraCycles;
-								}
-							}
-							WriteMemory(Dma[i].BAddress + 1, ReadMemory(Dma[i].AAddress + 1 | (Dma[i].ABank << 16)));
-						} else {
-							WriteMemory(Dma[i].AAddress | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress));
-							if (--Dma[i].count == 0) {
-								extraCycles += 1;
-								enabledDMA &= ~(1 << i);
-								if (enabledDMA == 0x00) {
-									extraCycles += 1;
-									startDMA = false;
-									printf("\033[0;36mEnding DMA\033[0m\n");
-									return extraCycles;
-								}
-							}
-							WriteMemory(Dma[i].AAddress + 1 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 1));
-						}
-						extraCycles += 1;
-
-						Dma[i].count--;
-						if (Dma[i].count == 0) {
-							enabledDMA &= ~(1 << i);
-							if (enabledDMA == 0x00) {
-								extraCycles += 1;
-								startDMA = false;
-								printf("\033[0;36mEnding DMA\033[0m\n");
-								return extraCycles;
-							}
-						}
-						Dma[i].AAddress += (Dma[i].increment == 0) ? 2 : ((Dma[i].increment == 2) ? -2 : 0);
-						break;
-					}
-					default:
-						assert(false && "DMA Mode not handled");
-				}
-			} while (Dma[i].count != 0);
-			extraCycles += 1;
-			break;
+			while (Dma[i].count) {
+				Dma[i].count = TransferDMA(Dma[i].AAddress, Dma[i].ABank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, Dma[i].increment, Dma[i].count);
+				printf("%d\n", Dma[i].count);
+			}
+			enabledDMA &= ~(1 << i);
+			if (enabledDMA == 0x00) {
+				startDMA = false;
+				printf("\033[0;36mEnding DMA\033[0m\n");
+				return;
+			}
 		}
 	}
-	return extraCycles;
+}
+
+int CPU::TransferDMA(uint16_t& AAddress, uint8_t Bank, uint16_t BAddress, uint8_t mode, bool direction, uint8_t increment, uint16_t count) {
+	switch (mode) {
+		case 0:
+		{
+			if (!direction) {
+				WriteMemory(BAddress, ReadMemory(AAddress | (Bank << 16)));
+			}
+			else {
+				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress));
+			}
+			if (!--count) return 0;
+			AAddress += (increment == 0) ? 1 : ((increment == 2) ? -1 : 0);
+			break;
+		}
+
+		case 1:
+		{
+			if (!direction) {
+				WriteMemory(BAddress, ReadMemory(AAddress | (Bank << 16)));
+				if (!--count) return 0;
+				WriteMemory(BAddress + 1, ReadMemory(AAddress + 1 | (Bank << 16)));
+			}
+			else {
+				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress));
+				if (!--count) return 0;
+				WriteMemory(AAddress + 1 | (Bank << 16), ReadMemory(BAddress + 1));
+			}
+			if (!--count) return 0;
+			AAddress += (increment == 0) ? 2 : ((increment == 2) ? -2 : 0);
+			break;
+		}
+
+		case 2:
+		{
+			if (!direction) {
+				WriteMemory(BAddress, ReadMemory(AAddress | (Bank << 16)));
+				if (!--count) return 0;
+				WriteMemory(BAddress, ReadMemory(AAddress + 1 | (Bank << 16)));
+			}
+			else {
+				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress));
+				if (!--count) return 0;
+				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress + 1));
+			}
+			if (!--count) return 0;
+			AAddress += (increment == 0) ? 2 : ((increment == 2) ? -2 : 0);
+			break;
+		}
+
+		case 3:
+		{
+			if (!direction) {
+				WriteMemory(BAddress, ReadMemory(AAddress | (Bank << 16)));
+				if (!--count) return 0;
+				WriteMemory(BAddress, ReadMemory(AAddress + 1 | (Bank << 16)));
+				if (!--count) return 0;
+				WriteMemory(BAddress + 1, ReadMemory(AAddress + 2 | (Bank << 16)));
+				if (!--count) return 0;
+				WriteMemory(BAddress + 1, ReadMemory(AAddress + 3 | (Bank << 16)));
+			}
+			else {
+				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress));
+				if (!--count) return 0;
+				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress + 1));
+				if (!--count) return 0;
+				WriteMemory(AAddress + 1 | (Bank << 16), ReadMemory(BAddress + 2));
+				if (!--count) return 0;
+				WriteMemory(AAddress + 1 | (Bank << 16), ReadMemory(BAddress + 3));
+			}
+			if (!--count) return 0;
+			AAddress += (increment == 0) ? 4 : ((increment == 2) ? -4 : 0);
+			break;
+		}
+
+		case 4:
+		{
+			if (!direction) {
+				WriteMemory(BAddress, ReadMemory(AAddress | (Bank << 16)));
+				if (!--count) return 0;
+				WriteMemory(BAddress + 1, ReadMemory(AAddress + 1 | (Bank << 16)));
+				if (!--count) return 0;
+				WriteMemory(BAddress + 2, ReadMemory(AAddress + 2 | (Bank << 16)));
+				if (!--count) return 0;
+				WriteMemory(BAddress + 3, ReadMemory(AAddress + 3 | (Bank << 16)));
+			}
+			else {
+				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress));
+				if (!--count) return 0;
+				WriteMemory(AAddress + 1 | (Bank << 16), ReadMemory(BAddress + 1));
+				if (!--count) return 0;
+				WriteMemory(AAddress + 2 | (Bank << 16), ReadMemory(BAddress + 2));
+				if (!--count) return 0;
+				WriteMemory(AAddress + 3 | (Bank << 16), ReadMemory(BAddress + 3));
+			}
+			if (!--count) return 0;
+			AAddress += (increment == 0) ? 4 : ((increment == 2) ? -4 : 0);
+			break;
+		}
+
+		default:
+			printf("Mode: %d\n", mode);
+			assert(false && "DMA Mode not handled");
+	}
+	return count;
 }
 
 bool enableLog = false;

@@ -96,7 +96,9 @@ class CPU {
 
 		uint8_t enabledDMA = 0;
 		uint8_t enabledHDMA = 0;
-		int DMA();
+		void DMA();
+
+		int TransferDMA(uint16_t &AAdress, uint8_t Bank, uint16_t BAddress, uint8_t mode, bool direction, uint8_t increment, uint16_t count);
 
 		struct ExcVectors{
 			uint16_t COPVector;
