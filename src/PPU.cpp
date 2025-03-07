@@ -433,6 +433,7 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 	else if (BGIndex == 4) {
 		tileOffset = (BGAddress3_4 & 0xF0) << 8;
 	}
+	tileOffset %= 0x8000;
 
 	uint16_t palette = 0x0000;
 	uint16_t tileAddress = 0;
