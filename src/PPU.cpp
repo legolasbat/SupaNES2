@@ -299,6 +299,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		}
 	}
 	else if (reg == 0x23) {
+		W12SEL = value;
 		printf("\033[0;32mWritting W12SEL: %02x\033[0m\n", value);
 	}
 	else if (reg == 0x24) {
@@ -307,17 +308,17 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	else if (reg == 0x25) {
 		printf("\033[0;32mWritting WOBJSEL: %02x\033[0m\n", value);
 	}
-	else if (reg == 0x26) {
-		printf("\033[0;32mWritting WH0: %02x\033[0m\n", value);
+	else if (reg == 0x26) {		// WH0
+		window1Left = value;
 	}
-	else if (reg == 0x27) {
-		printf("\033[0;32mWritting WH1: %02x\033[0m\n", value);
+	else if (reg == 0x27) {		// WH1
+		window1Right = value;
 	}
-	else if (reg == 0x28) {
-		printf("\033[0;32mWritting WH2: %02x\033[0m\n", value);
+	else if (reg == 0x28) {		// WH2
+		window2Left = value;
 	}
-	else if (reg == 0x29) {
-		printf("\033[0;32mWritting WH3: %02x\033[0m\n", value);
+	else if (reg == 0x29) {		// WH3
+		window2Right = value;
 	}
 	else if (reg == 0x2A) {
 		printf("\033[0;32mWritting WBGLOG: %02x\033[0m\n", value);
@@ -331,11 +332,12 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	else if (reg == 0x2D) {
 		TS = value;
 	}
-	else if (reg == 0x2E) {
-		printf("\033[0;32mWritting TMW: %02x\033[0m\n", value);
+	else if (reg == 0x2E) {		// TMW
+		TMW = value;
 	}
 	else if (reg == 0x2F) {
 		printf("\033[0;32mWritting TSW: %02x\033[0m\n", value);
+		assert(value == 0);
 	}
 	else if (reg == 0x30) {
 		CGWSEL = value;
@@ -486,7 +488,23 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 		if ((CGADSUB & (1 << (BGIndex - 1))) && (CGWSEL & 0x30) != 0x30) {
 			palette = ColorMathPixel(X, Y, palette);
 		}
-		pixels[(Y * width) + X] = palette;
+		// TODO: If >= W1Left and <= W1Right is inside
+		// If both disable consider inside
+		if (TMW & (1 << (BGIndex - 1))) {
+			if (W12SEL & 0x2) {
+				if (W12SEL & 0x1) {
+					if (X >= window1Left && X <= window1Right) {
+						pixels[(Y * width) + X] = palette;
+					}
+				} else {
+					if (X < window1Left || X > window1Right) {
+						pixels[(Y * width) + X] = palette;
+					}
+				}
+			}
+		} else {
+			pixels[(Y * width) + X] = palette;
+		}
 	}
 	if (TS & (1 << (BGIndex - 1))) {
 		BGsubscreens[(BGIndex - 1)][(Y * width) + X] = palette;

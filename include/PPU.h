@@ -85,11 +85,19 @@ class PPU {
 		uint16_t VRAMAddress;	// VRAM Address						0x2116/7
 
 		uint16_t CGRAM[0x100];
-		uint8_t CGRAMAddress;
+		uint8_t CGRAMAddress;	// CGRAM Address					0x2121
 		bool CGRAMFlipflop;
+
+		uint8_t W12SEL;			// Window Mask Settings for BG1 & 2	0x2123
+
+		uint8_t window1Left;	// WH0								0x2126
+		uint8_t window1Right;	// WH1								0x2127
+		uint8_t window2Left;	// WH2								0x2128
+		uint8_t window2Right;	// WH3								0x2129
 
 		uint8_t TM;				// Main Screen Designation			0x212C
 		uint8_t TS;				// Subscreen Designation			0x212D
+		uint8_t TMW;			// Window Mask Designation for Main	0x212E
 
 		uint8_t CGWSEL;			// Color Addition Select			0x2130
 		uint8_t CGADSUB;		// Color math designation			0x2131
