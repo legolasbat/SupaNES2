@@ -112,7 +112,7 @@ uint8_t SupaNES::ReadMemoryQ1(uint32_t address) {
 	else if (memoryPage == 0x40) {
 		// Reading Joypad register
 		printf("Read %06X\n", address);
-		assert(false && "Reading Q1 Page 40");
+		//assert(false && "Reading Q1 Page 40");
 	}
 	else if (memoryPage == 0x42 || memoryPage == 0x43) {
 		value = cpu->ReadCPU(address);

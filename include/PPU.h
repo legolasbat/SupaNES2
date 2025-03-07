@@ -91,6 +91,7 @@ class PPU {
 		bool CGRAMFlipflop;
 
 		uint8_t W12SEL;			// Window Mask Settings for BG1 & 2	0x2123
+		uint8_t W34SEL;			// Window Mask Settings for BG3 & 4	0x2124
 
 		uint8_t window1Left;	// WH0								0x2126
 		uint8_t window1Right;	// WH1								0x2127
@@ -101,6 +102,7 @@ class PPU {
 		uint8_t TM;				// Main Screen Designation			0x212C
 		uint8_t TS;				// Subscreen Designation			0x212D
 		uint8_t TMW;			// Window Mask Designation for Main	0x212E
+		uint8_t TSW;			// Window Mask Designation for Sub	0x212F
 
 		uint8_t CGWSEL;			// Color Addition Select			0x2130
 		uint8_t CGADSUB;		// Color math designation			0x2131

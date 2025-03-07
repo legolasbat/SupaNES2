@@ -303,6 +303,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		printf("\033[0;32mWritting W12SEL: %02x\033[0m\n", value);
 	}
 	else if (reg == 0x24) {
+		W34SEL = value;
 		printf("\033[0;32mWritting W34SEL: %02x\033[0m\n", value);
 	}
 	else if (reg == 0x25) {
@@ -320,31 +321,30 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	else if (reg == 0x29) {		// WH3
 		window2Right = value;
 	}
-	else if (reg == 0x2A) {
+	else if (reg == 0x2A) {		// WBGLOG
 		WBGLOG = value;
 	}
-	else if (reg == 0x2B) {
+	else if (reg == 0x2B) {		// WOBJLOG
 		printf("\033[0;32mWritting WOBJLOG: %02x\033[0m\n", value);
 	}
-	else if (reg == 0x2C) {
+	else if (reg == 0x2C) {		// TM
 		TM = value;
 	}
-	else if (reg == 0x2D) {
+	else if (reg == 0x2D) {		// TS
 		TS = value;
 	}
 	else if (reg == 0x2E) {		// TMW
 		TMW = value;
 	}
-	else if (reg == 0x2F) {
-		printf("\033[0;32mWritting TSW: %02x\033[0m\n", value);
-		assert(value == 0);
+	else if (reg == 0x2F) {		// TSW
+		TSW = value;
 	}
 	else if (reg == 0x30) {
 		CGWSEL = value;
 		printf("\033[0;32mWritting CGWSEL: %02x\033[0m\n", value);
 		assert((CGWSEL & 0xC0) == 0 && "CGWSEL");
 		assert((CGWSEL & 0x01) == 0 && "CGWSEL");
-		assert(((CGWSEL & 0x30) == 0 || (CGWSEL & 0x30) == 0x30) && "CGWSEL");
+		//assert(((CGWSEL & 0x30) == 0 || (CGWSEL & 0x30) == 0x30) && "CGWSEL");
 	}
 	else if (reg == 0x31) {
 		CGADSUB = value;
@@ -665,10 +665,11 @@ bool PPU::IsInsideWindow(int X, int Y, uint8_t BGIndex) {
 	bool isInsideWindow1 = false;
 	bool window2Enable = false;
 	bool isInsideWindow2 = false;
-	if (BGIndex == 1) {
-		if (W12SEL & 0x2) {
+	if (BGIndex == 1 || BGIndex == 2) {
+		uint8_t offset = (BGIndex == 1) ? 0 : 4;
+		if (W12SEL & (0x2 << offset)) {
 			window1Enable = true;
-			if (W12SEL & 0x1) {
+			if (W12SEL & (0x1 << offset)) {
 				if (window1Left > window1Right) {
 					isInsideWindow1 = true;
 				}
@@ -684,9 +685,9 @@ bool PPU::IsInsideWindow(int X, int Y, uint8_t BGIndex) {
 				}
 			}
 		}
-		if (W12SEL & 0x8) {
+		if (W12SEL & (0x8 << offset)) {
 			window2Enable = true;
-			if (W12SEL & 0x4) {
+			if (W12SEL & (0x4 << offset)) {
 				if (window2Left > window2Right) {
 					isInsideWindow2 = true;
 				}
@@ -702,25 +703,69 @@ bool PPU::IsInsideWindow(int X, int Y, uint8_t BGIndex) {
 				}
 			}
 		}
-		if (!window2Enable) {
-			return isInsideWindow1;
+	}
+	if (BGIndex == 3 || BGIndex == 4) {
+		uint8_t offset = (BGIndex == 3) ? 0 : 4;
+		if (W34SEL & (0x2 << offset)) {
+			window1Enable = true;
+			if (W34SEL & (0x1 << offset)) {
+				if (window1Left > window1Right) {
+					isInsideWindow1 = true;
+				}
+				else if (X < window1Left || X > window1Right) {
+					isInsideWindow1 = true;
+				}
+			} else {
+				if (window1Left > window1Right) {
+					isInsideWindow1 = false;
+				}
+				else if (X >= window1Left && X <= window1Right) {
+					isInsideWindow1 = true;
+				}
+			}
 		}
-		if (!window1Enable) {
-			return isInsideWindow2;
+		if (W34SEL & (0x8 << offset)) {
+			window2Enable = true;
+			if (W34SEL & (0x4 << offset)) {
+				if (window2Left > window2Right) {
+					isInsideWindow2 = true;
+				}
+				else if (X < window2Left || X > window2Right) {
+					isInsideWindow2 = true;
+				}
+			} else {
+				if (window2Left > window2Right) {
+					isInsideWindow2 = false;
+				}
+				else if (X >= window2Left && X <= window2Right) {
+					isInsideWindow2 = true;
+				}
+			}
 		}
-		uint8_t operation = WBGLOG & 0x3;
-		if (operation == 0x00) {
-			return isInsideWindow1 || isInsideWindow2;
-		}
-		else if (operation == 0x01) {
-			return isInsideWindow1 && isInsideWindow2;
-		}
-		else if (operation == 0x02) {
-			return isInsideWindow1 ^ isInsideWindow2;
-		}
-		else if (operation == 0x03) {
-			return !(isInsideWindow1 ^ isInsideWindow2);
-		}
+	}
+	if (!window2Enable) {
+		return isInsideWindow1;
+	}
+	if (!window1Enable) {
+		return isInsideWindow2;
+	}
+	uint8_t operation = 0;
+	if (BGIndex < 5) {
+		operation = (WBGLOG & (0x3 << (2 * (BGIndex - 1)))) >> (2 * (BGIndex - 1));
+	} else {
+		assert(false);
+	}
+	if (operation == 0x00) {
+		return isInsideWindow1 || isInsideWindow2;
+	}
+	else if (operation == 0x01) {
+		return isInsideWindow1 && isInsideWindow2;
+	}
+	else if (operation == 0x02) {
+		return isInsideWindow1 ^ isInsideWindow2;
+	}
+	else if (operation == 0x03) {
+		return !(isInsideWindow1 ^ isInsideWindow2);
 	}
 	return false;
 }
