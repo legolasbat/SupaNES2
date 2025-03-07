@@ -17,6 +17,7 @@ class PPU {
 		int width = 256;
 		int height = 224;
 		uint16_t pixels[256 * 224];
+		uint16_t BGsubscreens[4][256 * 224];
 
 		bool frameCompleted;
 		uint16_t* GetFrame();
@@ -38,6 +39,8 @@ class PPU {
 		uint16_t GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift, uint8_t BGIndex);
 		uint16_t GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift);
 		uint16_t GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift);
+
+		uint16_t ColorMathPixel(int X, int Y, uint16_t palette);
 
 		uint8_t inidisp;		// INIDISP							0x2100
 
@@ -86,4 +89,8 @@ class PPU {
 		bool CGRAMFlipflop;
 
 		uint8_t TM;				// Main Screen Designation			0x212C
+		uint8_t TS;				// Subscreen Designation			0x212D
+
+		uint8_t CGWSEL;			// Color Addition Select			0x2130
+		uint8_t CGADSUB;		// Color math designation			0x2131
 };

@@ -103,7 +103,6 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 			BG1HScroll |= (value << 8);
 			BG1HScrollFlipflop = false;
 		}
-		printf("\033[0;32mWritting BG1HOFS: %02x\033[0m\n", value);
 		assert((BGMode & 0x7) != 7);
 	}
 	else if (reg == 0x0E) {		// BG1VOFS or M7VOFS
@@ -116,7 +115,6 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 			BG1VScroll |= (value << 8);
 			BG1VScrollFlipflop = false;
 		}
-		printf("\033[0;32mWritting BG1VOFS: %02x\033[0m\n", value);
 		assert((BGMode & 0x7) != 7);
 	}
 	else if (reg == 0x0F) {		// BG2HOFS
@@ -329,10 +327,9 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	}
 	else if (reg == 0x2C) {
 		TM = value;
-		printf("\033[0;32mWritting TM: %02x\033[0m\n", value);
 	}
 	else if (reg == 0x2D) {
-		printf("\033[0;32mWritting TS: %02x\033[0m\n", value);
+		TS = value;
 	}
 	else if (reg == 0x2E) {
 		printf("\033[0;32mWritting TMW: %02x\033[0m\n", value);
@@ -341,10 +338,17 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		printf("\033[0;32mWritting TSW: %02x\033[0m\n", value);
 	}
 	else if (reg == 0x30) {
+		CGWSEL = value;
 		printf("\033[0;32mWritting CGWSEL: %02x\033[0m\n", value);
+		assert((CGWSEL & 0xC0) == 0 && "CGWSEL");
+		assert((CGWSEL & 0x01) == 0 && "CGWSEL");
+		assert(((CGWSEL & 0x30) == 0 || (CGWSEL & 0x30) == 0x30) && "CGWSEL");
 	}
 	else if (reg == 0x31) {
+		CGADSUB = value;
 		printf("\033[0;32mWritting CGADSUB: %02x\033[0m\n", value);
+		assert((CGADSUB & 0x80) == 0 && "CGADSUB");
+		assert((CGADSUB & 0x40) == 0 && "CGADSUB");
 	}
 	else if (reg == 0x32) {
 		printf("\033[0;32mWritting COLDATA: %02x\033[0m\n", value);
@@ -367,25 +371,28 @@ void PPU::SetPixel(int X, int Y) {
 		return;
 	}
 	SetBGDrop(X, Y);
-	if (TM & 0x08) {
+	if ((TM & 0x08) || (TS & 0x08)) {
 		SetBGPixel(X, Y, BG4TileAddress, 4, GetColorBPPForBG(4),
 				(BG4TileAddress & 0x1) ? 64 : 32, (BG4TileAddress & 0x2) ? 64 : 32,
 				BG4HScroll, BG4VScroll);
 	}
-	if (TM & 0x04) {
+	if ((TM & 0x04) || (TS & 0x04)) {
 		SetBGPixel(X, Y, BG3TileAddress, 3, GetColorBPPForBG(3),
 				(BG3TileAddress & 0x1) ? 64 : 32, (BG3TileAddress & 0x2) ? 64 : 32,
 				BG3HScroll, BG3VScroll);
 	}
-	if (TM & 0x02) {
+	if ((TM & 0x02) || (TS & 0x02)) {
 		SetBGPixel(X, Y, BG2TileAddress, 2, GetColorBPPForBG(2),
 				(BG2TileAddress & 0x1) ? 64 : 32, (BG2TileAddress & 0x2) ? 64 : 32,
 				BG2HScroll, BG2VScroll);
 	}
-	if (TM & 0x01) {
+	if ((TM & 0x01) || (TS & 0x01)) {
 		SetBGPixel(X, Y, BG1TileAddress, 1, GetColorBPPForBG(1),
 				(BG1TileAddress & 0x1) ? 64 : 32, (BG1TileAddress & 0x2) ? 64 : 32,
 				BG1HScroll, BG1VScroll);
+	}
+	if ((TM & 0x10) || (TS & 0x10)) {
+		// TODO: Sprites
 	}
 }
 
@@ -393,7 +400,7 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 						uint8_t XSize, uint8_t YSize,
 						uint16_t HScroll, uint16_t VScroll) {
 	int XScrolled = (X + HScroll) % (8 * XSize);
-	int YScrolled = (Y + VScroll) % (8 * YSize);
+	int YScrolled = (Y + VScroll + 1) % (8 * YSize);
 
 	uint16_t tile = (((BGAddress & 0xFC) << 8) % 0x8000)	// Mod 0x8000 because we use 16bits values instead of 8bits
 					+ ((((XSize == 64) ? (YScrolled % 256) : YScrolled) / 8) << 5)
@@ -474,7 +481,15 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 		palette |= ((uint8_t)(blue * brightness) & 0x1F) << 10;
 	}
 
-	pixels[(Y * width) + X] = palette;
+	if (TM & (1 << (BGIndex - 1))) {
+		if ((CGADSUB & (1 << (BGIndex - 1))) && (CGWSEL & 0x30) != 0x30) {
+			palette = ColorMathPixel(X, Y, palette);
+		}
+		pixels[(Y * width) + X] = palette;
+	}
+	if (TS & (1 << (BGIndex - 1))) {
+		BGsubscreens[(BGIndex - 1)][(Y * width) + X] = palette;
+	}
 }
 
 void PPU::SetBGDrop(int X, int Y, bool forceBlank) {
@@ -494,6 +509,13 @@ void PPU::SetBGDrop(int X, int Y, bool forceBlank) {
 			palette |= ((uint8_t)(green * brightness) & 0x1F) << 5;
 			palette &= ~(0x1F << 10);
 			palette |= ((uint8_t)(blue * brightness) & 0x1F) << 10;
+		}
+		BGsubscreens[0][(Y * width) + X] = palette;
+		BGsubscreens[1][(Y * width) + X] = palette;
+		BGsubscreens[2][(Y * width) + X] = palette;
+		BGsubscreens[3][(Y * width) + X] = palette;
+		if ((CGADSUB & 0x20) && (CGWSEL & 0x30) != 0x30) {
+			palette = ColorMathPixel(X, Y, palette);
 		}
 		pixels[(Y * width) + X] = palette;
 	}
@@ -571,6 +593,58 @@ uint16_t PPU::GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift
 		return CGRAM[0];
 	}
 	return CGRAM[paletteIndex] | 0x8000;
+}
+
+uint16_t PPU::ColorMathPixel(int X, int Y, uint16_t palette) {
+	for (uint8_t bgi = 0; bgi < 4; bgi++) {
+		if (TS & (1 << bgi)) {
+			uint16_t subPixel = BGsubscreens[bgi][(Y * width) + X];
+			uint8_t red = palette & 0x1F;
+			uint8_t green = (palette >> 5) & 0x1F;
+			uint8_t blue = (palette >> 10) & 0x1F;
+			uint8_t redSub = subPixel & 0x1F;
+			uint8_t greenSub = (subPixel >> 5) & 0x1F;
+			uint8_t blueSub = (subPixel >> 10) & 0x1F;
+			if (CGADSUB & 0x80) {
+				palette &= ~0x1F;
+				if (red - redSub > 0) {
+					palette |= (red - redSub) & 0x1F;
+				}
+				palette &= ~(0x1F << 5);
+				if (green - greenSub > 0) {
+					palette |= ((green - greenSub) & 0x1F) << 5;
+				}
+				palette &= ~(0x1F << 10);
+				if (blue - blueSub > 0) {
+					palette |= ((blue - blueSub) & 0x1F) << 10;
+				}
+			}
+			else {
+				palette &= ~0x1F;
+				if (red + redSub > 0x1F) {
+					palette |= 0x1F;
+				}
+				else {
+					palette |= (red + redSub) & 0x1F;
+				}
+				palette &= ~(0x1F << 5);
+				if (green + greenSub > 0x1F) {
+					palette |= 0x1F << 5;
+				}
+				else {
+					palette |= ((green + greenSub) & 0x1F) << 5;
+				}
+				palette &= ~(0x1F << 10);
+				if (blue + blueSub > 0x1F) {
+					palette |= 0x1F << 10;
+				}
+				else {
+					palette |= ((blue + blueSub) & 0x1F) << 10;
+				}
+			}
+		}
+	}
+	return palette;
 }
 
 uint16_t* PPU::GetFrame() {
