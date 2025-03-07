@@ -321,7 +321,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		window2Right = value;
 	}
 	else if (reg == 0x2A) {
-		printf("\033[0;32mWritting WBGLOG: %02x\033[0m\n", value);
+		WBGLOG = value;
 	}
 	else if (reg == 0x2B) {
 		printf("\033[0;32mWritting WOBJLOG: %02x\033[0m\n", value);
@@ -484,28 +484,22 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 		palette |= ((uint8_t)(blue * brightness) & 0x1F) << 10;
 	}
 
+	// Main Screen
 	if (TM & (1 << (BGIndex - 1))) {
+		// Color Math
 		if ((CGADSUB & (1 << (BGIndex - 1))) && (CGWSEL & 0x30) != 0x30) {
 			palette = ColorMathPixel(X, Y, palette);
 		}
-		// TODO: If >= W1Left and <= W1Right is inside
-		// If both disable consider inside
+		// Window
 		if (TMW & (1 << (BGIndex - 1))) {
-			if (W12SEL & 0x2) {
-				if (W12SEL & 0x1) {
-					if (X >= window1Left && X <= window1Right) {
-						pixels[(Y * width) + X] = palette;
-					}
-				} else {
-					if (X < window1Left || X > window1Right) {
-						pixels[(Y * width) + X] = palette;
-					}
-				}
+			if (!IsInsideWindow(X, Y, BGIndex)) {
+				pixels[(Y * width) + X] = palette;
 			}
 		} else {
 			pixels[(Y * width) + X] = palette;
 		}
 	}
+	// Subscreen
 	if (TS & (1 << (BGIndex - 1))) {
 		BGsubscreens[(BGIndex - 1)][(Y * width) + X] = palette;
 	}
@@ -664,6 +658,59 @@ uint16_t PPU::ColorMathPixel(int X, int Y, uint16_t palette) {
 		}
 	}
 	return palette;
+}
+
+bool PPU::IsInsideWindow(int X, int Y, uint8_t BGIndex) {
+	bool window1Enable = false;
+	bool isInsideWindow1 = false;
+	bool window2Enable = false;
+	bool isInsideWindow2 = false;
+	if (BGIndex == 1) {
+		if (W12SEL & 0x2) {
+			window1Enable = true;
+			if (W12SEL & 0x1) {
+				if (X < window1Left || X > window1Right) {
+					isInsideWindow1 = true;
+				}
+			} else {
+				if (X >= window1Left && X <= window1Right) {
+					isInsideWindow1 = true;
+				}
+			}
+		}
+		if (W12SEL & 0x8) {
+			window2Enable = true;
+			if (W12SEL & 0x4) {
+				if (X < window2Left || X > window2Right) {
+					isInsideWindow2 = true;
+				}
+			} else {
+				if (X >= window2Left && X <= window2Right) {
+					isInsideWindow2 = true;
+				}
+			}
+		}
+		if (!window2Enable) {
+			return isInsideWindow1;
+		}
+		if (!window1Enable) {
+			return isInsideWindow2;
+		}
+		uint8_t operation = (WBGLOG & 0xC0) >> 6;
+		if (operation == 0x00) {
+			return isInsideWindow1 || isInsideWindow2;
+		}
+		else if (operation == 0x01) {
+			return isInsideWindow1 && isInsideWindow2;
+		}
+		else if (operation == 0x02) {
+			return isInsideWindow1 ^ isInsideWindow2;
+		}
+		else if (operation == 0x03) {
+			return !(isInsideWindow1 ^ isInsideWindow2);
+		}
+	}
+	return false;
 }
 
 uint16_t* PPU::GetFrame() {

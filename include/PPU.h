@@ -42,6 +42,8 @@ class PPU {
 
 		uint16_t ColorMathPixel(int X, int Y, uint16_t palette);
 
+		bool IsInsideWindow(int X, int Y, uint8_t BGIndex);
+
 		uint8_t inidisp;		// INIDISP							0x2100
 
 		uint16_t OAM[0x110];
@@ -94,6 +96,7 @@ class PPU {
 		uint8_t window1Right;	// WH1								0x2127
 		uint8_t window2Left;	// WH2								0x2128
 		uint8_t window2Right;	// WH3								0x2129
+		uint8_t WBGLOG;			// Window mask logic for BGs		0x212A
 
 		uint8_t TM;				// Main Screen Designation			0x212C
 		uint8_t TS;				// Subscreen Designation			0x212D
