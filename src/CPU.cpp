@@ -734,7 +734,7 @@ void CPU::StartHDMA() {
 							WriteMemory(Dma[i].tableAddress + 2 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 2));
 							WriteMemory(Dma[i].tableAddress + 3 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 3));
 						}
-						Dma[i].count += 4;
+						Dma[i].tableAddress += 4;
 						break;
 					}
 
@@ -909,7 +909,7 @@ void CPU::ResetHDMA() {
 							WriteMemory(Dma[i].tableAddress + 2 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 2));
 							WriteMemory(Dma[i].tableAddress + 3 | (Dma[i].ABank << 16), ReadMemory(Dma[i].BAddress + 3));
 						}
-						Dma[i].count += 4;
+						Dma[i].tableAddress += 4;
 						break;
 					}
 

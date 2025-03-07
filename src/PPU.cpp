@@ -669,11 +669,17 @@ bool PPU::IsInsideWindow(int X, int Y, uint8_t BGIndex) {
 		if (W12SEL & 0x2) {
 			window1Enable = true;
 			if (W12SEL & 0x1) {
-				if (X < window1Left || X > window1Right) {
+				if (window1Left > window1Right) {
+					isInsideWindow1 = true;
+				}
+				else if (X < window1Left || X > window1Right) {
 					isInsideWindow1 = true;
 				}
 			} else {
-				if (X >= window1Left && X <= window1Right) {
+				if (window1Left > window1Right) {
+					isInsideWindow1 = false;
+				}
+				else if (X >= window1Left && X <= window1Right) {
 					isInsideWindow1 = true;
 				}
 			}
@@ -681,11 +687,17 @@ bool PPU::IsInsideWindow(int X, int Y, uint8_t BGIndex) {
 		if (W12SEL & 0x8) {
 			window2Enable = true;
 			if (W12SEL & 0x4) {
-				if (X < window2Left || X > window2Right) {
+				if (window2Left > window2Right) {
+					isInsideWindow2 = true;
+				}
+				else if (X < window2Left || X > window2Right) {
 					isInsideWindow2 = true;
 				}
 			} else {
-				if (X >= window2Left && X <= window2Right) {
+				if (window2Left > window2Right) {
+					isInsideWindow2 = false;
+				}
+				else if (X >= window2Left && X <= window2Right) {
 					isInsideWindow2 = true;
 				}
 			}
@@ -696,7 +708,7 @@ bool PPU::IsInsideWindow(int X, int Y, uint8_t BGIndex) {
 		if (!window1Enable) {
 			return isInsideWindow2;
 		}
-		uint8_t operation = (WBGLOG & 0xC0) >> 6;
+		uint8_t operation = WBGLOG & 0x3;
 		if (operation == 0x00) {
 			return isInsideWindow1 || isInsideWindow2;
 		}
