@@ -69,10 +69,19 @@ class CPU {
 		uint8_t NMITIMEN;
 		uint8_t nmi;
 
+		uint8_t mult1 = 0xFF;		// 0x4202
+		uint8_t mult2;				// 0x4203
+
+		uint16_t divident;			// 0x4204/5
+		uint8_t divisor;			// 0x4206
+
 		uint16_t HTIME;				// 0x4207/8
 		uint16_t VTIME;				// 0x4209/A
 
 		bool TIMEUP;				// 0x4211
+
+		uint16_t quotient;			// 0x4214/5
+		uint16_t product;			// 0x4216/7
 
 		bool startDMA = false;
 		bool pendingDMA = false;

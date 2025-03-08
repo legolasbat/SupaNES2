@@ -456,14 +456,28 @@ uint8_t CPU::ReadCPU(uint32_t address) {
 			// Bit 0 is Auto-Joypad Status
 			return value;
 		}
-		else if (reg == 0x18) {
+		else if (reg == 0x14) {	// RDDIVL
+			value = quotient & 0xFF;
+		}
+		else if (reg == 0x15) {	// RDDIVH
+			value = quotient >> 8;
+		}
+		else if (reg == 0x16) {	// RDMPYL
+			value = product & 0xFF;
+		}
+		else if (reg == 0x17) {	// RDMPYH
+			value = product >> 8;
+		}
+		else if (reg == 0x18) {	// JOY1L
 			return joypad1Low;
 		}
-		else if (reg == 0x19) {
+		else if (reg == 0x19) {	// JOY1H
 			return joypad1High;
 		}
+		else {
+			printf("\033[0;36mReading CPU: %06x\033[0m\n", address);
+		}
 	}
-	printf("\033[0;36mReading CPU: %06x\033[0m\n", address);
 	//TODO: CPU Reading
 	return value;
 }
@@ -475,6 +489,36 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 	if (page == 0x42) {
 		if (reg == 0x00) {		// NMITIMEN
 			NMITIMEN = value;
+		}
+		else if (reg == 0x02) {	// WRMPYA
+			mult1 = value;
+		}
+		else if (reg == 0x03) {	// WRMPYB
+			mult2 = value;
+			cycles += 8;
+
+			product = mult1 * mult2;
+		}
+		else if (reg == 0x04) {	// WRDIVL
+			divident &= 0xFF00;
+			divident |= value;
+		}
+		else if (reg == 0x05) {	// WRDIVH
+			divident &= 0x00FF;
+			divident |= (value << 8);
+		}
+		else if (reg == 0x06) {	// WRDIVB
+			divisor = value;
+			cycles += 16;
+
+			if (divisor == 0) {
+				quotient = 0xFFFF;
+				product = regs.P & CFlag;
+			}
+			else {
+				quotient = divident / divisor;
+				product = divident % divisor;
+			}
 		}
 		else if (reg == 0x07) {	// HTIMEL
 			HTIME &= 0xFF00;
