@@ -12,6 +12,7 @@ PPU::PPU(SupaNES* supaNes) {
 	VCounter = 0;
 	frameCounter = 0;
 
+	BGMode = 0;
 	fixedColor = 0;
 }
 
@@ -510,12 +511,12 @@ void PPU::SetPixel(int X, int Y) {
 		subPixel.color = 0;
 	}
 	else if (CGWSEL & 0x20) {
-		if (!IsInsideWindow(X, 5, 0xFF)) {
+		if (IsInsideWindow(X, 5, 0xFF)) {
 			subPixel.color = 0;
 		}
 	}
 	else if (CGWSEL & 0x10) {
-		if (IsInsideWindow(X, 5, 0xFF)) {
+		if (!IsInsideWindow(X, 5, 0xFF)) {
 			subPixel.color = 0;
 		}
 	}
