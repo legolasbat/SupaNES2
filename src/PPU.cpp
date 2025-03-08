@@ -49,8 +49,8 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	if (reg == 0x00) {			// INIDISP
 		inidisp = value;
 	}
-	else if (reg == 0x01) {
-		printf("\033[0;32mWritting OBSEL: %02x\033[0m\n", value);
+	else if (reg == 0x01) {		// OBSEL
+		OBSEL = value;
 	}
 	else if (reg == 0x02) {		// OAMADDL
 		OAMAddress &= 0xFF00;
@@ -68,7 +68,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		} else {
 			OAM[OAMAddress] |= value << 8;
 			OAMAddress++;
-			OAMAddress = OAMAddress & 0x110;
+			OAMAddress %= 0x110;
 			OAMFlipflop = false;
 		}
 	}
@@ -267,6 +267,8 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	}
 	else if (reg == 0x1A) {
 		printf("\033[0;32mWritting M7SEL: %02x\033[0m\n", value);
+		assert((value & 0x03) == 0);
+		assert((value & 0x40) == 0);
 	}
 	else if (reg == 0x1B) {
 		printf("\033[0;32mWritting M7A: %02x\033[0m\n", value);
@@ -301,17 +303,14 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 			CGRAMFlipflop = false;
 		}
 	}
-	else if (reg == 0x23) {
+	else if (reg == 0x23) {		// W12SEL
 		W12SEL = value;
-		printf("\033[0;32mWritting W12SEL: %02x\033[0m\n", value);
 	}
-	else if (reg == 0x24) {
+	else if (reg == 0x24) {		// W34SEL
 		W34SEL = value;
-		printf("\033[0;32mWritting W34SEL: %02x\033[0m\n", value);
 	}
-	else if (reg == 0x25) {
+	else if (reg == 0x25) {		// WOBJSEL
 		WOBJSEL = value;
-		printf("\033[0;32mWritting WOBJSEL: %02x\033[0m\n", value);
 	}
 	else if (reg == 0x26) {		// WH0
 		window1Left = value;
@@ -343,17 +342,12 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	else if (reg == 0x2F) {		// TSW
 		TSW = value;
 	}
-	else if (reg == 0x30) {
+	else if (reg == 0x30) {		// CGWSEL
 		CGWSEL = value;
-		printf("\033[0;32mWritting CGWSEL: %02x\033[0m\n", value);
-		assert((CGWSEL & 0xC0) == 0 && "CGWSEL");
-		assert((CGWSEL & 0x01) == 0 && "CGWSEL");
-		//assert(((CGWSEL & 0x30) == 0 || (CGWSEL & 0x30) == 0x30) && "CGWSEL");
+		assert((CGWSEL & 0x01) == 0 && "CGWSEL Direct Color");
 	}
-	else if (reg == 0x31) {
+	else if (reg == 0x31) {		// CGADSUB
 		CGADSUB = value;
-		printf("\033[0;32mWritting CGADSUB: %02x\033[0m\n", value);
-		assert((CGADSUB & 0x40) == 0 && "CGADSUB");
 	}
 	else if (reg == 0x32) {		// COLDATA
 		if (value & 0x20) {
@@ -371,6 +365,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	}
 	else if (reg == 0x33) {
 		printf("\033[0;32mWritting SETINI: %02x\033[0m\n", value);
+		assert(value == 0);
 	}
 	else if (reg == 0x34) {
 		printf("\033[0;32mWritting MPYL (read only): %02x\033[0m\n", value);
@@ -484,7 +479,22 @@ void PPU::SetPixel(int X, int Y) {
 
 	// OBJs
 	if ((TM & 0x10) || (TS & 0x10)) {
-		// TODO: Sprites
+		SetOBJPixel(X, Y);
+	}
+	else {
+		mainPixelPipeline[4].color = 0;
+		mainPixelPipeline[4].priority = 0;
+		mainPixelPipeline[4].id = 0;
+		subPixelPipeline[4].color = 0;
+		subPixelPipeline[4].priority = 0;
+		subPixelPipeline[4].id = 0;
+	}
+	// Window OBJ
+	if (IsInsideWindow(X, 4, TMW)) {
+		mainPixelPipeline[4].color = 0;
+	}
+	if (IsInsideWindow(X, 4, TSW)) {
+		subPixelPipeline[4].color = 0;
 	}
 
 	// Get Priority Pixel
@@ -635,6 +645,70 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 	}
 }
 
+void PPU::SetOBJPixel(int X, int Y) {
+	struct OBJECT {
+		uint16_t posX;
+		uint8_t width;
+		uint8_t posY;
+		uint16_t tileID;
+		bool flipX;
+		bool flipY;
+		uint8_t priority;
+		uint8_t palette;
+		bool name;
+	};
+	OBJECT obj;
+
+	PPU::Pixel* objPixel = &mainPixelPipeline[4];
+	objPixel->color = 0;
+	objPixel->priority = 0;
+	objPixel->id = 4;
+
+	for (int i = 127; i >= 0; i--) {
+		uint16_t word1 = OAM[i * 2];
+		uint16_t word2 = OAM[(i * 2) + 1];
+		uint8_t attr = (OAM[0x100 + (i / 8)] >> ((i % 8) * 2)) & 0x3;
+
+		obj.posX = (((attr & 1) << 8) | (word1 & 0xFF)) & 0x1FF;
+		obj.posY = word1 >> 8;
+		obj.tileID = word2 & 0xFF;
+		obj.flipY = word2 & 0x8000;
+		obj.flipX = word2 & 0x4000;
+		obj.priority = (word2 & 0x3000) >> 12;
+		obj.palette = (word2 & 0x0E00) >> 9;
+		obj.name = word2 & 0x0100;
+
+		obj.width = GetObjSize(attr >> 1);
+
+		if (obj.priority >= objPixel->priority && X >= obj.posX && X < obj.posX + obj.width &&
+			Y >= obj.posY && Y < obj.posY + obj.width) {
+			uint8_t objX = X - obj.posX;
+			uint8_t objY = Y - obj.posY;
+
+			if (obj.flipX) {
+				objX = obj.width - objX - 1;
+			}
+			if (obj.flipY) {
+				objY = obj.width - objY - 1;
+			}
+
+			uint8_t offsetX = 7 - (objX % 8);
+			uint16_t baseAddress = ((OBSEL & 0x7) << 13) + (obj.name ? ((((OBSEL & 0x18) >> 3) + 1) << 12) : 0);
+			uint16_t tileAddress = baseAddress + (obj.tileID + objX / 8) * 0x10 + (objY % 8) + (objY / 8 * 0x100);
+			uint16_t color = GetColor4BPP(tileAddress, obj.palette + 8, offsetX);
+
+			if (color & 0x8000) {
+				objPixel->color = color;
+				objPixel->priority = obj.priority;
+			}
+		}
+	}
+
+	subPixelPipeline[4].color = mainPixelPipeline[4].color;
+	subPixelPipeline[4].priority = mainPixelPipeline[4].priority;
+	subPixelPipeline[4].id = mainPixelPipeline[4].id;
+}
+
 uint8_t PPU::GetColorBPPForBG(uint8_t BGIndex) {
 	uint8_t mode = BGMode & 0x07;
 
@@ -709,6 +783,49 @@ uint16_t PPU::GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift
 	return CGRAM[paletteIndex] | 0x8000;
 }
 
+uint8_t PPU::GetObjSize(bool isBig) {
+	uint8_t index = OBSEL >> 5;
+	if (isBig) {
+		switch (index) {
+			case 0x00:
+				return 16;
+			case 0x01:
+				return 32;
+			case 0x02:
+				return 64;
+			case 0x03:
+				return 32;
+			case 0x04:
+				return 64;
+			case 0x05:
+				return 64;
+			default:
+				assert(false && "Undocumented Size");
+				break;
+		}
+	}
+	else {
+		switch (index) {
+			case 0x00:
+				return 8;
+			case 0x01:
+				return 8;
+			case 0x02:
+				return 8;
+			case 0x03:
+				return 16;
+			case 0x04:
+				return 16;
+			case 0x05:
+				return 32;
+			default:
+				assert(false && "Undocumented Size");
+				break;
+		}
+	}
+	return 0;
+}
+
 uint16_t PPU::ColorMathPixel(uint16_t palette, uint16_t subpixel) {
 	uint8_t red = palette & 0x1F;
 	uint8_t green = (palette >> 5) & 0x1F;
@@ -716,41 +833,42 @@ uint16_t PPU::ColorMathPixel(uint16_t palette, uint16_t subpixel) {
 	uint8_t redSub = subpixel & 0x1F;
 	uint8_t greenSub = (subpixel >> 5) & 0x1F;
 	uint8_t blueSub = (subpixel >> 10) & 0x1F;
+	bool half = CGADSUB & 0x40;
 	if (CGADSUB & 0x80) {
 		palette &= ~0x1F;
 		if (red - redSub > 0) {
-			palette |= (red - redSub) & 0x1F;
+			palette |= ((red - redSub) & 0x1F) / (half ? 2 : 1);
 		}
 		palette &= ~(0x1F << 5);
 		if (green - greenSub > 0) {
-			palette |= ((green - greenSub) & 0x1F) << 5;
+			palette |= (((green - greenSub) & 0x1F) / (half ? 2 : 1)) << 5;
 		}
 		palette &= ~(0x1F << 10);
 		if (blue - blueSub > 0) {
-			palette |= ((blue - blueSub) & 0x1F) << 10;
+			palette |= (((blue - blueSub) & 0x1F) / (half ? 2 : 1)) << 10;
 		}
 	}
 	else {
 		palette &= ~0x1F;
 		if (red + redSub > 0x1F) {
-			palette |= 0x1F;
+			palette |= 0x1F / (half ? 2 : 1);
 		}
 		else {
-			palette |= (red + redSub) & 0x1F;
+			palette |= ((red + redSub) & 0x1F) / (half ? 2 : 1);
 		}
 		palette &= ~(0x1F << 5);
 		if (green + greenSub > 0x1F) {
-			palette |= 0x1F << 5;
+			palette |= (0x1F / (half ? 2 : 1)) << 5;
 		}
 		else {
-			palette |= ((green + greenSub) & 0x1F) << 5;
+			palette |= (((green + greenSub) & 0x1F) / (half ? 2 : 1)) << 5;
 		}
 		palette &= ~(0x1F << 10);
 		if (blue + blueSub > 0x1F) {
-			palette |= 0x1F << 10;
+			palette |= (0x1F / (half ? 2 : 1)) << 10;
 		}
 		else {
-			palette |= ((blue + blueSub) & 0x1F) << 10;
+			palette |= (((blue + blueSub) & 0x1F) / (half ? 2 : 1)) << 10;
 		}
 	}
 	return palette;
@@ -884,6 +1002,8 @@ PPU::Pixel PPU::GetMainPixelByPriority() {
 		case 0:
 		{
 			// Sprites with priority 3
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 3)
+				return mainPixelPipeline[4];
 			// BG1 tiles with priority 1
 			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 1)
 				return mainPixelPipeline[0];
@@ -891,6 +1011,8 @@ PPU::Pixel PPU::GetMainPixelByPriority() {
 			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 1)
 				return mainPixelPipeline[1];
 			// Sprites with priority 2
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 2)
+				return mainPixelPipeline[4];
 			// BG1 tiles with priority 0
 			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 0)
 				return mainPixelPipeline[0];
@@ -898,6 +1020,8 @@ PPU::Pixel PPU::GetMainPixelByPriority() {
 			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 0)
 				return mainPixelPipeline[1];
 			// Sprites with priority 1
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 1)
+				return mainPixelPipeline[4];
 			// BG3 tiles with priority 1
 			if ((mainPixelPipeline[2].color & 0x8000) && mainPixelPipeline[2].priority == 1)
 				return mainPixelPipeline[2];
@@ -905,6 +1029,8 @@ PPU::Pixel PPU::GetMainPixelByPriority() {
 			if ((mainPixelPipeline[3].color & 0x8000) && mainPixelPipeline[3].priority == 1)
 				return mainPixelPipeline[3];
 			// Sprites with priority 0
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 0)
+				return mainPixelPipeline[4];
 			// BG3 tiles with priority 0
 			if ((mainPixelPipeline[2].color & 0x8000) && mainPixelPipeline[2].priority == 0)
 				return mainPixelPipeline[2];
@@ -922,6 +1048,8 @@ PPU::Pixel PPU::GetMainPixelByPriority() {
 			if ((mainPixelPipeline[2].color & 0x8000) && mainPixelPipeline[2].priority == 1 && BG3Priority)
 				return mainPixelPipeline[2];
 			// Sprites with priority 3
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 3)
+				return mainPixelPipeline[4];
 			// BG1 tiles with priority 1
 			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 1)
 				return mainPixelPipeline[0];
@@ -929,6 +1057,8 @@ PPU::Pixel PPU::GetMainPixelByPriority() {
 			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 1)
 				return mainPixelPipeline[1];
 			// Sprites with priority 2
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 2)
+				return mainPixelPipeline[4];
 			// BG1 tiles with priority 0
 			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 0)
 				return mainPixelPipeline[0];
@@ -936,10 +1066,14 @@ PPU::Pixel PPU::GetMainPixelByPriority() {
 			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 0)
 				return mainPixelPipeline[1];
 			// Sprites with priority 1
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 1)
+				return mainPixelPipeline[4];
 			// BG3 tiles with priority 1 if bit 3 of $2105 is clear
 			if ((mainPixelPipeline[2].color & 0x8000) && mainPixelPipeline[2].priority == 1 && !BG3Priority)
 				return mainPixelPipeline[2];
 			// Sprites with priority 0
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 0)
+				return mainPixelPipeline[4];
 			// BG3 tiles with priority 0
 			if ((mainPixelPipeline[2].color & 0x8000) && mainPixelPipeline[2].priority == 0)
 				return mainPixelPipeline[2];
@@ -950,18 +1084,26 @@ PPU::Pixel PPU::GetMainPixelByPriority() {
 		case 2:
 		{
 			// Sprites with priority 3
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 3)
+				return mainPixelPipeline[4];
 			// BG1 tiles with priority 1
 			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 1)
 				return mainPixelPipeline[0];
 			// Sprites with priority 2
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 2)
+				return mainPixelPipeline[4];
 			// BG2 tiles with priority 1
 			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 1)
 				return mainPixelPipeline[1];
 			// Sprites with priority 1
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 1)
+				return mainPixelPipeline[4];
 			// BG1 tiles with priority 0
 			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 0)
 				return mainPixelPipeline[0];
 			// Sprites with priority 0
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 0)
+				return mainPixelPipeline[4];
 			// BG2 tiles with priority 0
 			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 0)
 				return mainPixelPipeline[1];
@@ -972,18 +1114,26 @@ PPU::Pixel PPU::GetMainPixelByPriority() {
 		case 3:
 		{
 			// Sprites with priority 3
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 3)
+				return mainPixelPipeline[4];
 			// BG1 tiles with priority 1
 			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 1)
 				return mainPixelPipeline[0];
 			// Sprites with priority 2
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 2)
+				return mainPixelPipeline[4];
 			// BG2 tiles with priority 1
 			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 1)
 				return mainPixelPipeline[1];
 			// Sprites with priority 1
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 1)
+				return mainPixelPipeline[4];
 			// BG1 tiles with priority 0
 			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 0)
 				return mainPixelPipeline[0];
 			// Sprites with priority 0
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 0)
+				return mainPixelPipeline[4];
 			// BG2 tiles with priority 0
 			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 0)
 				return mainPixelPipeline[1];
@@ -1005,6 +1155,8 @@ PPU::Pixel PPU::GetSubPixelByPriority() {
 	case 0:
 	{
 		// Sprites with priority 3
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 3)
+			return subPixelPipeline[4];
 		// BG1 tiles with priority 1
 		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 1)
 			return subPixelPipeline[0];
@@ -1012,6 +1164,8 @@ PPU::Pixel PPU::GetSubPixelByPriority() {
 		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 1)
 			return subPixelPipeline[1];
 		// Sprites with priority 2
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 2)
+			return subPixelPipeline[4];
 		// BG1 tiles with priority 0
 		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 0)
 			return subPixelPipeline[0];
@@ -1019,6 +1173,8 @@ PPU::Pixel PPU::GetSubPixelByPriority() {
 		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 0)
 			return subPixelPipeline[1];
 		// Sprites with priority 1
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 1)
+			return subPixelPipeline[4];
 		// BG3 tiles with priority 1
 		if ((subPixelPipeline[2].color & 0x8000) && subPixelPipeline[2].priority == 1)
 			return subPixelPipeline[2];
@@ -1026,6 +1182,8 @@ PPU::Pixel PPU::GetSubPixelByPriority() {
 		if ((subPixelPipeline[3].color & 0x8000) && subPixelPipeline[3].priority == 1)
 			return subPixelPipeline[3];
 		// Sprites with priority 0
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 0)
+			return subPixelPipeline[4];
 		// BG3 tiles with priority 0
 		if ((subPixelPipeline[2].color & 0x8000) && subPixelPipeline[2].priority == 0)
 			return subPixelPipeline[2];
@@ -1043,6 +1201,8 @@ PPU::Pixel PPU::GetSubPixelByPriority() {
 		if ((subPixelPipeline[2].color & 0x8000) && subPixelPipeline[2].priority == 1 && BG3Priority)
 			return subPixelPipeline[2];
 		// Sprites with priority 3
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 3)
+			return subPixelPipeline[4];
 		// BG1 tiles with priority 1
 		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 1)
 			return subPixelPipeline[0];
@@ -1050,6 +1210,8 @@ PPU::Pixel PPU::GetSubPixelByPriority() {
 		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 1)
 			return subPixelPipeline[1];
 		// Sprites with priority 2
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 2)
+			return subPixelPipeline[4];
 		// BG1 tiles with priority 0
 		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 0)
 			return subPixelPipeline[0];
@@ -1057,10 +1219,14 @@ PPU::Pixel PPU::GetSubPixelByPriority() {
 		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 0)
 			return subPixelPipeline[1];
 		// Sprites with priority 1
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 1)
+			return subPixelPipeline[4];
 		// BG3 tiles with priority 1 if bit 3 of $2105 is clear
 		if ((subPixelPipeline[2].color & 0x8000) && subPixelPipeline[2].priority == 1 && !BG3Priority)
 			return subPixelPipeline[2];
 		// Sprites with priority 0
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 0)
+			return subPixelPipeline[4];
 		// BG3 tiles with priority 0
 		if ((subPixelPipeline[2].color & 0x8000) && subPixelPipeline[2].priority == 0)
 			return subPixelPipeline[2];
@@ -1071,18 +1237,26 @@ PPU::Pixel PPU::GetSubPixelByPriority() {
 	case 2:
 	{
 		// Sprites with priority 3
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 3)
+			return subPixelPipeline[4];
 		// BG1 tiles with priority 1
 		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 1)
 			return subPixelPipeline[0];
 		// Sprites with priority 2
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 2)
+			return subPixelPipeline[4];
 		// BG2 tiles with priority 1
 		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 1)
 			return subPixelPipeline[1];
 		// Sprites with priority 1
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 1)
+			return subPixelPipeline[4];
 		// BG1 tiles with priority 0
 		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 0)
 			return subPixelPipeline[0];
 		// Sprites with priority 0
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 0)
+			return subPixelPipeline[4];
 		// BG2 tiles with priority 0
 		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 0)
 			return subPixelPipeline[1];
@@ -1093,18 +1267,26 @@ PPU::Pixel PPU::GetSubPixelByPriority() {
 	case 3:
 	{
 		// Sprites with priority 3
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 3)
+			return subPixelPipeline[4];
 		// BG1 tiles with priority 1
 		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 1)
 			return subPixelPipeline[0];
 		// Sprites with priority 2
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 2)
+			return subPixelPipeline[4];
 		// BG2 tiles with priority 1
 		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 1)
 			return subPixelPipeline[1];
 		// Sprites with priority 1
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 1)
+			return subPixelPipeline[4];
 		// BG1 tiles with priority 0
 		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 0)
 			return subPixelPipeline[0];
 		// Sprites with priority 0
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 0)
+			return subPixelPipeline[4];
 		// BG2 tiles with priority 0
 		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 0)
 			return subPixelPipeline[1];

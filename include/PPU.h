@@ -39,11 +39,14 @@ class PPU {
 		void SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t bpp,
 						uint8_t XSize, uint8_t YSize,
 						uint16_t HScroll, uint16_t VScroll);
+		void SetOBJPixel(int X, int Y);
 
 		uint8_t GetColorBPPForBG(uint8_t BGIndex);
 		uint16_t GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift, uint8_t BGIndex);
 		uint16_t GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift);
 		uint16_t GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift);
+
+		uint8_t GetObjSize(bool isBig);
 
 		uint16_t ColorMathPixel(uint16_t palette, uint16_t subpixel);
 
@@ -53,6 +56,8 @@ class PPU {
 		Pixel GetSubPixelByPriority();
 
 		uint8_t inidisp;		// INIDISP							0x2100
+
+		uint8_t OBSEL;			// Object Size & Character Address	0x2101
 
 		uint16_t OAM[0x110];
 		uint16_t OAMAddress;	// OAM Address						0x2102/3
