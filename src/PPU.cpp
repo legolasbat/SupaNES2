@@ -703,26 +703,29 @@ void PPU::SetOBJPixel(int X, int Y) {
 	objPixel->id = 4;
 
 	for (int i = 127; i >= 0; i--) {
-		if (objs[i].priority >= objPixel->priority && X >= objs[i].posX && X < objs[i].posX + objs[i].width &&
-			Y >= objs[i].posY && Y < objs[i].posY + objs[i].width) {
-			uint8_t objX = X - objs[i].posX;
-			uint8_t objY = Y - objs[i].posY;
+		if (Y >= objs[i].posY && Y < objs[i].posY + objs[i].width) {
+			if (X >= objs[i].posX && X < objs[i].posX + objs[i].width) {
+				if (objs[i].priority >= objPixel->priority) {
+					uint8_t objX = X - objs[i].posX;
+					uint8_t objY = Y - objs[i].posY;
 
-			if (objs[i].flipX) {
-				objX = objs[i].width - objX - 1;
-			}
-			if (objs[i].flipY) {
-				objY = objs[i].width - objY - 1;
-			}
+					if (objs[i].flipX) {
+						objX = objs[i].width - objX - 1;
+					}
+					if (objs[i].flipY) {
+						objY = objs[i].width - objY - 1;
+					}
 
-			uint8_t offsetX = 7 - (objX % 8);
-			uint16_t baseAddress = ((OBSEL & 0x7) << 13) + (objs[i].name ? ((((OBSEL & 0x18) >> 3) + 1) << 12) : 0);
-			uint16_t tileAddress = baseAddress + (objs[i].tileID + objX / 8) * 0x10 + (objY % 8) + (objY / 8 * 0x100);
-			uint16_t color = GetColor4BPP(tileAddress, objs[i].palette + 8, offsetX);
+					uint8_t offsetX = 7 - (objX % 8);
+					uint16_t baseAddress = ((OBSEL & 0x7) << 13) + (objs[i].name ? ((((OBSEL & 0x18) >> 3) + 1) << 12) : 0);
+					uint16_t tileAddress = baseAddress + (objs[i].tileID + objX / 8) * 0x10 + (objY % 8) + (objY / 8 * 0x100);
+					uint16_t color = GetColor4BPP(tileAddress, objs[i].palette + 8, offsetX);
 
-			if (color & 0x8000) {
-				objPixel->color = color;
-				objPixel->priority = objs[i].priority;
+					if (color & 0x8000) {
+						objPixel->color = color;
+						objPixel->priority = objs[i].priority;
+					}
+				}
 			}
 		}
 	}
