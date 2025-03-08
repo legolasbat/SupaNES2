@@ -105,4 +105,6 @@ class PPU {
 
 		uint8_t CGWSEL;			// Color Addition Select			0x2130
 		uint8_t CGADSUB;		// Color math designation			0x2131
+
+		uint16_t fixedColor;	// Fixed Color Data					0x2132
 };
