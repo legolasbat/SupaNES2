@@ -56,6 +56,14 @@ void PPU::Clock() {
 	}
 }
 
+uint8_t PPU::ReadPPU(uint32_t address) {
+	uint8_t value = 0;
+
+	uint8_t reg = address & 0xFF;
+
+	return value;
+}
+
 void PPU::WritePPU(uint32_t address, uint8_t value) {
 	uint8_t reg = address & 0xFF;
 

@@ -12,6 +12,7 @@ class PPU {
 
 		void Clock();
 
+		uint8_t ReadPPU(uint32_t address);
 		void WritePPU(uint32_t address, uint8_t value);
 
 		int width = 256;

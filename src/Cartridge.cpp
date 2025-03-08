@@ -325,11 +325,13 @@ void Cartridge::WriteRom(uint32_t address, uint8_t value) {
 uint8_t Cartridge::ReadRam(uint32_t address) {
 	uint8_t value = 0;
 
+	printf("Reading SRAM at %06x\n", address);
+
 	return value;
 }
 
 void Cartridge::WriteRam(uint32_t address, uint8_t value) {
-
+	printf("Writting SRAM at %06x: %04x\n", address, value);
 }
 
 Cartridge::~Cartridge() {

@@ -34,7 +34,11 @@ class SupaNES {
 
 		uint8_t ReadMemoryQ1(uint32_t address);
 		uint8_t ReadMemoryQ2(uint32_t address);
+		uint8_t ReadMemoryQ3(uint32_t address);
+		uint8_t ReadMemoryQ4(uint32_t address);
 
 		void WriteMemoryQ1(uint32_t address, uint8_t value);
 		void WriteMemoryQ2(uint32_t address, uint8_t value);
+		void WriteMemoryQ3(uint32_t address, uint8_t value);
+		void WriteMemoryQ4(uint32_t address, uint8_t value);
 };
