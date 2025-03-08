@@ -770,11 +770,6 @@ bool PPU::IsInsideWindow(int X, int Y, uint8_t BGIndex) {
 	return false;
 }
 
-uint16_t* PPU::GetFrame() {
-	frameCompleted = false;
-	return pixels;
-}
-
 void PPU::SetFrame(void* texturePixels, int pitch) {
 	frameCompleted = false;
 	uint16_t* outPixels = (uint16_t*)texturePixels;

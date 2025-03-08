@@ -20,7 +20,6 @@ class PPU {
 		uint16_t BGsubscreens[4][256 * 224];
 
 		bool frameCompleted;
-		uint16_t* GetFrame();
 		void SetFrame(void* texturePixels, int pitch);
 
 		int HCounter;
