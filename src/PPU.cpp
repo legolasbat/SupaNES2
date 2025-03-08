@@ -14,6 +14,19 @@ PPU::PPU(SupaNES* supaNes) {
 
 	BGMode = 0;
 	fixedColor = 0;
+
+	ObjSizes[0][0] = 8;
+	ObjSizes[0][1] = 8;
+	ObjSizes[0][2] = 8;
+	ObjSizes[0][3] = 16;
+	ObjSizes[0][4] = 16;
+	ObjSizes[0][5] = 32;
+	ObjSizes[1][0] = 16;
+	ObjSizes[1][1] = 32;
+	ObjSizes[1][2] = 64;
+	ObjSizes[1][3] = 32;
+	ObjSizes[1][4] = 64;
+	ObjSizes[1][5] = 64;
 }
 
 void PPU::Clock() {
@@ -65,8 +78,46 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		if (!OAMFlipflop) {
 			OAM[OAMAddress] = value;
 			OAMFlipflop = true;
+
+			if (OAMAddress >= 0x100) {
+				uint8_t index = OAMAddress - 0x100;
+				for (uint8_t i = 0; i < 4; i++) {
+					uint8_t attr = (value >> (2 * i)) & 0x3;
+					objs[i + (index * 8)].posX &= 0x00FF;
+					objs[i + (index * 8)].posX |= (attr & 0x1) << 8;
+					objs[i + (index * 8)].width = ObjSizes[attr >> 1][OBSEL >> 5];
+				}
+			}
+			else if (OAMAddress % 2 == 0){
+				objs[OAMAddress / 2].posX &= 0x100;
+				objs[OAMAddress / 2].posX |= value;
+			}
+			else {
+				objs[OAMAddress / 2].tileID = value;
+			}
 		} else {
 			OAM[OAMAddress] |= value << 8;
+
+			if (OAMAddress >= 0x100) {
+				uint8_t index = OAMAddress - 0x100;
+				for (uint8_t i = 0; i < 4; i++) {
+					uint8_t attr = (value >> (2 * i)) & 0x3;
+					objs[i + 4 + (index * 8)].posX &= 0x00FF;
+					objs[i + 4 + (index * 8)].posX |= (attr & 0x1) << 8;
+					objs[i + 4 + (index * 8)].width = ObjSizes[attr >> 1][OBSEL >> 5];
+				}
+			}
+			else if (OAMAddress % 2 == 0) {
+				objs[OAMAddress / 2].posY = value;
+			}
+			else {
+				objs[OAMAddress / 2].flipY = value & 0x80;
+				objs[OAMAddress / 2].flipX = value & 0x40;
+				objs[OAMAddress / 2].priority = (value & 0x30) >> 4;
+				objs[OAMAddress / 2].palette = (value & 0x0E) >> 1;
+				objs[OAMAddress / 2].name = value & 0x01;
+			}
+
 			OAMAddress++;
 			OAMAddress %= 0x110;
 			OAMFlipflop = false;
@@ -646,60 +697,32 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 }
 
 void PPU::SetOBJPixel(int X, int Y) {
-	struct OBJECT {
-		uint16_t posX;
-		uint8_t width;
-		uint8_t posY;
-		uint16_t tileID;
-		bool flipX;
-		bool flipY;
-		uint8_t priority;
-		uint8_t palette;
-		bool name;
-	};
-	OBJECT obj;
-
 	PPU::Pixel* objPixel = &mainPixelPipeline[4];
 	objPixel->color = 0;
 	objPixel->priority = 0;
 	objPixel->id = 4;
 
 	for (int i = 127; i >= 0; i--) {
-		uint16_t word1 = OAM[i * 2];
-		uint16_t word2 = OAM[(i * 2) + 1];
-		uint8_t attr = (OAM[0x100 + (i / 8)] >> ((i % 8) * 2)) & 0x3;
+		if (objs[i].priority >= objPixel->priority && X >= objs[i].posX && X < objs[i].posX + objs[i].width &&
+			Y >= objs[i].posY && Y < objs[i].posY + objs[i].width) {
+			uint8_t objX = X - objs[i].posX;
+			uint8_t objY = Y - objs[i].posY;
 
-		obj.posX = (((attr & 1) << 8) | (word1 & 0xFF)) & 0x1FF;
-		obj.posY = word1 >> 8;
-		obj.tileID = word2 & 0xFF;
-		obj.flipY = word2 & 0x8000;
-		obj.flipX = word2 & 0x4000;
-		obj.priority = (word2 & 0x3000) >> 12;
-		obj.palette = (word2 & 0x0E00) >> 9;
-		obj.name = word2 & 0x0100;
-
-		obj.width = GetObjSize(attr >> 1);
-
-		if (obj.priority >= objPixel->priority && X >= obj.posX && X < obj.posX + obj.width &&
-			Y >= obj.posY && Y < obj.posY + obj.width) {
-			uint8_t objX = X - obj.posX;
-			uint8_t objY = Y - obj.posY;
-
-			if (obj.flipX) {
-				objX = obj.width - objX - 1;
+			if (objs[i].flipX) {
+				objX = objs[i].width - objX - 1;
 			}
-			if (obj.flipY) {
-				objY = obj.width - objY - 1;
+			if (objs[i].flipY) {
+				objY = objs[i].width - objY - 1;
 			}
 
 			uint8_t offsetX = 7 - (objX % 8);
-			uint16_t baseAddress = ((OBSEL & 0x7) << 13) + (obj.name ? ((((OBSEL & 0x18) >> 3) + 1) << 12) : 0);
-			uint16_t tileAddress = baseAddress + (obj.tileID + objX / 8) * 0x10 + (objY % 8) + (objY / 8 * 0x100);
-			uint16_t color = GetColor4BPP(tileAddress, obj.palette + 8, offsetX);
+			uint16_t baseAddress = ((OBSEL & 0x7) << 13) + (objs[i].name ? ((((OBSEL & 0x18) >> 3) + 1) << 12) : 0);
+			uint16_t tileAddress = baseAddress + (objs[i].tileID + objX / 8) * 0x10 + (objY % 8) + (objY / 8 * 0x100);
+			uint16_t color = GetColor4BPP(tileAddress, objs[i].palette + 8, offsetX);
 
 			if (color & 0x8000) {
 				objPixel->color = color;
-				objPixel->priority = obj.priority;
+				objPixel->priority = objs[i].priority;
 			}
 		}
 	}
@@ -781,49 +804,6 @@ uint16_t PPU::GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift
 		return CGRAM[0];
 	}
 	return CGRAM[paletteIndex] | 0x8000;
-}
-
-uint8_t PPU::GetObjSize(bool isBig) {
-	uint8_t index = OBSEL >> 5;
-	if (isBig) {
-		switch (index) {
-			case 0x00:
-				return 16;
-			case 0x01:
-				return 32;
-			case 0x02:
-				return 64;
-			case 0x03:
-				return 32;
-			case 0x04:
-				return 64;
-			case 0x05:
-				return 64;
-			default:
-				assert(false && "Undocumented Size");
-				break;
-		}
-	}
-	else {
-		switch (index) {
-			case 0x00:
-				return 8;
-			case 0x01:
-				return 8;
-			case 0x02:
-				return 8;
-			case 0x03:
-				return 16;
-			case 0x04:
-				return 16;
-			case 0x05:
-				return 32;
-			default:
-				assert(false && "Undocumented Size");
-				break;
-		}
-	}
-	return 0;
 }
 
 uint16_t PPU::ColorMathPixel(uint16_t palette, uint16_t subpixel) {

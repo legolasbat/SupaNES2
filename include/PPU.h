@@ -46,7 +46,20 @@ class PPU {
 		uint16_t GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift);
 		uint16_t GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift);
 
-		uint8_t GetObjSize(bool isBig);
+		uint8_t ObjSizes[2][6];
+
+		struct OBJECT {
+			uint16_t posX = 0;
+			uint8_t width = 0;
+			uint8_t posY = 0;
+			uint16_t tileID = 0;
+			bool flipX = false;
+			bool flipY = false;
+			uint8_t priority = 0;
+			uint8_t palette = 0;
+			bool name = false;
+		};
+		OBJECT objs[128];
 
 		uint16_t ColorMathPixel(uint16_t palette, uint16_t subpixel);
 
