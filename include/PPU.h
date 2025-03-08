@@ -17,7 +17,14 @@ class PPU {
 		int width = 256;
 		int height = 224;
 		uint16_t pixels[256 * 224];
-		uint16_t BGsubscreens[4][256 * 224];
+
+		struct Pixel {
+			uint16_t color = 0;
+			uint8_t priority = 0;
+			uint8_t id = 0;
+		};
+		Pixel mainPixelPipeline[6];
+		Pixel subPixelPipeline[6];
 
 		bool frameCompleted;
 		void SetFrame(void* texturePixels, int pitch);
@@ -32,16 +39,18 @@ class PPU {
 		void SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t bpp,
 						uint8_t XSize, uint8_t YSize,
 						uint16_t HScroll, uint16_t VScroll);
-		void SetBGDrop(int X, int Y, bool forceBlank = false);
 
 		uint8_t GetColorBPPForBG(uint8_t BGIndex);
 		uint16_t GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift, uint8_t BGIndex);
 		uint16_t GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift);
 		uint16_t GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift);
 
-		uint16_t ColorMathPixel(int X, int Y, uint16_t palette);
+		uint16_t ColorMathPixel(uint16_t palette, uint16_t subpixel);
 
-		bool IsInsideWindow(int X, int Y, uint8_t BGIndex);
+		bool IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg);
+
+		Pixel GetMainPixelByPriority();
+		Pixel GetSubPixelByPriority();
 
 		uint8_t inidisp;		// INIDISP							0x2100
 
@@ -91,12 +100,14 @@ class PPU {
 
 		uint8_t W12SEL;			// Window Mask Settings for BG1 & 2	0x2123
 		uint8_t W34SEL;			// Window Mask Settings for BG3 & 4	0x2124
+		uint8_t WOBJSEL;		// Window Mask Settings for OBJ & C	0x2125
 
 		uint8_t window1Left;	// WH0								0x2126
 		uint8_t window1Right;	// WH1								0x2127
 		uint8_t window2Left;	// WH2								0x2128
 		uint8_t window2Right;	// WH3								0x2129
 		uint8_t WBGLOG;			// Window mask logic for BGs		0x212A
+		uint8_t WOBJLOG;		// Window mask logic for OBJs and C	0x212B
 
 		uint8_t TM;				// Main Screen Designation			0x212C
 		uint8_t TS;				// Subscreen Designation			0x212D

@@ -11,6 +11,8 @@ PPU::PPU(SupaNES* supaNes) {
 	HCounter = 46;
 	VCounter = 0;
 	frameCounter = 0;
+
+	fixedColor = 0;
 }
 
 void PPU::Clock() {
@@ -307,6 +309,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		printf("\033[0;32mWritting W34SEL: %02x\033[0m\n", value);
 	}
 	else if (reg == 0x25) {
+		WOBJSEL = value;
 		printf("\033[0;32mWritting WOBJSEL: %02x\033[0m\n", value);
 	}
 	else if (reg == 0x26) {		// WH0
@@ -325,7 +328,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		WBGLOG = value;
 	}
 	else if (reg == 0x2B) {		// WOBJLOG
-		printf("\033[0;32mWritting WOBJLOG: %02x\033[0m\n", value);
+		WOBJLOG = value;
 	}
 	else if (reg == 0x2C) {		// TM
 		TM = value;
@@ -349,7 +352,6 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	else if (reg == 0x31) {
 		CGADSUB = value;
 		printf("\033[0;32mWritting CGADSUB: %02x\033[0m\n", value);
-		assert((CGADSUB & 0x80) == 0 && "CGADSUB");
 		assert((CGADSUB & 0x40) == 0 && "CGADSUB");
 	}
 	else if (reg == 0x32) {		// COLDATA
@@ -380,33 +382,164 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 
 void PPU::SetPixel(int X, int Y) {
 	if (inidisp & 0x80) {
-		SetBGDrop(X, Y, true);
+		pixels[(Y * width) + X] = 0x0000;
 		return;
 	}
-	SetBGDrop(X, Y);
+	// Backdrop
+	mainPixelPipeline[5].color = CGRAM[0];
+	mainPixelPipeline[5].priority = 0;
+	mainPixelPipeline[5].id = 5;
+	subPixelPipeline[5].color = fixedColor;
+	subPixelPipeline[5].priority = 0;
+	subPixelPipeline[5].id = 5;
+
+	// BG4
 	if ((TM & 0x08) || (TS & 0x08)) {
 		SetBGPixel(X, Y, BG4TileAddress, 3, GetColorBPPForBG(3),
 				(BG4TileAddress & 0x1) ? 64 : 32, (BG4TileAddress & 0x2) ? 64 : 32,
 				BG4HScroll, BG4VScroll);
 	}
+	else {
+		mainPixelPipeline[3].color = 0;
+		mainPixelPipeline[3].priority = 0;
+		mainPixelPipeline[3].id = 3;
+		subPixelPipeline[3].color = 0;
+		subPixelPipeline[3].priority = 0;
+		subPixelPipeline[3].id = 3;
+	}
+	// Window BG4
+	if (IsInsideWindow(X, 3, TMW)) {
+		mainPixelPipeline[3].color = 0;
+	}
+	if (IsInsideWindow(X, 3, TSW)) {
+		subPixelPipeline[3].color = 0;
+	}
+
+	// BG3
 	if ((TM & 0x04) || (TS & 0x04)) {
 		SetBGPixel(X, Y, BG3TileAddress, 2, GetColorBPPForBG(2),
 				(BG3TileAddress & 0x1) ? 64 : 32, (BG3TileAddress & 0x2) ? 64 : 32,
 				BG3HScroll, BG3VScroll);
 	}
+	else {
+		mainPixelPipeline[2].color = 0;
+		mainPixelPipeline[2].priority = 0;
+		mainPixelPipeline[2].id = 2;
+		subPixelPipeline[2].color = 0;
+		subPixelPipeline[2].priority = 0;
+		subPixelPipeline[2].id = 2;
+	}
+	// Window BG3
+	if (IsInsideWindow(X, 2, TMW)) {
+		mainPixelPipeline[2].color = 0;
+	}
+	if (IsInsideWindow(X, 2, TSW)) {
+		subPixelPipeline[2].color = 0;
+	}
+
+	// BG2
 	if ((TM & 0x02) || (TS & 0x02)) {
 		SetBGPixel(X, Y, BG2TileAddress, 1, GetColorBPPForBG(1),
 				(BG2TileAddress & 0x1) ? 64 : 32, (BG2TileAddress & 0x2) ? 64 : 32,
 				BG2HScroll, BG2VScroll);
 	}
+	else {
+		mainPixelPipeline[1].color = 0;
+		mainPixelPipeline[1].priority = 0;
+		mainPixelPipeline[1].id = 1;
+		subPixelPipeline[1].color = 0;
+		subPixelPipeline[1].priority = 0;
+		subPixelPipeline[1].id = 1;
+	}
+	// Window BG2
+	if (IsInsideWindow(X, 1, TMW)) {
+		mainPixelPipeline[1].color = 0;
+	}
+	if (IsInsideWindow(X, 1, TSW)) {
+		subPixelPipeline[1].color = 0;
+	}
+
+	// BG1
 	if ((TM & 0x01) || (TS & 0x01)) {
 		SetBGPixel(X, Y, BG1TileAddress, 0, GetColorBPPForBG(0),
 				(BG1TileAddress & 0x1) ? 64 : 32, (BG1TileAddress & 0x2) ? 64 : 32,
 				BG1HScroll, BG1VScroll);
 	}
+	else {
+		mainPixelPipeline[0].color = 0;
+		mainPixelPipeline[0].priority = 0;
+		mainPixelPipeline[0].id = 0;
+		subPixelPipeline[0].color = 0;
+		subPixelPipeline[0].priority = 0;
+		subPixelPipeline[0].id = 0;
+	}
+	// Window BG1
+	if (IsInsideWindow(X, 0, TMW)) {
+		mainPixelPipeline[0].color = 0;
+	}
+	if (IsInsideWindow(X, 0, TSW)) {
+		subPixelPipeline[0].color = 0;
+	}
+
+	// OBJs
 	if ((TM & 0x10) || (TS & 0x10)) {
 		// TODO: Sprites
 	}
+
+	// Get Priority Pixel
+	PPU::Pixel mainPixel = GetMainPixelByPriority();
+	PPU::Pixel subPixel = (CGWSEL & 0x2) == 0 ? subPixelPipeline[5] : GetSubPixelByPriority();
+
+	// MainSW
+	if ((CGWSEL & 0xC0) == 0xC0) {
+		mainPixel.color = 0;
+	}
+	else if (CGWSEL & 0x80) {
+		if (IsInsideWindow(X, 5, 0xFF)) {
+			mainPixel.color = 0;
+		}
+	}
+	else if (CGWSEL & 0x40) {
+		if (!IsInsideWindow(X, 5, 0xFF)) {
+			mainPixel.color = 0;
+		}
+	}
+
+	// SubSW
+	if ((CGWSEL & 0x30) == 0x30) {
+		subPixel.color = 0;
+	}
+	else if (CGWSEL & 0x20) {
+		if (!IsInsideWindow(X, 5, 0xFF)) {
+			subPixel.color = 0;
+		}
+	}
+	else if (CGWSEL & 0x10) {
+		if (IsInsideWindow(X, 5, 0xFF)) {
+			subPixel.color = 0;
+		}
+	}
+
+	// Color Math
+	if ((CGADSUB & (1 << mainPixel.id)) && (CGWSEL & 0x30) != 0x30) {
+		mainPixel.color = ColorMathPixel(mainPixel.color, subPixel.color);
+	}
+
+	// Apply brightness
+	if ((inidisp & 0xF) != 0xF) {
+		double brightness = (inidisp & 0xF) / (double)0xF;
+		uint8_t red = mainPixel.color & 0x1F;
+		uint8_t green = (mainPixel.color >> 5) & 0x1F;
+		uint8_t blue = (mainPixel.color >> 10) & 0x1F;
+		mainPixel.color &= ~0x1F;
+		mainPixel.color |= (uint8_t)(red * brightness) & 0x1F;
+		mainPixel.color &= ~(0x1F << 5);
+		mainPixel.color |= ((uint8_t)(green * brightness) & 0x1F) << 5;
+		mainPixel.color &= ~(0x1F << 10);
+		mainPixel.color |= ((uint8_t)(blue * brightness) & 0x1F) << 10;
+	}
+
+	pixels[(Y * width) + X] = mainPixel.color;
 }
 
 void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t bpp,
@@ -466,10 +599,6 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 		palette = GetColor8BPP(tileAddress, BGPaletteNumber, HShift);
 	}
 
-	if ((palette & 0x8000) == 0 && mosaic == 0) {
-		return;
-	}
-
 	uint8_t mosaicSize = 0;
 	if (mosaic & (1 << BGIndex) && (mosaic & 0xF0) >= 0x10) {
 		mosaicSize = mosaic >> 4;
@@ -481,67 +610,27 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 		}
 	}
 
-	// Apply brightness
-	if ((inidisp & 0xF) != 0xF) {
-		double brightness = (inidisp & 0xF) / (double)0xF;
-		uint8_t red = palette & 0x1F;
-		uint8_t green = (palette >> 5) & 0x1F;
-		uint8_t blue = (palette >> 10) & 0x1F;
-		palette &= ~0x1F;
-		palette |= (uint8_t)(red * brightness) & 0x1F;
-		palette &= ~(0x1F << 5);
-		palette |= ((uint8_t)(green * brightness) & 0x1F) << 5;
-		palette &= ~(0x1F << 10);
-		palette |= ((uint8_t)(blue * brightness) & 0x1F) << 10;
-	}
-
 	// Main Screen
 	if (TM & (1 << BGIndex)) {
-		// Color Math
-		if ((CGADSUB & (1 << BGIndex)) && (CGWSEL & 0x30) != 0x30) {
-			palette = ColorMathPixel(X, Y, palette);
-		}
-		// Window
-		if (TMW & (1 << BGIndex)) {
-			if (!IsInsideWindow(X, Y, BGIndex)) {
-				pixels[(Y * width) + X] = palette;
-			}
-		} else {
-			pixels[(Y * width) + X] = palette;
-		}
+		mainPixelPipeline[BGIndex].color = palette;
+		mainPixelPipeline[BGIndex].priority = BGPriority ? 1 : 0;
+		mainPixelPipeline[BGIndex].id = BGIndex;
+	}
+	else {
+		mainPixelPipeline[BGIndex].color = 0;
+		mainPixelPipeline[BGIndex].priority = 0;
+		mainPixelPipeline[BGIndex].id = BGIndex;
 	}
 	// Subscreen
 	if (TS & (1 << BGIndex)) {
-		BGsubscreens[BGIndex][(Y * width) + X] = palette;
+		subPixelPipeline[BGIndex].color = palette;
+		subPixelPipeline[BGIndex].priority = BGPriority ? 1 : 0;
+		subPixelPipeline[BGIndex].id = BGIndex;
 	}
-}
-
-void PPU::SetBGDrop(int X, int Y, bool forceBlank) {
-	if (forceBlank) {
-		pixels[(Y * width) + X] = 0x0000;
-	} else {
-		uint16_t palette = CGRAM[0];
-		// Apply brightness
-		if ((inidisp & 0xF) != 0xF) {
-			double brightness = (inidisp & 0xF) / (double)0xF;
-			uint8_t red = palette & 0x1F;
-			uint8_t green = (palette >> 5) & 0x1F;
-			uint8_t blue = (palette >> 10) & 0x1F;
-			palette &= ~0x1F;
-			palette |= (uint8_t)(red * brightness) & 0x1F;
-			palette &= ~(0x1F << 5);
-			palette |= ((uint8_t)(green * brightness) & 0x1F) << 5;
-			palette &= ~(0x1F << 10);
-			palette |= ((uint8_t)(blue * brightness) & 0x1F) << 10;
-		}
-		BGsubscreens[0][(Y * width) + X] = palette;
-		BGsubscreens[1][(Y * width) + X] = palette;
-		BGsubscreens[2][(Y * width) + X] = palette;
-		BGsubscreens[3][(Y * width) + X] = palette;
-		if ((CGADSUB & 0x20) && (CGWSEL & 0x30) != 0x30) {
-			palette = ColorMathPixel(X, Y, palette);
-		}
-		pixels[(Y * width) + X] = palette;
+	else {
+		subPixelPipeline[BGIndex].color = 0;
+		subPixelPipeline[BGIndex].priority = 0;
+		subPixelPipeline[BGIndex].id = BGIndex;
 	}
 }
 
@@ -619,59 +708,54 @@ uint16_t PPU::GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift
 	return CGRAM[paletteIndex] | 0x8000;
 }
 
-uint16_t PPU::ColorMathPixel(int X, int Y, uint16_t palette) {
-	for (uint8_t bgi = 0; bgi < 4; bgi++) {
-		if (TS & (1 << bgi)) {
-			uint16_t subPixel = BGsubscreens[bgi][(Y * width) + X];
-			uint8_t red = palette & 0x1F;
-			uint8_t green = (palette >> 5) & 0x1F;
-			uint8_t blue = (palette >> 10) & 0x1F;
-			uint8_t redSub = subPixel & 0x1F;
-			uint8_t greenSub = (subPixel >> 5) & 0x1F;
-			uint8_t blueSub = (subPixel >> 10) & 0x1F;
-			if (CGADSUB & 0x80) {
-				palette &= ~0x1F;
-				if (red - redSub > 0) {
-					palette |= (red - redSub) & 0x1F;
-				}
-				palette &= ~(0x1F << 5);
-				if (green - greenSub > 0) {
-					palette |= ((green - greenSub) & 0x1F) << 5;
-				}
-				palette &= ~(0x1F << 10);
-				if (blue - blueSub > 0) {
-					palette |= ((blue - blueSub) & 0x1F) << 10;
-				}
-			}
-			else {
-				palette &= ~0x1F;
-				if (red + redSub > 0x1F) {
-					palette |= 0x1F;
-				}
-				else {
-					palette |= (red + redSub) & 0x1F;
-				}
-				palette &= ~(0x1F << 5);
-				if (green + greenSub > 0x1F) {
-					palette |= 0x1F << 5;
-				}
-				else {
-					palette |= ((green + greenSub) & 0x1F) << 5;
-				}
-				palette &= ~(0x1F << 10);
-				if (blue + blueSub > 0x1F) {
-					palette |= 0x1F << 10;
-				}
-				else {
-					palette |= ((blue + blueSub) & 0x1F) << 10;
-				}
-			}
+uint16_t PPU::ColorMathPixel(uint16_t palette, uint16_t subpixel) {
+	uint8_t red = palette & 0x1F;
+	uint8_t green = (palette >> 5) & 0x1F;
+	uint8_t blue = (palette >> 10) & 0x1F;
+	uint8_t redSub = subpixel & 0x1F;
+	uint8_t greenSub = (subpixel >> 5) & 0x1F;
+	uint8_t blueSub = (subpixel >> 10) & 0x1F;
+	if (CGADSUB & 0x80) {
+		palette &= ~0x1F;
+		if (red - redSub > 0) {
+			palette |= (red - redSub) & 0x1F;
+		}
+		palette &= ~(0x1F << 5);
+		if (green - greenSub > 0) {
+			palette |= ((green - greenSub) & 0x1F) << 5;
+		}
+		palette &= ~(0x1F << 10);
+		if (blue - blueSub > 0) {
+			palette |= ((blue - blueSub) & 0x1F) << 10;
+		}
+	}
+	else {
+		palette &= ~0x1F;
+		if (red + redSub > 0x1F) {
+			palette |= 0x1F;
+		}
+		else {
+			palette |= (red + redSub) & 0x1F;
+		}
+		palette &= ~(0x1F << 5);
+		if (green + greenSub > 0x1F) {
+			palette |= 0x1F << 5;
+		}
+		else {
+			palette |= ((green + greenSub) & 0x1F) << 5;
+		}
+		palette &= ~(0x1F << 10);
+		if (blue + blueSub > 0x1F) {
+			palette |= 0x1F << 10;
+		}
+		else {
+			palette |= ((blue + blueSub) & 0x1F) << 10;
 		}
 	}
 	return palette;
 }
 
-bool PPU::IsInsideWindow(int X, int Y, uint8_t BGIndex) {
+bool PPU::IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) {
 	bool window1Enable = false;
 	bool isInsideWindow1 = false;
 	bool window2Enable = false;
@@ -680,38 +764,26 @@ bool PPU::IsInsideWindow(int X, int Y, uint8_t BGIndex) {
 		uint8_t offset = (BGIndex == 0) ? 0 : 4;
 		if (W12SEL & (0x2 << offset)) {
 			window1Enable = true;
+			if (window1Left > window1Right) {
+				isInsideWindow1 = false;
+			}
+			else if (X >= window1Left && X <= window1Right) {
+				isInsideWindow1 = true;
+			}
 			if (W12SEL & (0x1 << offset)) {
-				if (window1Left > window1Right) {
-					isInsideWindow1 = true;
-				}
-				else if (X < window1Left || X > window1Right) {
-					isInsideWindow1 = true;
-				}
-			} else {
-				if (window1Left > window1Right) {
-					isInsideWindow1 = false;
-				}
-				else if (X >= window1Left && X <= window1Right) {
-					isInsideWindow1 = true;
-				}
+				isInsideWindow1 = !isInsideWindow1;
 			}
 		}
 		if (W12SEL & (0x8 << offset)) {
 			window2Enable = true;
+			if (window2Left > window2Right) {
+				isInsideWindow2 = false;
+			}
+			else if (X >= window2Left && X <= window2Right) {
+				isInsideWindow2 = true;
+			}
 			if (W12SEL & (0x4 << offset)) {
-				if (window2Left > window2Right) {
-					isInsideWindow2 = true;
-				}
-				else if (X < window2Left || X > window2Right) {
-					isInsideWindow2 = true;
-				}
-			} else {
-				if (window2Left > window2Right) {
-					isInsideWindow2 = false;
-				}
-				else if (X >= window2Left && X <= window2Right) {
-					isInsideWindow2 = true;
-				}
+				isInsideWindow2 = !isInsideWindow2;
 			}
 		}
 	}
@@ -719,41 +791,64 @@ bool PPU::IsInsideWindow(int X, int Y, uint8_t BGIndex) {
 		uint8_t offset = (BGIndex == 2) ? 0 : 4;
 		if (W34SEL & (0x2 << offset)) {
 			window1Enable = true;
+			if (window1Left > window1Right) {
+				isInsideWindow1 = false;
+			}
+			else if (X >= window1Left && X <= window1Right) {
+				isInsideWindow1 = true;
+			}
 			if (W34SEL & (0x1 << offset)) {
-				if (window1Left > window1Right) {
-					isInsideWindow1 = true;
-				}
-				else if (X < window1Left || X > window1Right) {
-					isInsideWindow1 = true;
-				}
-			} else {
-				if (window1Left > window1Right) {
-					isInsideWindow1 = false;
-				}
-				else if (X >= window1Left && X <= window1Right) {
-					isInsideWindow1 = true;
-				}
+				isInsideWindow1 = !isInsideWindow1;
 			}
 		}
 		if (W34SEL & (0x8 << offset)) {
 			window2Enable = true;
+			if (window2Left > window2Right) {
+				isInsideWindow2 = false;
+			}
+			else if (X >= window2Left && X <= window2Right) {
+				isInsideWindow2 = true;
+			}
 			if (W34SEL & (0x4 << offset)) {
-				if (window2Left > window2Right) {
-					isInsideWindow2 = true;
-				}
-				else if (X < window2Left || X > window2Right) {
-					isInsideWindow2 = true;
-				}
-			} else {
-				if (window2Left > window2Right) {
-					isInsideWindow2 = false;
-				}
-				else if (X >= window2Left && X <= window2Right) {
-					isInsideWindow2 = true;
-				}
+				isInsideWindow2 = !isInsideWindow2;
 			}
 		}
 	}
+	if (BGIndex == 4 || BGIndex == 5) {
+		uint8_t offset = (BGIndex == 4) ? 0 : 4;
+		if (WOBJSEL & (0x2 << offset)) {
+			window1Enable = true;
+			if (window1Left > window1Right) {
+				isInsideWindow1 = false;
+			}
+			else if (X >= window1Left && X <= window1Right) {
+				isInsideWindow1 = true;
+			}
+			if (WOBJSEL & (0x1 << offset)) {
+				isInsideWindow1 = !isInsideWindow1;
+			}
+		}
+		if (WOBJSEL & (0x8 << offset)) {
+			window2Enable = true;
+			if (window2Left > window2Right) {
+				isInsideWindow2 = false;
+			}
+			else if (X >= window2Left && X <= window2Right) {
+				isInsideWindow2 = true;
+			}
+			if (WOBJSEL & (0x4 << offset)) {
+				isInsideWindow2 = !isInsideWindow2;
+			}
+		}
+	}
+	if (!window1Enable && !window2Enable) {
+		return false;
+	}
+
+	if (BGIndex != 5 && (enableReg & (1 << BGIndex)) == 0) {
+		return true;
+	}
+
 	if (!window2Enable) {
 		return isInsideWindow1;
 	}
@@ -761,10 +856,10 @@ bool PPU::IsInsideWindow(int X, int Y, uint8_t BGIndex) {
 		return isInsideWindow2;
 	}
 	uint8_t operation = 0;
-	if (BGIndex < 5) {
+	if (BGIndex < 4) {
 		operation = (WBGLOG & (0x3 << (2 * BGIndex))) >> (2 * BGIndex);
 	} else {
-		assert(false);
+		operation = (WOBJLOG & (0x3 << (2 * (BGIndex - 4)))) >> (2 * (BGIndex - 4));
 	}
 	if (operation == 0x00) {
 		return isInsideWindow1 || isInsideWindow2;
@@ -779,6 +874,248 @@ bool PPU::IsInsideWindow(int X, int Y, uint8_t BGIndex) {
 		return !(isInsideWindow1 ^ isInsideWindow2);
 	}
 	return false;
+}
+
+PPU::Pixel PPU::GetMainPixelByPriority() {
+	uint8_t mode = BGMode & 0x07;
+	switch (mode) {
+		// Check pixels from front to back
+		case 0:
+		{
+			// Sprites with priority 3
+			// BG1 tiles with priority 1
+			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 1)
+				return mainPixelPipeline[0];
+			// BG2 tiles with priority 1
+			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 1)
+				return mainPixelPipeline[1];
+			// Sprites with priority 2
+			// BG1 tiles with priority 0
+			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 0)
+				return mainPixelPipeline[0];
+			// BG2 tiles with priority 0
+			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 0)
+				return mainPixelPipeline[1];
+			// Sprites with priority 1
+			// BG3 tiles with priority 1
+			if ((mainPixelPipeline[2].color & 0x8000) && mainPixelPipeline[2].priority == 1)
+				return mainPixelPipeline[2];
+			// BG4 tiles with priority 1
+			if ((mainPixelPipeline[3].color & 0x8000) && mainPixelPipeline[3].priority == 1)
+				return mainPixelPipeline[3];
+			// Sprites with priority 0
+			// BG3 tiles with priority 0
+			if ((mainPixelPipeline[2].color & 0x8000) && mainPixelPipeline[2].priority == 0)
+				return mainPixelPipeline[2];
+			// BG4 tiles with priority 0
+			if ((mainPixelPipeline[3].color & 0x8000) && mainPixelPipeline[3].priority == 0)
+				return mainPixelPipeline[3];
+
+			break;
+		}
+
+		case 1:
+		{
+			bool BG3Priority = BGMode & 0x08;
+			// BG3 tiles with priority 1 if bit 3 of $2105 is set
+			if ((mainPixelPipeline[2].color & 0x8000) && mainPixelPipeline[2].priority == 1 && BG3Priority)
+				return mainPixelPipeline[2];
+			// Sprites with priority 3
+			// BG1 tiles with priority 1
+			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 1)
+				return mainPixelPipeline[0];
+			// BG2 tiles with priority 1
+			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 1)
+				return mainPixelPipeline[1];
+			// Sprites with priority 2
+			// BG1 tiles with priority 0
+			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 0)
+				return mainPixelPipeline[0];
+			// BG2 tiles with priority 0
+			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 0)
+				return mainPixelPipeline[1];
+			// Sprites with priority 1
+			// BG3 tiles with priority 1 if bit 3 of $2105 is clear
+			if ((mainPixelPipeline[2].color & 0x8000) && mainPixelPipeline[2].priority == 1 && !BG3Priority)
+				return mainPixelPipeline[2];
+			// Sprites with priority 0
+			// BG3 tiles with priority 0
+			if ((mainPixelPipeline[2].color & 0x8000) && mainPixelPipeline[2].priority == 0)
+				return mainPixelPipeline[2];
+
+			break;
+		}
+
+		case 2:
+		{
+			// Sprites with priority 3
+			// BG1 tiles with priority 1
+			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 1)
+				return mainPixelPipeline[0];
+			// Sprites with priority 2
+			// BG2 tiles with priority 1
+			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 1)
+				return mainPixelPipeline[1];
+			// Sprites with priority 1
+			// BG1 tiles with priority 0
+			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 0)
+				return mainPixelPipeline[0];
+			// Sprites with priority 0
+			// BG2 tiles with priority 0
+			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 0)
+				return mainPixelPipeline[1];
+
+			break;
+		}
+
+		case 3:
+		{
+			// Sprites with priority 3
+			// BG1 tiles with priority 1
+			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 1)
+				return mainPixelPipeline[0];
+			// Sprites with priority 2
+			// BG2 tiles with priority 1
+			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 1)
+				return mainPixelPipeline[1];
+			// Sprites with priority 1
+			// BG1 tiles with priority 0
+			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 0)
+				return mainPixelPipeline[0];
+			// Sprites with priority 0
+			// BG2 tiles with priority 0
+			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 0)
+				return mainPixelPipeline[1];
+
+			break;
+		}
+
+		default:
+			assert(false);
+	}
+
+	return mainPixelPipeline[5];
+}
+
+PPU::Pixel PPU::GetSubPixelByPriority() {
+	uint8_t mode = BGMode & 0x07;
+	switch (mode) {
+		// Check pixels from front to back
+	case 0:
+	{
+		// Sprites with priority 3
+		// BG1 tiles with priority 1
+		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 1)
+			return subPixelPipeline[0];
+		// BG2 tiles with priority 1
+		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 1)
+			return subPixelPipeline[1];
+		// Sprites with priority 2
+		// BG1 tiles with priority 0
+		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 0)
+			return subPixelPipeline[0];
+		// BG2 tiles with priority 0
+		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 0)
+			return subPixelPipeline[1];
+		// Sprites with priority 1
+		// BG3 tiles with priority 1
+		if ((subPixelPipeline[2].color & 0x8000) && subPixelPipeline[2].priority == 1)
+			return subPixelPipeline[2];
+		// BG4 tiles with priority 1
+		if ((subPixelPipeline[3].color & 0x8000) && subPixelPipeline[3].priority == 1)
+			return subPixelPipeline[3];
+		// Sprites with priority 0
+		// BG3 tiles with priority 0
+		if ((subPixelPipeline[2].color & 0x8000) && subPixelPipeline[2].priority == 0)
+			return subPixelPipeline[2];
+		// BG4 tiles with priority 0
+		if ((subPixelPipeline[3].color & 0x8000) && subPixelPipeline[3].priority == 0)
+			return subPixelPipeline[3];
+
+		break;
+	}
+
+	case 1:
+	{
+		bool BG3Priority = BGMode & 0x08;
+		// BG3 tiles with priority 1 if bit 3 of $2105 is set
+		if ((subPixelPipeline[2].color & 0x8000) && subPixelPipeline[2].priority == 1 && BG3Priority)
+			return subPixelPipeline[2];
+		// Sprites with priority 3
+		// BG1 tiles with priority 1
+		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 1)
+			return subPixelPipeline[0];
+		// BG2 tiles with priority 1
+		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 1)
+			return subPixelPipeline[1];
+		// Sprites with priority 2
+		// BG1 tiles with priority 0
+		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 0)
+			return subPixelPipeline[0];
+		// BG2 tiles with priority 0
+		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 0)
+			return subPixelPipeline[1];
+		// Sprites with priority 1
+		// BG3 tiles with priority 1 if bit 3 of $2105 is clear
+		if ((subPixelPipeline[2].color & 0x8000) && subPixelPipeline[2].priority == 1 && !BG3Priority)
+			return subPixelPipeline[2];
+		// Sprites with priority 0
+		// BG3 tiles with priority 0
+		if ((subPixelPipeline[2].color & 0x8000) && subPixelPipeline[2].priority == 0)
+			return subPixelPipeline[2];
+
+		break;
+	}
+
+	case 2:
+	{
+		// Sprites with priority 3
+		// BG1 tiles with priority 1
+		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 1)
+			return subPixelPipeline[0];
+		// Sprites with priority 2
+		// BG2 tiles with priority 1
+		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 1)
+			return subPixelPipeline[1];
+		// Sprites with priority 1
+		// BG1 tiles with priority 0
+		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 0)
+			return subPixelPipeline[0];
+		// Sprites with priority 0
+		// BG2 tiles with priority 0
+		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 0)
+			return subPixelPipeline[1];
+
+		break;
+	}
+
+	case 3:
+	{
+		// Sprites with priority 3
+		// BG1 tiles with priority 1
+		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 1)
+			return subPixelPipeline[0];
+		// Sprites with priority 2
+		// BG2 tiles with priority 1
+		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 1)
+			return subPixelPipeline[1];
+		// Sprites with priority 1
+		// BG1 tiles with priority 0
+		if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 0)
+			return subPixelPipeline[0];
+		// Sprites with priority 0
+		// BG2 tiles with priority 0
+		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 0)
+			return subPixelPipeline[1];
+
+		break;
+	}
+
+	default:
+		assert(false);
+	}
+
+	return subPixelPipeline[5];
 }
 
 void PPU::SetFrame(void* texturePixels, int pitch) {

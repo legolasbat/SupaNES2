@@ -496,7 +496,6 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 			if (value != 0) {
 				enabledDMA = value;
 				pendingDMA = true;
-				printf("\033[0;36mStarting DMA\033[0m\n");
 			}
 		}
 		else if (reg == 0x0C) {	// HDMAEN
@@ -587,7 +586,7 @@ void CPU::StartHDMA() {
 			Dma[i].tableAddress++;
 			if (Dma[i].indirect) {
 				Dma[i].count = ReadMemory(Dma[i].tableAddress);
-				Dma[i].count |= ReadMemory(Dma[i].tableAddress + 1);
+				Dma[i].count |= ReadMemory(Dma[i].tableAddress + 1) << 8;
 				Dma[i].tableAddress += 2;
 				TransferDMA(Dma[i].count, Dma[i].indirectBank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
 			} else {
@@ -612,7 +611,7 @@ void CPU::ResetHDMA() {
 
 			if (Dma[i].indirect) {
 				Dma[i].count = ReadMemory(Dma[i].tableAddress);
-				Dma[i].count |= ReadMemory(Dma[i].tableAddress + 1);
+				Dma[i].count |= ReadMemory(Dma[i].tableAddress + 1) << 8;
 				Dma[i].tableAddress += 2;
 				TransferDMA(Dma[i].count, Dma[i].indirectBank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
 			} else {
@@ -631,7 +630,6 @@ void CPU::DMA() {
 			enabledDMA &= ~(1 << i);
 			if (enabledDMA == 0x00) {
 				startDMA = false;
-				printf("\033[0;36mEnding DMA\033[0m\n");
 				return;
 			}
 		}
