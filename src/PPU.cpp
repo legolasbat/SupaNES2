@@ -936,25 +936,28 @@ uint16_t PPU::ColorMathPixel(uint16_t palette, PPU::Pixel subpixel) {
 	}
 	else {
 		palette &= ~0x1F;
-		if (red + redSub > 0x1F) {
+		uint8_t temp = (red + redSub) / (half ? 2 : 1);
+		if (temp > 0x1F) {
 			palette |= 0x1F;
 		}
 		else {
-			palette |= ((red + redSub) & 0x1F) / (half ? 2 : 1);
+			palette |= temp;
 		}
 		palette &= ~(0x1F << 5);
-		if (green + greenSub > 0x1F) {
+		temp = (green + greenSub) / (half ? 2 : 1);
+		if (temp > 0x1F) {
 			palette |= 0x1F << 5;
 		}
 		else {
-			palette |= (((green + greenSub) & 0x1F) / (half ? 2 : 1)) << 5;
+			palette |= temp << 5;
 		}
 		palette &= ~(0x1F << 10);
-		if (blue + blueSub > 0x1F) {
+		temp = (blue + blueSub) / (half ? 2 : 1);
+		if (temp > 0x1F) {
 			palette |= 0x1F << 10;
 		}
 		else {
-			palette |= (((blue + blueSub) & 0x1F) / (half ? 2 : 1)) << 10;
+			palette |= temp << 10;
 		}
 	}
 	return palette;
