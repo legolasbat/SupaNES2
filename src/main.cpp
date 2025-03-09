@@ -44,13 +44,6 @@ int main(int argc, char* argv[]) {
 	if(!as) {
 		return SDL_APP_FAILURE;
 	}
-	
-	if(!SDL_CreateWindowAndRenderer("SupaNES2", width * windowSizeMultiplier, height * windowSizeMultiplier,
-									0, &as->window, &as->renderer)) {
-		SDL_Log("Couldn't craete window and renderer: %s\n", SDL_GetError());
-		return SDL_APP_FAILURE;
-	}
-	as->texture = SDL_CreateTexture(as->renderer, SDL_PIXELFORMAT_ABGR1555, SDL_TEXTUREACCESS_STREAMING, width, height);
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -58,6 +51,13 @@ int main(int argc, char* argv[]) {
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
 	ImGui::StyleColorsDark();
+
+	if (!SDL_CreateWindowAndRenderer("SupaNES2", width * windowSizeMultiplier, (height + ImGui::GetFrameHeight()) * windowSizeMultiplier,
+		0, &as->window, &as->renderer)) {
+		SDL_Log("Couldn't craete window and renderer: %s\n", SDL_GetError());
+		return SDL_APP_FAILURE;
+	}
+	as->texture = SDL_CreateTexture(as->renderer, SDL_PIXELFORMAT_ABGR1555, SDL_TEXTUREACCESS_STREAMING, width, height);
 
 	ImGui_ImplSDL3_InitForSDLRenderer(as->window, as->renderer);
 	ImGui_ImplSDLRenderer3_Init(as->renderer);
