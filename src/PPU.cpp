@@ -165,7 +165,6 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 			BG1HScroll |= (value << 8);
 			BG1HScrollFlipflop = false;
 		}
-		assert((BGMode & 0x7) != 7);
 	}
 	else if (reg == 0x0E) {		// BG1VOFS or M7VOFS
 		if (!BG1VScrollFlipflop) {
@@ -177,7 +176,6 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 			BG1VScroll |= (value << 8);
 			BG1VScrollFlipflop = false;
 		}
-		assert((BGMode & 0x7) != 7);
 	}
 	else if (reg == 0x0F) {		// BG2HOFS
 		if (!BG2HScrollFlipflop) {
@@ -329,23 +327,79 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		assert((value & 0x03) == 0);
 		assert((value & 0x40) == 0);
 	}
-	else if (reg == 0x1B) {
-		printf("\033[0;32mWritting M7A: %02x\033[0m\n", value);
+	else if (reg == 0x1B) {		// M7A
+		if (!M7AFlipflip) {
+			M7A &= 0xFF00;
+			M7A |= value;
+			M7AFlipflip = true;
+		}
+		else {
+			M7A &= 0x00FF;
+			M7A |= value << 8;
+			M7AFlipflip = false;
+		}
 	}
-	else if (reg == 0x1C) {
-		printf("\033[0;32mWritting M7B: %02x\033[0m\n", value);
+	else if (reg == 0x1C) {		// M7B
+		if (!M7BFlipflip) {
+			M7B &= 0xFF00;
+			M7B |= value;
+			M7BFlipflip = true;
+		}
+		else {
+			M7B &= 0x00FF;
+			M7B |= value << 8;
+			M7BFlipflip = false;
+		}
 	}
-	else if (reg == 0x1D) {
-		printf("\033[0;32mWritting M7C: %02x\033[0m\n", value);
+	else if (reg == 0x1D) {		// M7C
+		if (!M7CFlipflip) {
+			M7C &= 0xFF00;
+			M7C |= value;
+			M7CFlipflip = true;
+		}
+		else {
+			M7C &= 0x00FF;
+			M7C |= value << 8;
+			M7CFlipflip = false;
+		}
 	}
-	else if (reg == 0x1E) {
-		printf("\033[0;32mWritting M7D: %02x\033[0m\n", value);
+	else if (reg == 0x1E) {		// M7D
+		if (!M7DFlipflip) {
+			M7D &= 0xFF00;
+			M7D |= value;
+			M7DFlipflip = true;
+		}
+		else {
+			M7D &= 0x00FF;
+			M7D |= value << 8;
+			M7DFlipflip = false;
+		}
 	}
-	else if (reg == 0x1F) {
-		printf("\033[0;32mWritting M7X: %02x\033[0m\n", value);
+	else if (reg == 0x1F) {		// M7X
+		if (!M7XFlipflip) {
+			M7X &= 0xFF00;
+			M7X |= value;
+			M7XFlipflip = true;
+		}
+		else {
+			M7X &= 0x00FF;
+			M7X |= value << 8;
+			M7XFlipflip = false;
+			M7X &= 0x1FFF;
+		}
 	}
-	else if (reg == 0x20) {
-		printf("\033[0;32mWritting M7Y: %02x\033[0m\n", value);
+	else if (reg == 0x20) {		// M7Y
+		if (!M7YFlipflip) {
+			M7Y &= 0xFF00;
+			M7Y |= value;
+			M7YFlipflip = true;
+		}
+		else {
+			M7Y &= 0x00FF;
+			M7Y |= value << 8;
+			M7YFlipflip = false;
+			M7Y &= 0x1FFF;
+		}
 	}
 	else if (reg == 0x21) {		// CGADD
 		CGRAMAddress = value;
@@ -516,9 +570,14 @@ void PPU::SetPixel(int X, int Y) {
 
 	// BG1
 	if ((TM & 0x01) || (TS & 0x01)) {
-		SetBGPixel(X, Y, BG1TileAddress, 0, GetColorBPPForBG(0),
-				(BG1TileAddress & 0x1) ? 64 : 32, (BG1TileAddress & 0x2) ? 64 : 32,
-				BG1HScroll, BG1VScroll);
+		if ((BGMode & 0x7) != 7) {
+			SetBGPixel(X, Y, BG1TileAddress, 0, GetColorBPPForBG(0),
+					(BG1TileAddress & 0x1) ? 64 : 32, (BG1TileAddress & 0x2) ? 64 : 32,
+					BG1HScroll, BG1VScroll);
+		}
+		else {
+			SetBG1PixelMode7(X, Y);
+		}
 	}
 	else {
 		mainPixelPipeline[0].color = 0;
@@ -743,6 +802,73 @@ void PPU::SetOBJPixel(int X, int Y) {
 	subPixelPipeline[4].id = mainPixelPipeline[4].id;
 }
 
+void PPU::SetBG1PixelMode7(int X, int Y) {
+	CalculateMode7Coor(X, Y);
+
+	uint16_t tileID = ((Y & 0x8) << 4) | (X >> 3);
+	tileID = VRAM[tileID] & 0xFF;
+
+	uint16_t palette = (tileID << 6) | ((Y & 0x7) << 3) | (X & 0x7);
+	palette = VRAM[palette] >> 8;
+
+	if (palette == 0) {
+		palette = CGRAM[0];
+	}
+	palette = CGRAM[palette] | 0x8000;
+
+	uint8_t mosaicSize = 0;
+	if (mosaic & (1 << 0) && (mosaic & 0xF0) >= 0x10) {
+		mosaicSize = mosaic >> 4;
+	}
+	if (mosaicSize >= 1) {
+		mosaicSize++;
+		if (Y % mosaicSize != 0 || X % mosaicSize != 0) {
+			palette = pixels[((Y - (Y % mosaicSize)) * width) + (X - (X % mosaicSize))];
+		}
+	}
+
+	// Main Screen
+	if (TM & (1 << 0)) {
+		mainPixelPipeline[0].color = palette;
+		mainPixelPipeline[0].priority = 0;
+		mainPixelPipeline[0].id = 0;
+	}
+	else {
+		mainPixelPipeline[0].color = 0;
+		mainPixelPipeline[0].priority = 0;
+		mainPixelPipeline[0].id = 0;
+	}
+	// Subscreen
+	if (TS & (1 << 0)) {
+		subPixelPipeline[0].color = palette;
+		subPixelPipeline[0].priority = 0;
+		subPixelPipeline[0].id = 0;
+	}
+	else {
+		subPixelPipeline[0].color = 0;
+		subPixelPipeline[0].priority = 0;
+		subPixelPipeline[0].id = 0;
+	}
+}
+
+void PPU::CalculateMode7Coor(int& X, int& Y) {
+	float Xi = (int16_t)X / 256.0f;
+	float Yi = (int16_t)Y / 256.0f;
+
+	float A = (int16_t)M7A / 256.0f;
+	float B = (int16_t)M7B / 256.0f;
+	float C = (int16_t)M7C / 256.0f;
+	float D = (int16_t)M7D / 256.0f;
+
+	float X0 = (int16_t)M7X / 256.0f;
+	float Y0 = (int16_t)M7Y / 256.0f;
+	float H = (int16_t)BG1HScroll / 256.0f;
+	float V = (int16_t)BG1VScroll / 256.0f;
+
+	X = (uint16_t)((A * (Xi + H - X0) + B * (Yi + V - Y0)) * 256.0f);
+	Y = (uint16_t)((C * (Xi + H - X0) + D * (Yi + V - Y0)) * 256.0f);
+}
+
 uint8_t PPU::GetColorBPPForBG(uint8_t BGIndex) {
 	uint8_t mode = BGMode & 0x07;
 
@@ -763,6 +889,13 @@ uint8_t PPU::GetColorBPPForBG(uint8_t BGIndex) {
 			return 8;
 		}
 		return 4;
+	}
+	if (mode == 7) {
+		if (BGIndex == 1) {
+			return 8;
+			assert(false);
+		}
+		return 8;
 	}
 	assert(false && "BG Mode not found.");
 	return 0;
@@ -1132,6 +1265,27 @@ PPU::Pixel PPU::GetMainPixelByPriority() {
 			break;
 		}
 
+		case 7:
+		{
+			// Sprites with priority 3
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 3)
+				return mainPixelPipeline[4];
+			// Sprites with priority 2
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 2)
+				return mainPixelPipeline[4];
+			// Sprites with priority 1
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 1)
+				return mainPixelPipeline[4];
+			// BG1 tiles
+			if (mainPixelPipeline[0].color & 0x8000)
+				return mainPixelPipeline[0];
+			// Sprites with priority 0
+			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 0)
+				return mainPixelPipeline[4];
+
+			break;
+		}
+
 		default:
 			assert(false);
 	}
@@ -1281,6 +1435,27 @@ PPU::Pixel PPU::GetSubPixelByPriority() {
 		// BG2 tiles with priority 0
 		if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 0)
 			return subPixelPipeline[1];
+
+		break;
+	}
+
+	case 7:
+	{
+		// Sprites with priority 3
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 3)
+			return subPixelPipeline[4];
+		// Sprites with priority 2
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 2)
+			return subPixelPipeline[4];
+		// Sprites with priority 1
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 1)
+			return subPixelPipeline[4];
+		// BG1 tiles
+		if (subPixelPipeline[0].color & 0x8000)
+			return subPixelPipeline[0];
+		// Sprites with priority 0
+		if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 0)
+			return subPixelPipeline[4];
 
 		break;
 	}

@@ -42,6 +42,9 @@ class PPU {
 						uint16_t HScroll, uint16_t VScroll);
 		void SetOBJPixel(int X, int Y);
 
+		void SetBG1PixelMode7(int X, int Y);
+		void CalculateMode7Coor(int& X, int& Y);
+
 		uint8_t GetColorBPPForBG(uint8_t BGIndex);
 		uint16_t GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift, uint8_t BGIndex);
 		uint16_t GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift);
@@ -112,6 +115,19 @@ class PPU {
 		uint8_t VMain;			// Video Port Control				0x2115
 		uint16_t VRAM[0x8000];
 		uint16_t VRAMAddress;	// VRAM Address						0x2116/7
+
+		uint16_t M7A;			// Mode 7 Matrix A					0x211B
+		bool M7AFlipflip = false;
+		uint16_t M7B;			// Mode 7 Matrix B					0x211C
+		bool M7BFlipflip = false;
+		uint16_t M7C;			// Mode 7 Matrix C					0x211D
+		bool M7CFlipflip = false;
+		uint16_t M7D;			// Mode 7 Matrix D					0x211E
+		bool M7DFlipflip = false;
+		uint16_t M7X;			// Mode 7 Center X					0x211F
+		bool M7XFlipflip = false;
+		uint16_t M7Y;			// Mode 7 Center Y					0x2120
+		bool M7YFlipflip = false;
 
 		uint16_t CGRAM[0x100];
 		uint8_t CGRAMAddress;	// CGRAM Address					0x2121
