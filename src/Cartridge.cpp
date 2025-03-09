@@ -307,8 +307,6 @@ uint8_t Cartridge::ReadRom(uint32_t address) {
 		else if (page < 0x80) {
 			// SRAM 2Q
 			if (bank >= 0x40 && bank < 0x7E) {
-				//TODO: Read SRAM 2Q
-				printf("Reading SRAM at %06x\n", address);
 				value = RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize];
 			}
 			// ROM bottom half 4Q
@@ -319,8 +317,6 @@ uint8_t Cartridge::ReadRom(uint32_t address) {
 			}
 			// SRAM 4Q
 			else if (bank >= 0xF0) {
-				//TODO: Read SRAM 4Q
-				printf("Reading SRAM at %06x\n", address);
 				value = RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize];
 			}
 		}
@@ -339,14 +335,10 @@ void Cartridge::WriteRom(uint32_t address, uint8_t value) {
 		if (page < 0x80) {
 			// SRAM 2Q
 			if (bank >= 0x40 && bank < 0x7E) {
-				//TODO: Write SRAM 2Q
-				printf("Writting SRAM at %06x\n", address);
 				RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize] = value;
 			}
 			// SRAM 4Q
 			else if (bank >= 0xF0) {
-				//TODO: Write SRAM 4Q
-				printf("Writting SRAM at %06x\n", address);
 				RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize] = value;
 			}
 			else {
