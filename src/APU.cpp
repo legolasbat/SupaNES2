@@ -104,7 +104,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0x3B] = {"ROL", &APU::ROL, AddMode::ZeroPageIndexX, 5};
 	opTable[0x3C] = {"ROL", &APU::ROL, AddMode::Implied, 2};
 	opTable[0x3D] = {"INX", &APU::INX, AddMode::Implied, 2};
-	opTable[0x3E] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0x3E] = {"CPX", &APU::CPX, AddMode::ZeroPage, 3};
 	opTable[0x3F] = {"JSR", &APU::JSR, AddMode::Implied, 8};
 	
 	opTable[0x40] = {"SEP", &APU::SEP, AddMode::Implied, 2};
@@ -304,7 +304,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0xF7] = {"LDA", &APU::LDA, AddMode::IndirectY, 6};
 	opTable[0xF8] = {"LDX", &APU::LDX, AddMode::ZeroPage, 3};
 	opTable[0xF9] = {"LDX", &APU::LDX, AddMode::ZeroPageIndexY, 4};
-	opTable[0xFA] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0xFA] = {"MOV", &APU::MOV, AddMode::ZeroPage, 5};
 	opTable[0xFB] = {"LDY", &APU::LDY, AddMode::ZeroPageIndexX, 4};
 	opTable[0xFC] = {"INY", &APU::INY, AddMode::Implied, 2};
 	opTable[0xFD] = {"TAY", &APU::TAY, AddMode::Implied, 2};
