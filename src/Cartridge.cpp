@@ -352,6 +352,12 @@ void Cartridge::WriteRom(uint32_t address, uint8_t value) {
 }
 
 Cartridge::~Cartridge() {
-	free(ROM);
-	free(RAM);
+	if (ROMSize > 0) {
+		free(ROM);
+		ROMSize = 0;
+	}
+	if (RAMSize > 0) {
+		free(RAM);
+		RAMSize = 0;
+	}
 }
