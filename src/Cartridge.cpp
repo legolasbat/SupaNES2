@@ -1,9 +1,9 @@
 #include "Cartridge.h"
 #include "SupaNES.h"
 
-#include <cstdint>
 #include <stdio.h>
 #include <stdlib.h>
+#include <cassert>
 
 Cartridge::Cartridge(SupaNES* supaNes) {
 	//TODO: Init variables
@@ -173,6 +173,11 @@ bool Cartridge::LoadROM(const char* filepath, uint16_t* excVectors) {
 	fread(ROM, sizeof(uint8_t), romSizeByte, file);
 	ROMSize = romSizeByte;
 
+	if (ramSizeByte > 0) {
+		RAM = (uint8_t*)malloc(sizeof(uint8_t) * ramSizeByte);
+		RAMSize = ramSizeByte;
+	}
+
 	fclose(file);
 	return true;
 }
@@ -291,11 +296,11 @@ uint8_t Cartridge::ReadRom(uint32_t address) {
 		if (page >= 0x80) {
 			// ROM
 			if (bank >= 0x80) {
-				value = ROM[(((address & 0xFF0000) - 0x800000) / 2) + (address & 0x7FFF)];
+				value = ROM[((((address & 0xFF0000) - 0x800000) / 2) + (address & 0x7FFF)) % ROMSize];
 			}
 			// Mirror ROM
 			else {
-				value = ROM[(((address & 0xFF8000) - 0x8000) / 2) + (address & 0x7FFF)];
+				value = ROM[((((address & 0xFF8000) - 0x8000) / 2) + (address & 0x7FFF)) % ROMSize];
 			}
 		}
 		// Check bottom half
@@ -303,14 +308,20 @@ uint8_t Cartridge::ReadRom(uint32_t address) {
 			// SRAM 2Q
 			if (bank >= 0x40 && bank < 0x7E) {
 				//TODO: Read SRAM 2Q
+				printf("Reading SRAM at %06x\n", address);
+				value = RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize];
 			}
 			// ROM bottom half 4Q
 			else if (bank >= 0xC0 && bank < 0xF0) {
 				//TODO: Read ROM Mirror Q4
+				printf("Reading ROM Q4 at %06x\n", address);
+				assert(false);
 			}
 			// SRAM 4Q
 			else if (bank >= 0xF0) {
 				//TODO: Read SRAM 4Q
+				printf("Reading SRAM at %06x\n", address);
+				value = RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize];
 			}
 		}
 	}
@@ -319,21 +330,36 @@ uint8_t Cartridge::ReadRom(uint32_t address) {
 }
 
 void Cartridge::WriteRom(uint32_t address, uint8_t value) {
-	//TODO: Cartridge SRAM
-}
+	uint8_t bank = (address & 0x00FF0000) >> 16;
+	uint8_t page = (address & 0x0000FF00) >> 8;
 
-uint8_t Cartridge::ReadRam(uint32_t address) {
-	uint8_t value = 0;
-
-	printf("Reading SRAM at %06x\n", address);
-
-	return value;
-}
-
-void Cartridge::WriteRam(uint32_t address, uint8_t value) {
-	printf("Writting SRAM at %06x: %04x\n", address, value);
+	// Check bank range
+	if (bank != 0x7E && bank != 0x7F) {
+		// Check page range
+		if (page < 0x80) {
+			// SRAM 2Q
+			if (bank >= 0x40 && bank < 0x7E) {
+				//TODO: Write SRAM 2Q
+				printf("Writting SRAM at %06x\n", address);
+				RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize] = value;
+			}
+			// SRAM 4Q
+			else if (bank >= 0xF0) {
+				//TODO: Write SRAM 4Q
+				printf("Writting SRAM at %06x\n", address);
+				RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize] = value;
+			}
+			else {
+				printf("Writting SRAM at %06x: %04x\n", address, value);
+			}
+		}
+		else {
+			printf("Writting SRAM at %06x: %04x\n", address, value);
+		}
+	}
 }
 
 Cartridge::~Cartridge() {
 	free(ROM);
+	free(RAM);
 }

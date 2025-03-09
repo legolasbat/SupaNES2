@@ -11,6 +11,9 @@ class Cartridge {
 		uint8_t* ROM;
 		int ROMSize;
 
+		uint8_t* RAM;
+		int RAMSize;
+
 		Cartridge(SupaNES* supaNes);
 		~Cartridge();
 
@@ -18,9 +21,6 @@ class Cartridge {
 
 		uint8_t ReadRom(uint32_t address);
 		void WriteRom(uint32_t address, uint8_t value);
-
-		uint8_t ReadRam(uint32_t address);
-		void WriteRam(uint32_t address, uint8_t value);
 
 	private:
 		bool CheckCartridgeType(const uint8_t* cartType);
