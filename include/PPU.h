@@ -65,7 +65,7 @@ class PPU {
 		};
 		OBJECT objs[128];
 
-		uint16_t ColorMathPixel(uint16_t palette, uint16_t subpixel);
+		uint16_t ColorMathPixel(uint16_t palette, Pixel subpixel);
 
 		bool IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg);
 
@@ -116,18 +116,13 @@ class PPU {
 		uint16_t VRAM[0x8000];
 		uint16_t VRAMAddress;	// VRAM Address						0x2116/7
 
+		uint8_t prevM = 0;
 		uint16_t M7A;			// Mode 7 Matrix A					0x211B
-		bool M7AFlipflip = false;
 		uint16_t M7B;			// Mode 7 Matrix B					0x211C
-		bool M7BFlipflip = false;
 		uint16_t M7C;			// Mode 7 Matrix C					0x211D
-		bool M7CFlipflip = false;
 		uint16_t M7D;			// Mode 7 Matrix D					0x211E
-		bool M7DFlipflip = false;
 		uint16_t M7X;			// Mode 7 Center X					0x211F
-		bool M7XFlipflip = false;
 		uint16_t M7Y;			// Mode 7 Center Y					0x2120
-		bool M7YFlipflip = false;
 
 		uint16_t CGRAM[0x100];
 		uint8_t CGRAMAddress;	// CGRAM Address					0x2121
