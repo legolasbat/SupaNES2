@@ -157,6 +157,9 @@ uint8_t SupaNES::ReadMemoryQ3(uint32_t address) {
 		else if ((address & 0xFF) == 0x43) {
 			return apu->ReadAPUPorts(address);
 		}
+		else if ((address & 0xFF) == 0x80) {
+			return WRAM[WRAMAddress++];
+		}
 		printf("Reading %06X\n", address);
 		assert(false && "Reading Q1 Page 21");
 	}
