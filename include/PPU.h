@@ -116,13 +116,15 @@ class PPU {
 		uint16_t VRAM[0x8000];
 		uint16_t VRAMAddress;	// VRAM Address						0x2116/7
 
+		uint8_t M7SEL;			// Mode 7 Settings					0x211A
+
 		uint8_t prevM = 0;
-		uint16_t M7A;			// Mode 7 Matrix A					0x211B
-		uint16_t M7B;			// Mode 7 Matrix B					0x211C
-		uint16_t M7C;			// Mode 7 Matrix C					0x211D
-		uint16_t M7D;			// Mode 7 Matrix D					0x211E
-		uint16_t M7X;			// Mode 7 Center X					0x211F
-		uint16_t M7Y;			// Mode 7 Center Y					0x2120
+		int16_t M7A;			// Mode 7 Matrix A					0x211B
+		int16_t M7B;			// Mode 7 Matrix B					0x211C
+		int16_t M7C;			// Mode 7 Matrix C					0x211D
+		int16_t M7D;			// Mode 7 Matrix D					0x211E
+		int16_t M7X;			// Mode 7 Center X					0x211F
+		int16_t M7Y;			// Mode 7 Center Y					0x2120
 
 		uint16_t CGRAM[0x100];
 		uint8_t CGRAMAddress;	// CGRAM Address					0x2121
@@ -148,4 +150,6 @@ class PPU {
 		uint8_t CGADSUB;		// Color math designation			0x2131
 
 		uint16_t fixedColor;	// Fixed Color Data					0x2132
+
+		int32_t multResult;		// Signed Multiply Result			0x2134/5/6
 };

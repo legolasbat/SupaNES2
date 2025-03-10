@@ -62,6 +62,20 @@ uint8_t PPU::ReadPPU(uint32_t address) {
 
 	uint8_t reg = address & 0xFF;
 
+	if (reg == 0x34) {			// MPYL
+		value = multResult & 0xFF;
+	}
+	else if (reg == 0x35) {		// MPYM
+		value = (multResult >> 8) & 0xFF;
+	}
+	else if (reg == 0x36) {		// MPYH
+		value = (multResult >> 16) & 0xFF;
+	}
+	else {
+		printf("Reading PPU at %06x\n", address);
+		assert(false);
+	}
+
 	return value;
 }
 
@@ -323,18 +337,20 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 			VRAMAddress = VRAMAddress % 0x8000;
 		}
 	}
-	else if (reg == 0x1A) {
-		printf("\033[0;32mWritting M7SEL: %02x\033[0m\n", value);
+	else if (reg == 0x1A) {		// M7SEL
+		M7SEL = value;
 		assert((value & 0x03) == 0);
 		assert((value & 0x40) == 0);
 	}
 	else if (reg == 0x1B) {		// M7A
 		M7A = (value << 8) | prevM;
 		prevM = value;
+		multResult = M7A * (M7B >> 8);
 	}
 	else if (reg == 0x1C) {		// M7B
 		M7B = (value << 8) | prevM;
 		prevM = value;
+		multResult = M7A * (M7B >> 8);
 	}
 	else if (reg == 0x1D) {		// M7C
 		M7C = (value << 8) | prevM;
@@ -766,13 +782,30 @@ void PPU::SetOBJPixel(int X, int Y) {
 void PPU::SetBG1PixelMode7(int X, int Y) {
 	CalculateMode7Coor(X, Y);
 
+	bool outside = false;
+	if ((M7SEL & 0x80) == 0) {
+		X &= 0x3FF;
+		Y &= 0x3FF;
+	} else {
+		if (M7SEL & 0x40) {
+			// Fill with character 0
+		} else {
+			if (X < 0 || X > 0x3FF) {
+				outside = true;
+			}
+			if (Y < 0 || Y > 0x3FF) {
+				outside = true;
+			}
+		}
+	}
+
 	uint16_t tileID = ((Y >> 3) << 7) | (X >> 3);
 	tileID = VRAM[tileID] & 0xFF;
 
 	uint16_t palette = (tileID << 6) | ((Y & 0x7) << 3) | (X & 0x7);
 	palette = VRAM[palette] >> 8;
 
-	if (palette == 0) {
+	if (palette == 0 || outside) {
 		palette = CGRAM[0];
 	}
 	else {
@@ -818,18 +851,18 @@ void PPU::CalculateMode7Coor(int& X, int& Y) {
 	float Xi = (int16_t)X / 256.0f;
 	float Yi = (int16_t)Y / 256.0f;
 
-	float A = (int16_t)M7A / 256.0f;
-	float B = (int16_t)M7B / 256.0f;
-	float C = (int16_t)M7C / 256.0f;
-	float D = (int16_t)M7D / 256.0f;
+	float A = M7A / 256.0f;
+	float B = M7B / 256.0f;
+	float C = M7C / 256.0f;
+	float D = M7D / 256.0f;
 
-	float X0 = (int16_t)M7X / 256.0f;
-	float Y0 = (int16_t)M7Y / 256.0f;
+	float X0 = M7X / 256.0f;
+	float Y0 = M7Y / 256.0f;
 	float H = (int16_t)BG1HScroll / 256.0f;
 	float V = (int16_t)BG1VScroll / 256.0f;
 
-	X = (uint16_t)((A * (Xi + H - X0) + B * (Yi + V - Y0)) * 256.0f);
-	Y = (uint16_t)((C * (Xi + H - X0) + D * (Yi + V - Y0)) * 256.0f);
+	X = (int16_t)((A * (Xi + H - X0) + B * (Yi + V - Y0) + X0) * 256.0f);
+	Y = (int16_t)((C * (Xi + H - X0) + D * (Yi + V - Y0) + Y0) * 256.0f);
 }
 
 uint8_t PPU::GetColorBPPForBG(uint8_t BGIndex) {
