@@ -47,6 +47,7 @@ void PPU::Clock() {
 		}
 		else if (VCounter == 262) {
 			frameCounter++;
+			isEven = !isEven;
 			if (frameCounter == 60) {
 				frameCounter = 0;
 			}
@@ -70,6 +71,120 @@ uint8_t PPU::ReadPPU(uint32_t address) {
 	}
 	else if (reg == 0x36) {		// MPYH
 		value = (multResult >> 16) & 0xFF;
+	}
+	else if (reg == 0x37) {		// SLHV
+		value = 0;	// Actually it should be open bus
+		// Reading here updates regs 0x3C and 0x3D
+	}
+	else if (reg == 0x39) {		// VMDATALREAD
+		uint16_t remapAddress = VRAMAddress;
+		if ((VMain & 0xC) != 0) {
+			if ((VMain & 0xC) == 0x4) {
+				uint8_t lower = VRAMAddress & 0xFF;
+				remapAddress &= 0xFF00;
+				remapAddress |= (lower >> 5) | (lower << 3);
+			}
+			else if ((VMain & 0xC) == 0x8) {
+				uint16_t lower = VRAMAddress & 0x1FF;
+				remapAddress &= 0xFE00;
+				remapAddress |= (lower >> 6) | (lower << 3);
+			}
+			else if ((VMain & 0xC) == 0xC) {
+				uint16_t lower = VRAMAddress & 0x3FF;
+				remapAddress &= 0xFC00;
+				remapAddress |= (lower >> 7) | (lower << 3);
+			}
+		}
+		value = VRAM[remapAddress] & 0x00FF;
+		if (!(VMain & 0x80)) {
+			if ((VMain & 0x3) == 0) {
+				VRAMAddress++;
+			}
+			else if ((VMain & 0x3) == 1) {
+				VRAMAddress += 32;
+			}
+			else {
+				VRAMAddress += 128;
+			}
+			VRAMAddress = VRAMAddress % 0x8000;
+		}
+	}
+	else if (reg == 0x3A) {		// VMDATAHREAD
+		uint16_t remapAddress = VRAMAddress;
+		if ((VMain & 0xC) != 0) {
+			if ((VMain & 0xC) == 0x4) {
+				uint8_t lower = VRAMAddress & 0xFF;
+				remapAddress &= 0xFF00;
+				remapAddress |= (lower >> 5) | (lower << 3);
+			}
+			else if ((VMain & 0xC) == 0x8) {
+				uint16_t lower = VRAMAddress & 0x1FF;
+				remapAddress &= 0xFE00;
+				remapAddress |= (lower >> 6) | (lower << 3);
+			}
+			else if ((VMain & 0xC) == 0xC) {
+				uint16_t lower = VRAMAddress & 0x3FF;
+				remapAddress &= 0xFC00;
+				remapAddress |= (lower >> 7) | (lower << 3);
+			}
+		}
+		value = VRAM[remapAddress] >> 8;
+		if (!(VMain & 0x80)) {
+			if ((VMain & 0x3) == 0) {
+				VRAMAddress++;
+			}
+			else if ((VMain & 0x3) == 1) {
+				VRAMAddress += 32;
+			}
+			else {
+				VRAMAddress += 128;
+			}
+			VRAMAddress = VRAMAddress % 0x8000;
+		}
+	}
+	else if (reg == 0x3B) {		// CGDATA
+		if (!CGRAMFlipflop) {
+			value = CGRAM[CGRAMAddress];
+			CGRAMFlipflop = true;
+		}
+		else {
+			value = CGRAM[CGRAMAddress] >> 8;
+			CGRAMAddress++;
+			CGRAMAddress = CGRAMAddress % 0x100;
+			CGRAMFlipflop = false;
+		}
+	}
+	else if (reg == 0x3C) {		// OPHCT
+		if (!OPHCTFlipflop) {
+			value = HCounter & 0xFF;
+			OPHCTFlipflop = true;
+		}
+		else {
+			value = HCounter >> 8;
+			OPHCTFlipflop = false;
+		}
+	}
+	else if (reg == 0x3D) {		// OPVCT
+		if (!OPVCTFlipflop) {
+			value = VCounter & 0xFF;
+			OPVCTFlipflop = true;
+		}
+		else {
+			value = VCounter >> 8;
+			OPVCTFlipflop = false;
+		}
+	}
+	else if (reg == 0x3F) {		// STAT77
+		printf("Reading PPU STAT77\n");
+		value = 0x01;			// 3-0 PPU1 Version
+	}
+	else if (reg == 0x3F) {		// STAT78
+		printf("Reading PPU STAT78\n");
+		value = isEven ? 0x80 : 0x00;
+		// BIT 4 is 0 if NTSC or 1 if PAL
+		value |= 0x01;			// 3-0 PPU2 Version
+		OPHCTFlipflop = false;
+		OPVCTFlipflop = false;
 	}
 	else {
 		printf("Reading PPU at %06x\n", address);

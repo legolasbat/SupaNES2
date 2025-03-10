@@ -36,6 +36,8 @@ class PPU {
 
 	private:
 
+		bool isEven = false;
+
 		void SetPixel(int X, int Y);
 		void SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t bpp,
 						uint8_t XSize, uint8_t YSize,
@@ -152,4 +154,8 @@ class PPU {
 		uint16_t fixedColor;	// Fixed Color Data					0x2132
 
 		int32_t multResult;		// Signed Multiply Result			0x2134/5/6
+
+		// Flipflops for 0x213C/D
+		bool OPHCTFlipflop = false;
+		bool OPVCTFlipflop = false;
 };
