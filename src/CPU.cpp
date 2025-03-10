@@ -382,6 +382,10 @@ void CPU::NMI() {
 	}
 }
 
+void CPU::EndNMI() {
+	nmi &= ~0x80;
+}
+
 bool CPU::CheckIRQ() {
 	// IRQ Interrupts disable
 	if (regs.P & IFlag) {

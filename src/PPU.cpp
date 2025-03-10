@@ -52,6 +52,7 @@ void PPU::Clock() {
 			}
 			VCounter = 0;
 			memory->cpu->ResetHDMA();
+			memory->cpu->EndNMI();
 		}
 	}
 }

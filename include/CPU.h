@@ -47,6 +47,7 @@ class CPU {
 		void SetExcVectors(uint16_t vectors[16]);
 		
 		void NMI();
+		void EndNMI();
 		bool CheckIRQ();
 		void IRQ();
 
