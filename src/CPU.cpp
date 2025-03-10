@@ -696,8 +696,8 @@ int CPU::TransferDMA(uint16_t& AAddress, uint8_t Bank, uint16_t BAddress, uint8_
 			else {
 				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress));
 			}
-			if (!--count) return 0;
 			AAddress += (increment == 0) ? 1 : ((increment == 2) ? -1 : 0);
+			if (!--count) return 0;
 			break;
 		}
 
@@ -713,8 +713,8 @@ int CPU::TransferDMA(uint16_t& AAddress, uint8_t Bank, uint16_t BAddress, uint8_
 				if (!--count) return 0;
 				WriteMemory(AAddress + 1 | (Bank << 16), ReadMemory(BAddress + 1));
 			}
-			if (!--count) return 0;
 			AAddress += (increment == 0) ? 2 : ((increment == 2) ? -2 : 0);
+			if (!--count) return 0;
 			break;
 		}
 
@@ -730,8 +730,8 @@ int CPU::TransferDMA(uint16_t& AAddress, uint8_t Bank, uint16_t BAddress, uint8_
 				if (!--count) return 0;
 				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress + 1));
 			}
-			if (!--count) return 0;
 			AAddress += (increment == 0) ? 2 : ((increment == 2) ? -2 : 0);
+			if (!--count) return 0;
 			break;
 		}
 
@@ -755,8 +755,8 @@ int CPU::TransferDMA(uint16_t& AAddress, uint8_t Bank, uint16_t BAddress, uint8_
 				if (!--count) return 0;
 				WriteMemory(AAddress + 1 | (Bank << 16), ReadMemory(BAddress + 3));
 			}
-			if (!--count) return 0;
 			AAddress += (increment == 0) ? 4 : ((increment == 2) ? -4 : 0);
+			if (!--count) return 0;
 			break;
 		}
 
@@ -780,8 +780,8 @@ int CPU::TransferDMA(uint16_t& AAddress, uint8_t Bank, uint16_t BAddress, uint8_
 				if (!--count) return 0;
 				WriteMemory(AAddress + 3 | (Bank << 16), ReadMemory(BAddress + 3));
 			}
-			if (!--count) return 0;
 			AAddress += (increment == 0) ? 4 : ((increment == 2) ? -4 : 0);
+			if (!--count) return 0;
 			break;
 		}
 

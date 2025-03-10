@@ -765,7 +765,7 @@ void PPU::SetOBJPixel(int X, int Y) {
 void PPU::SetBG1PixelMode7(int X, int Y) {
 	CalculateMode7Coor(X, Y);
 
-	uint16_t tileID = ((Y & 0x8) << 4) | (X >> 3);
+	uint16_t tileID = ((Y >> 3) << 7) | (X >> 3);
 	tileID = VRAM[tileID] & 0xFF;
 
 	uint16_t palette = (tileID << 6) | ((Y & 0x7) << 3) | (X & 0x7);
