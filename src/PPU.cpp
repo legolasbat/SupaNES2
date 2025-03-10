@@ -63,7 +63,10 @@ uint8_t PPU::ReadPPU(uint32_t address) {
 
 	uint8_t reg = address & 0xFF;
 
-	if (reg == 0x34) {			// MPYL
+	if (reg < 0x34) {
+		// Write only
+	}
+	else if (reg == 0x34) {		// MPYL
 		value = multResult & 0xFF;
 	}
 	else if (reg == 0x35) {		// MPYM
@@ -564,6 +567,9 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	}
 	else if (reg == 0x34) {
 		printf("\033[0;32mWritting MPYL (read only): %02x\033[0m\n", value);
+	}
+	else if (reg >= 0x35 && reg <= 0x3F) {
+		// Read only
 	}
 	else {
 		printf("%06x: %02x\n", address, value);
