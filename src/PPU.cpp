@@ -174,7 +174,7 @@ uint8_t PPU::ReadPPU(uint32_t address) {
 			OPVCTFlipflop = false;
 		}
 	}
-	else if (reg == 0x3F) {		// STAT77
+	else if (reg == 0x3E) {		// STAT77
 		printf("Reading PPU STAT77\n");
 		value = 0x01;			// 3-0 PPU1 Version
 	}
