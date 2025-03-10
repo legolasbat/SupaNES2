@@ -192,6 +192,7 @@ class APU {
 		uint8_t SBCW();
 		uint8_t SBC();
 		uint8_t SEC();
+		uint8_t SEI();
 		uint8_t SEP();
 		uint8_t SET();
 		uint8_t TSET();

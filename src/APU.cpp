@@ -243,7 +243,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0xBE] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0xBF] = {"", &APU::XXX, AddMode::Implied, 2};
 	
-	opTable[0xC0] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0xC0] = {"SEI", &APU::SEI, AddMode::Implied, 3};
 	opTable[0xC1] = {"", &APU::XXX, AddMode::Implied, 2};
 	opTable[0xC2] = {"SET", &APU::SET, AddMode::ZeroPage, 4};
 	opTable[0xC3] = {"BBS", &APU::BBS, AddMode::ZeroPage, 5};
@@ -1754,6 +1754,12 @@ uint8_t APU::SBC() {
 
 uint8_t APU::SEC() {
 	SetFlag(CFlag, true);
+
+	return 0;
+}
+
+uint8_t APU::SEI() {
+	SetFlag(IFlag, false);
 
 	return 0;
 }
