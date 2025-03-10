@@ -34,6 +34,12 @@ class PPU {
 		int VCounter;
 		int frameCounter;
 
+		// Background Display Settings
+		bool BG1Selected = true;
+		bool BG2Selected = true;
+		bool BG3Selected = true;
+		bool BG4Selected = true;
+
 	private:
 
 		bool isEven = false;

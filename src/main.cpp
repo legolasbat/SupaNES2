@@ -301,15 +301,27 @@ void MenuBar(AppState* appstate) {
 				// TODO: Enable/Disable Backgrounds
 				if (ImGui::MenuItem("BG1", 0, BG1Selected, true)) {
 					BG1Selected = !BG1Selected;
+					if (appstate->supaNES->RomLoaded) {
+						appstate->supaNES->ppu->BG1Selected = BG1Selected;
+					}
 				}
 				if (ImGui::MenuItem("BG2", 0, BG2Selected, true)) {
 					BG2Selected = !BG2Selected;
+					if (appstate->supaNES->RomLoaded) {
+						appstate->supaNES->ppu->BG2Selected = BG2Selected;
+					}
 				}
 				if (ImGui::MenuItem("BG3", 0, BG3Selected, true)) {
 					BG3Selected = !BG3Selected;
+					if (appstate->supaNES->RomLoaded) {
+						appstate->supaNES->ppu->BG3Selected = BG3Selected;
+					}
 				}
 				if (ImGui::MenuItem("BG4", 0, BG4Selected, true)) {
 					BG4Selected = !BG4Selected;
+					if (appstate->supaNES->RomLoaded) {
+						appstate->supaNES->ppu->BG4Selected = BG4Selected;
+					}
 				}
 				ImGui::EndMenu();
 			}
