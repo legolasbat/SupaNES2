@@ -686,9 +686,9 @@ void CPU::ResetHDMA() {
 void CPU::DMA() {
 	for (uint8_t i = 0; i < 8; i++) {
 		if (enabledDMA & (1 << i)) {
-			while (Dma[i].count) {
+			do {
 				Dma[i].count = TransferDMA(Dma[i].AAddress, Dma[i].ABank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, Dma[i].increment, Dma[i].count);
-			}
+			} while (Dma[i].count);
 			enabledDMA &= ~(1 << i);
 			if (enabledDMA == 0x00) {
 				startDMA = false;
