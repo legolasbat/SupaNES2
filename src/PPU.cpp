@@ -241,7 +241,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 				uint8_t attr = (value >> (2 * i)) & 0x3;
 				objs[i + (index * 4)].posX &= 0x00FF;
 				objs[i + (index * 4)].posX |= (attr & 0x1) << 8;
-				objs[i + (index * 4)].width = ObjSizes[attr >> 1][OBSEL >> 5];
+				objs[i + (index * 4)].size = attr >> 1;
 			}
 		}
 
@@ -827,18 +827,21 @@ void PPU::SetOBJPixel(int X, int Y) {
 	objPixel->priority = 0;
 	objPixel->id = 4;
 
+	uint16_t width;
+
 	for (int i = 127; i >= 0; i--) {
-		if (Y >= objs[i].posY && Y < objs[i].posY + objs[i].width) {
-			if (X >= objs[i].posX && X < objs[i].posX + objs[i].width) {
+		width = ObjSizes[objs[i].size ? 1 : 0][OBSEL >> 5];
+		if (Y >= objs[i].posY && Y < objs[i].posY + width) {
+			if (X >= objs[i].posX && X < objs[i].posX + width) {
 				if (objs[i].priority >= objPixel->priority) {
 					uint8_t objX = X - objs[i].posX;
 					uint8_t objY = Y - objs[i].posY;
 
 					if (objs[i].flipX) {
-						objX = objs[i].width - objX - 1;
+						objX = width - objX - 1;
 					}
 					if (objs[i].flipY) {
-						objY = objs[i].width - objY - 1;
+						objY = width - objY - 1;
 					}
 
 					uint8_t offsetX = 7 - (objX % 8);

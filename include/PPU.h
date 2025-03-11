@@ -62,8 +62,8 @@ class PPU {
 
 		struct OBJECT {
 			uint16_t posX = 0;
-			uint8_t width = 0;
 			uint8_t posY = 0;
+			bool size = false;
 			uint16_t tileID = 0;
 			bool flipX = false;
 			bool flipY = false;
