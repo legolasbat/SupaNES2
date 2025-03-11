@@ -85,7 +85,7 @@ class PPU {
 		uint8_t OBSEL;			// Object Size & Character Address	0x2101
 
 		uint16_t OAMAddress;	// OAM Address						0x2102/3
-		bool OAMFlipflop;
+		uint8_t OAM_Lsb = 0;
 
 		uint8_t BGMode;			// BG Mode and Character Size		0x2105
 	

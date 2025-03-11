@@ -15,6 +15,8 @@ PPU::PPU(SupaNES* supaNes) {
 	BGMode = 0;
 	fixedColor = 0;
 
+	OAMAddress = 0;
+
 	ObjSizes[0][0] = 8;
 	ObjSizes[0][1] = 8;
 	ObjSizes[0][2] = 8;
@@ -213,54 +215,38 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	else if (reg == 0x03) {		// OAMADDH
 		OAMAddress &= 0x00FF;
 		OAMAddress |= value << 8;
-		OAMFlipflop = false;
 	}
 	else if (reg == 0x04) {		// OAMDATA
-		if (!OAMFlipflop) {
-			OAMFlipflop = true;
-
-			if (OAMAddress >= 0x100) {
-				uint8_t index = OAMAddress - 0x100;
-				for (uint8_t i = 0; i < 4; i++) {
-					uint8_t attr = (value >> (2 * i)) & 0x3;
-					objs[i + (index * 8)].posX &= 0x00FF;
-					objs[i + (index * 8)].posX |= (attr & 0x1) << 8;
-					objs[i + (index * 8)].width = ObjSizes[attr >> 1][OBSEL >> 5];
-				}
-			}
-			else if (OAMAddress % 2 == 0){
-				objs[OAMAddress / 2].posX &= 0x100;
-				objs[OAMAddress / 2].posX |= value;
-			}
-			else {
-				objs[OAMAddress / 2].tileID = value;
-			}
-		} else {
-
-			if (OAMAddress >= 0x100) {
-				uint8_t index = OAMAddress - 0x100;
-				for (uint8_t i = 0; i < 4; i++) {
-					uint8_t attr = (value >> (2 * i)) & 0x3;
-					objs[i + 4 + (index * 8)].posX &= 0x00FF;
-					objs[i + 4 + (index * 8)].posX |= (attr & 0x1) << 8;
-					objs[i + 4 + (index * 8)].width = ObjSizes[attr >> 1][OBSEL >> 5];
-				}
-			}
-			else if (OAMAddress % 2 == 0) {
-				objs[OAMAddress / 2].posY = value;
-			}
-			else {
-				objs[OAMAddress / 2].flipY = value & 0x80;
-				objs[OAMAddress / 2].flipX = value & 0x40;
-				objs[OAMAddress / 2].priority = (value & 0x30) >> 4;
-				objs[OAMAddress / 2].palette = (value & 0x0E) >> 1;
-				objs[OAMAddress / 2].name = value & 0x01;
-			}
-
-			OAMAddress++;
-			OAMAddress %= 0x110;
-			OAMFlipflop = false;
+		if (OAMAddress % 2 == 0) {
+			OAM_Lsb = value;
 		}
+		else if (OAMAddress % 2 == 1 && OAMAddress < 0x200){
+			if ((OAMAddress & 0x3) == 0x1) {
+				objs[OAMAddress / 4].posX &= 0x100;
+				objs[OAMAddress / 4].posX |= OAM_Lsb;
+				objs[OAMAddress / 4].posY = value;
+			}
+			else {
+				objs[OAMAddress / 4].tileID = OAM_Lsb;
+				objs[OAMAddress / 4].flipY = value & 0x80;
+				objs[OAMAddress / 4].flipX = value & 0x40;
+				objs[OAMAddress / 4].priority = (value & 0x30) >> 4;
+				objs[OAMAddress / 4].palette = (value & 0x0E) >> 1;
+				objs[OAMAddress / 4].name = value & 0x01;
+			}
+		}
+		if (OAMAddress >= 0x200) {
+			uint8_t index = OAMAddress - 0x200;
+			for (uint8_t i = 0; i < 4; i++) {
+				uint8_t attr = (value >> (2 * i)) & 0x3;
+				objs[i + (index * 4)].posX &= 0x00FF;
+				objs[i + (index * 4)].posX |= (attr & 0x1) << 8;
+				objs[i + (index * 4)].width = ObjSizes[attr >> 1][OBSEL >> 5];
+			}
+		}
+
+		OAMAddress++;
+		OAMAddress %= 0x220;
 	}
 	else if (reg == 0x05) {		// BGMODE
 		BGMode = value;
