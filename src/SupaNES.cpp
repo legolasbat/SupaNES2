@@ -103,6 +103,15 @@ uint8_t SupaNES::ReadMemoryQ1(uint32_t address) {
 		else if ((address & 0xFF) == 0x43) {
 			return apu->ReadAPUPorts(address);
 		}
+		else if ((address & 0xFF) == 0x80) {
+			value = WRAM[WRAMAddress++];
+			WRAMAddress %= 0x20000;
+			return value;
+		}
+		else if ((address & 0xFF) == 0x80) {
+			// Open Bus
+			return 0;
+		}
 		printf("Reading %06X\n", address);
 		assert(false && "Reading Q1 Page 21");
 	}
@@ -168,7 +177,9 @@ uint8_t SupaNES::ReadMemoryQ3(uint32_t address) {
 			return apu->ReadAPUPorts(address);
 		}
 		else if ((address & 0xFF) == 0x80) {
-			return WRAM[WRAMAddress++];
+			value = WRAM[WRAMAddress++];
+			WRAMAddress %= 0x20000;
+			return value;
 		}
 		printf("Reading %06X\n", address);
 		assert(false && "Reading Q1 Page 21");
@@ -216,19 +227,22 @@ void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
 		else if ((address & 0xFF) == 0x80) {	// Write/Read
 			WRAM[WRAMAddress] = value;
 			WRAMAddress++;
-			WRAMAddress = WRAMAddress % 0x20000;
+			WRAMAddress %= 0x20000;
 		}
 		else if ((address & 0xFF) == 0x81) {	// Low Address
 			WRAMAddress &= 0x1FF00;
 			WRAMAddress |= value;
+			WRAMAddress %= 0x20000;
 		}
 		else if ((address & 0xFF) == 0x82) {	// Page Address
 			WRAMAddress &= 0x100FF;
 			WRAMAddress |= value << 8;
+			WRAMAddress %= 0x20000;
 		}
 		else if ((address & 0xFF) == 0x83) {	// Bank Address
 			WRAMAddress &= 0xFFFF;
 			WRAMAddress |= value << 16;
+			WRAMAddress %= 0x20000;
 		} else {
 			printf("Write Page 21: %06X\n", address);
 		}
@@ -287,19 +301,22 @@ void SupaNES::WriteMemoryQ3(uint32_t address, uint8_t value) {
 		else if ((address & 0xFF) == 0x80) {	// Write/Read
 			WRAM[WRAMAddress] = value;
 			WRAMAddress++;
-			WRAMAddress = WRAMAddress % 0x20000;
+			WRAMAddress %= 0x20000;
 		}
 		else if ((address & 0xFF) == 0x81) {	// Low Address
 			WRAMAddress &= 0x1FF00;
 			WRAMAddress |= value;
+			WRAMAddress %= 0x20000;
 		}
 		else if ((address & 0xFF) == 0x82) {	// Page Address
 			WRAMAddress &= 0x100FF;
 			WRAMAddress |= value << 8;
+			WRAMAddress %= 0x20000;
 		}
 		else if ((address & 0xFF) == 0x83) {	// Bank Address
 			WRAMAddress &= 0xFFFF;
 			WRAMAddress |= value << 16;
+			WRAMAddress %= 0x20000;
 		}
 		else {
 			printf("Write Page 21: %06X\n", address);
