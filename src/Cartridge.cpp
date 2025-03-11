@@ -8,6 +8,12 @@
 Cartridge::Cartridge(SupaNES* supaNes) {
 	//TODO: Init variables
 	memory = supaNes;
+
+	ROM = nullptr;
+	ROMSize = 0;
+
+	RAM = nullptr;
+	RAMSize = 0;
 }
 
 bool Cartridge::LoadROM(const char* filepath, uint16_t* excVectors) {
@@ -326,6 +332,10 @@ uint8_t Cartridge::ReadRom(uint32_t address) {
 }
 
 void Cartridge::WriteRom(uint32_t address, uint8_t value) {
+	if (RAMSize == 0) {
+		return;
+	}
+
 	uint8_t bank = (address & 0x00FF0000) >> 16;
 	uint8_t page = (address & 0x0000FF00) >> 8;
 
@@ -354,10 +364,12 @@ void Cartridge::WriteRom(uint32_t address, uint8_t value) {
 Cartridge::~Cartridge() {
 	if (ROMSize > 0) {
 		free(ROM);
+		ROM = nullptr;
 		ROMSize = 0;
 	}
 	if (RAMSize > 0) {
 		free(RAM);
+		ROM = nullptr;
 		RAMSize = 0;
 	}
 }
