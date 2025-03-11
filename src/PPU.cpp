@@ -273,92 +273,60 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 		BGAddress3_4 = value;
 	}
 	else if (reg == 0x0D) {		// BG1HOFS or M7HOFS
-		if (!BG1HScrollFlipflop) {
-			BG1HScroll &= 0xFF00;
-			BG1HScroll |= value;
-			BG1HScrollFlipflop = true;
-		} else {
-			BG1HScroll &= 0x00FF;
-			BG1HScroll |= (value << 8);
-			BG1HScrollFlipflop = false;
+		BG1HScroll = (value << 8) | (BG_Old_1 & ~0x07) | (BG_Old_2 & 0x07);
+		BG1HScroll &= 0x03FF;
+		BG_Old_1 = value;
+		BG_Old_2 = value;
+		M7HOFS = (value << 8) | prevM;
+		M7HOFS &= 0x1FFF;
+		if (M7HOFS & 0x1000) {
+			M7HOFS |= 0xE000;
 		}
+		prevM = value;
 	}
 	else if (reg == 0x0E) {		// BG1VOFS or M7VOFS
-		if (!BG1VScrollFlipflop) {
-			BG1VScroll &= 0xFF00;
-			BG1VScroll |= value;
-			BG1VScrollFlipflop = true;
-		} else {
-			BG1VScroll &= 0x00FF;
-			BG1VScroll |= (value << 8);
-			BG1VScrollFlipflop = false;
+		BG1VScroll = (value << 8) | BG_Old_1;
+		BG1VScroll &= 0x03FF;
+		BG_Old_1 = value;
+		M7VOFS = (value << 8) | prevM;
+		M7VOFS &= 0x1FFF;
+		if (M7VOFS & 0x1000) {
+			M7VOFS |= 0xE000;
 		}
+		prevM = value;
 	}
 	else if (reg == 0x0F) {		// BG2HOFS
-		if (!BG2HScrollFlipflop) {
-			BG2HScroll &= 0xFF00;
-			BG2HScroll |= value;
-			BG2HScrollFlipflop = true;
-		} else {
-			BG2HScroll &= 0x00FF;
-			BG2HScroll |= (value << 8);
-			BG2HScrollFlipflop = false;
-		}
+		BG2HScroll = (value << 8) | (BG_Old_1 & ~0x07) | (BG_Old_2 & 0x07);
+		BG2HScroll &= 0x03FF;
+		BG_Old_1 = value;
+		BG_Old_2 = value;
 	}
 	else if (reg == 0x10) {		// BG2VOFS
-		if (!BG2VScrollFlipflop) {
-			BG2VScroll &= 0xFF00;
-			BG2VScroll |= value;
-			BG2VScrollFlipflop = true;
-		} else {
-			BG2VScroll &= 0x00FF;
-			BG2VScroll |= (value << 8);
-			BG2VScrollFlipflop = false;
-		}
+		BG2VScroll = (value << 8) | BG_Old_1;
+		BG2VScroll &= 0x03FF;
+		BG_Old_1 = value;
 	}
 	else if (reg == 0x11) {		// BG3HOFS
-		if (!BG3HScrollFlipflop) {
-			BG3HScroll &= 0xFF00;
-			BG3HScroll |= value;
-			BG3HScrollFlipflop = true;
-		} else {
-			BG3HScroll &= 0x00FF;
-			BG3HScroll |= (value << 8);
-			BG3HScrollFlipflop = false;
-		}
+		BG3HScroll = (value << 8) | (BG_Old_1 & ~0x07) | (BG_Old_2 & 0x07);
+		BG3HScroll &= 0x03FF;
+		BG_Old_1 = value;
+		BG_Old_2 = value;
 	}
 	else if (reg == 0x12) {		// BG3VOFS
-		if (!BG3VScrollFlipflop) {
-			BG3VScroll &= 0xFF00;
-			BG3VScroll |= value;
-			BG3VScrollFlipflop = true;
-		} else {
-			BG3VScroll &= 0x00FF;
-			BG3VScroll |= (value << 8);
-			BG3VScrollFlipflop = false;
-		}
+		BG3VScroll = (value << 8) | BG_Old_1;
+		BG3VScroll &= 0x03FF;
+		BG_Old_1 = value;
 	}
 	else if (reg == 0x13) {		// BG4HOFS
-		if (!BG4HScrollFlipflop) {
-			BG4HScroll &= 0xFF00;
-			BG4HScroll |= value;
-			BG4HScrollFlipflop = true;
-		} else {
-			BG4HScroll &= 0x00FF;
-			BG4HScroll |= (value << 8);
-			BG4HScrollFlipflop = false;
-		}
+		BG4HScroll = (value << 8) | (BG_Old_1 & ~0x07) | (BG_Old_2 & 0x07);
+		BG4HScroll &= 0x03FF;
+		BG_Old_1 = value;
+		BG_Old_2 = value;
 	}
 	else if (reg == 0x14) {		// BG4VOFS
-		if (!BG4VScrollFlipflop) {
-			BG4VScroll &= 0xFF00;
-			BG4VScroll |= value;
-			BG4VScrollFlipflop = true;
-		} else {
-			BG4VScroll &= 0x00FF;
-			BG4VScroll |= (value << 8);
-			BG4VScrollFlipflop = false;
-		}
+		BG4VScroll = (value << 8) | BG_Old_1;
+		BG4VScroll &= 0x03FF;
+		BG_Old_1 = value;
 	}
 	else if (reg == 0x15) {		// VMAIN
 		VMain = value;
@@ -464,10 +432,18 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	}
 	else if (reg == 0x1F) {		// M7X
 		M7X = (value << 8) | prevM;
+		M7X &= 0x1FFF;
+		if (M7X & 0x1000) {
+			M7X |= 0xE000;
+		}
 		prevM = value;
 	}
 	else if (reg == 0x20) {		// M7Y
 		M7Y = (value << 8) | prevM;
+		M7Y &= 0x1FFF;
+		if (M7Y & 0x1000) {
+			M7Y |= 0xE000;
+		}
 		prevM = value;
 	}
 	else if (reg == 0x21) {		// CGADD
@@ -963,8 +939,8 @@ void PPU::CalculateMode7Coor(int& X, int& Y) {
 
 	float X0 = M7X / 256.0f;
 	float Y0 = M7Y / 256.0f;
-	float H = (int16_t)BG1HScroll / 256.0f;
-	float V = (int16_t)BG1VScroll / 256.0f;
+	float H = M7HOFS / 256.0f;
+	float V = M7VOFS / 256.0f;
 
 	X = (int16_t)((A * (Xi + H - X0) + B * (Yi + V - Y0) + X0) * 256.0f);
 	Y = (int16_t)((C * (Xi + H - X0) + D * (Yi + V - Y0) + Y0) * 256.0f);
