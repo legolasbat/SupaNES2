@@ -108,7 +108,7 @@ uint8_t SupaNES::ReadMemoryQ1(uint32_t address) {
 			WRAMAddress %= 0x20000;
 			return value;
 		}
-		else if ((address & 0xFF) == 0x80) {
+		else if ((address & 0xFF) > 0x80) {
 			// Open Bus
 			return 0;
 		}
