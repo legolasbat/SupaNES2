@@ -69,7 +69,6 @@ class PPU {
 			bool flipY = false;
 			uint8_t priority = 0;
 			uint8_t palette = 0;
-			bool name = false;
 		};
 		OBJECT objs[128];
 

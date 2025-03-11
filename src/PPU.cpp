@@ -232,7 +232,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 				objs[OAMAddress / 4].flipX = value & 0x40;
 				objs[OAMAddress / 4].priority = (value & 0x30) >> 4;
 				objs[OAMAddress / 4].palette = (value & 0x0E) >> 1;
-				objs[OAMAddress / 4].name = value & 0x01;
+				objs[OAMAddress / 4].tileID |= (value & 0x01) << 8;
 			}
 		}
 		if (OAMAddress >= 0x200) {
@@ -866,7 +866,7 @@ void PPU::SetOBJPixel(int X, int Y) {
 					}
 
 					uint8_t offsetX = 7 - (objX % 8);
-					uint16_t baseAddress = ((OBSEL & 0x7) << 13) + (objs[i].name ? ((((OBSEL & 0x18) >> 3) + 1) << 12) : 0);
+					uint16_t baseAddress = (OBSEL & 0x7) << 13;
 					uint16_t tileAddress = baseAddress + (objs[i].tileID + objX / 8) * 0x10 + (objY % 8) + (objY / 8 * 0x100);
 					uint16_t color = GetColor4BPP(tileAddress, objs[i].palette + 8, offsetX);
 
