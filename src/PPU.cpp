@@ -217,7 +217,6 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	}
 	else if (reg == 0x04) {		// OAMDATA
 		if (!OAMFlipflop) {
-			OAM[OAMAddress] = value;
 			OAMFlipflop = true;
 
 			if (OAMAddress >= 0x100) {
@@ -237,7 +236,6 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 				objs[OAMAddress / 2].tileID = value;
 			}
 		} else {
-			OAM[OAMAddress] |= value << 8;
 
 			if (OAMAddress >= 0x100) {
 				uint8_t index = OAMAddress - 0x100;
