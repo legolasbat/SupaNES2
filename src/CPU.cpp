@@ -34,6 +34,8 @@ CPU::CPU(SupaNES* supaNes) {
 
 	regs.P = 0x34;
 
+	nmi = 2;
+
 	joypad1Low = 0;
 	joypad1High = 0;
 
@@ -630,24 +632,30 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 void CPU::StartHDMA() {
 	for (uint8_t i = 0; i < 8; i++) {
 		if ((enabledHDMA & (1 << i)) && !Dma[i].finished) {
-			if (--Dma[i].lineCounter != 0) {
-				continue;
+			if (--Dma[i].lineCounter == 0) {
+				if (ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)) == 0) {
+					Dma[i].finished = true;
+					continue;
+				}
+				uint8_t tableEntry = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
+				Dma[i].repeat = tableEntry & 0x80;
+				Dma[i].lineCounter = tableEntry & 0x7F;
+				Dma[i].tableAddress++;
+				if (Dma[i].indirect) {
+					Dma[i].count = ReadMemory(Dma[i].tableAddress);
+					Dma[i].count |= ReadMemory(Dma[i].tableAddress + 1) << 8;
+					Dma[i].tableAddress += 2;
+					TransferDMA(Dma[i].count, Dma[i].indirectBank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
+				} else {
+					TransferDMA(Dma[i].tableAddress, Dma[i].ABank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
+				}
 			}
-
-			uint8_t tableEntry = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
-			Dma[i].repeat = tableEntry & 0x80;
-			Dma[i].lineCounter = tableEntry & 0x7F;
-			Dma[i].tableAddress++;
-			if (Dma[i].indirect) {
-				Dma[i].count = ReadMemory(Dma[i].tableAddress);
-				Dma[i].count |= ReadMemory(Dma[i].tableAddress + 1) << 8;
-				Dma[i].tableAddress += 2;
-				TransferDMA(Dma[i].count, Dma[i].indirectBank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
-			} else {
-				TransferDMA(Dma[i].tableAddress, Dma[i].ABank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
-			}
-			if (ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)) == 0) {
-				Dma[i].finished = true;
+			else if (Dma[i].repeat) {
+				if (Dma[i].indirect) {
+					TransferDMA(Dma[i].count, Dma[i].indirectBank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
+				} else {
+					TransferDMA(Dma[i].tableAddress, Dma[i].ABank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
+				}
 			}
 		}
 	}
