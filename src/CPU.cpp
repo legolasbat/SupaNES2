@@ -2478,7 +2478,7 @@ uint8_t CPU::SBC() {
 
 			CheckNFlag8Bits(result);
 			CheckZFlag8Bits(result);
-			SetFlag(CFlag, (uint8_t)result < regs.A.L);
+			SetFlag(CFlag, (uint8_t)result <= regs.A.L);
 
 			regs.A.L = result;
 
@@ -2487,7 +2487,7 @@ uint8_t CPU::SBC() {
 			CheckNFlag8Bits(result);
 			CheckZFlag8Bits(result);
 
-			SetFlag(CFlag, result < regs.A.L);
+			SetFlag(CFlag, result <= regs.A.L);
 
 			SetFlag(VFlag, (int8_t)result < -128 || result > 127);
 
@@ -2522,7 +2522,7 @@ uint8_t CPU::SBC() {
 
 			CheckNFlag16Bits(result);
 			CheckZFlag16Bits(result);
-			SetFlag(CFlag, (uint16_t)result < regs.A.HL);
+			SetFlag(CFlag, (uint16_t)result <= regs.A.HL);
 
 			regs.A.HL = result;
 
@@ -2531,7 +2531,7 @@ uint8_t CPU::SBC() {
 			CheckNFlag16Bits(result);
 			CheckZFlag16Bits(result);
 
-			SetFlag(CFlag, result < regs.A.HL);
+			SetFlag(CFlag, result <= regs.A.HL);
 
 			SetFlag(VFlag, (int16_t)result < -32768 || result > 32767);
 
