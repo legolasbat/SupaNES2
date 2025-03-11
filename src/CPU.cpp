@@ -315,19 +315,17 @@ CPU::CPU(SupaNES* supaNes) {
 int CPU::Clock() {
 	int opcycles = 0;
 	if (cycles <= 0) {
-		if (startDMA) {
-			DMA();
-		}
-		else if (CheckIRQ()) {
+		if (CheckIRQ()) {
 			IRQ();
 		}
 		else {
 			opcode = ReadMemory((regs.PB << 16) | regs.PC);
 	
 			if (pendingDMA) {
-				startDMA = true;
+				DMA();
 				pendingDMA = false;
 			}
+
 			//printf("\033[0;36mPC: 0x%02x%04x OP: %s %02x\033[0m\n", regs.PB, regs.PC, opTable[opcode].name, opcode);
 			//Debug();
 	
@@ -691,7 +689,6 @@ void CPU::DMA() {
 			} while (Dma[i].count);
 			enabledDMA &= ~(1 << i);
 			if (enabledDMA == 0x00) {
-				startDMA = false;
 				return;
 			}
 		}

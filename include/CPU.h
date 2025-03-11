@@ -84,7 +84,6 @@ class CPU {
 		uint16_t quotient;			// 0x4214/5
 		uint16_t product;			// 0x4216/7
 
-		bool startDMA = false;
 		bool pendingDMA = false;
 
 		struct DMA {
