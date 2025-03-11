@@ -88,18 +88,18 @@ class CPU {
 		bool pendingDMA = false;
 
 		struct DMA {
-			bool direction = false;			// False: Write to BAddress; True: Read from BAddress
-			bool indirect = false;			// HDMA False: Direct Table; True: Indirect Table
-			uint8_t increment = 0;			// 00: Increment; 10: Decrement; X1: Nothing
-			uint8_t mode = 0;				// Transfer Unit
-			uint16_t BAddress = 0x2100;		// B Port Address (PPU IO Registers)
-			uint8_t ABank = 0;				// Bank of memory
-			uint16_t AAddress = 0;			// A Port Address (Memory)
-			uint16_t count = 0;				// Countdown of bytes to transfer in DMA; Indirect Address in HDMA
-			uint8_t indirectBank = 0;		// Indirect Bank in HDMA
-			uint16_t tableAddress = 0;		// HDMA Table Address
-			bool repeat = false;			// HDMA repeat
-			uint8_t lineCounter = 0;		// HDMA amount of scanlines it has to wait
+			bool direction = true;			// False: Write to BAddress; True: Read from BAddress
+			bool indirect = true;			// HDMA False: Direct Table; True: Indirect Table
+			uint8_t increment = 11;			// 00: Increment; 10: Decrement; X1: Nothing
+			uint8_t mode = 3;				// Transfer Unit
+			uint16_t BAddress = 0x21FF;		// B Port Address (PPU IO Registers)
+			uint8_t ABank = 0xFF;			// Bank of memory
+			uint16_t AAddress = 0xFFFF;		// A Port Address (Memory)
+			uint16_t count = 0xFFFF;		// Countdown of bytes to transfer in DMA; Indirect Address in HDMA
+			uint8_t indirectBank = 0xFF;	// Indirect Bank in HDMA
+			uint16_t tableAddress = 0xFFFF;	// HDMA Table Address
+			bool repeat = true;				// HDMA repeat
+			uint8_t lineCounter = 0xFF;		// HDMA amount of scanlines it has to wait
 			bool finished = false;			// Has the HDMA finished?
 		};
 		DMA Dma[8];
