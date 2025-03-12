@@ -74,6 +74,8 @@ class PPU {
 		};
 		OBJECT objs[128];
 
+		bool IsOBJOnScreen(int X, int Y, PPU::OBJECT& obj, uint16_t objWidth, uint8_t currentPriority);
+
 		uint16_t ColorMathPixel(uint16_t palette, Pixel subpixel);
 
 		bool IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg);

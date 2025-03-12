@@ -842,34 +842,30 @@ void PPU::SetOBJPixel(int X, int Y) {
 	objPixel->priority = 0;
 	objPixel->id = 4;
 
-	uint16_t width;
+	uint16_t objWidth;
 
 	for (int i = 127; i >= 0; i--) {
-		width = ObjSizes[objs[i].size ? 1 : 0][OBSEL >> 5];
-		if (Y >= objs[i].posY && Y < objs[i].posY + width) {
-			if (X >= objs[i].posX && X < objs[i].posX + width) {
-				if (objs[i].priority >= objPixel->priority) {
-					uint8_t objX = X - objs[i].posX;
-					uint8_t objY = Y - objs[i].posY;
+		objWidth = ObjSizes[objs[i].size ? 1 : 0][OBSEL >> 5];
+		if (IsOBJOnScreen(X, Y, objs[i], objWidth, objPixel->priority)) {
+			uint8_t objX = X - objs[i].posX;
+			uint8_t objY = Y - objs[i].posY;
 
-					if (objs[i].flipX) {
-						objX = width - objX - 1;
-					}
-					if (objs[i].flipY) {
-						objY = width - objY - 1;
-					}
+			if (objs[i].flipX) {
+				objX = objWidth - objX - 1;
+			}
+			if (objs[i].flipY) {
+				objY = objWidth - objY - 1;
+			}
 
-					uint8_t offsetX = 7 - (objX % 8);
-					uint16_t baseAddress = (OBSEL & 0x7) << 13;
-					uint16_t tileAddress = baseAddress + (objs[i].tileID + objX / 8) * 0x10 + (objY % 8) + (objY / 8 * 0x100);
-					uint16_t color = GetColor4BPP(tileAddress, objs[i].palette + 8, offsetX);
+			uint8_t offsetX = 7 - (objX % 8);
+			uint16_t baseAddress = (OBSEL & 0x7) << 13;
+			uint16_t tileAddress = baseAddress + (objs[i].tileID + objX / 8) * 0x10 + (objY % 8) + (objY / 8 * 0x100);
+			uint16_t color = GetColor4BPP(tileAddress, objs[i].palette + 8, offsetX);
 
-					if (color & 0x8000) {
-						objPixel->color = color;
-						objPixel->priority = objs[i].priority;
-						objPixel->palette = objs[i].palette;
-					}
-				}
+			if (color & 0x8000) {
+				objPixel->color = color;
+				objPixel->priority = objs[i].priority;
+				objPixel->palette = objs[i].palette;
 			}
 		}
 	}
@@ -877,6 +873,38 @@ void PPU::SetOBJPixel(int X, int Y) {
 	subPixelPipeline[4].color = mainPixelPipeline[4].color;
 	subPixelPipeline[4].priority = mainPixelPipeline[4].priority;
 	subPixelPipeline[4].id = mainPixelPipeline[4].id;
+}
+
+bool PPU::IsOBJOnScreen(int X, int Y, PPU::OBJECT& obj, uint16_t objWidth, uint8_t currentPriority) {
+	if (obj.posY < height && obj.posX < width) {
+		if (Y >= obj.posY && Y < (uint8_t)(obj.posY + objWidth)) {
+			if (X >= obj.posX && X < ((obj.posX + objWidth) & 0x1FF)) {
+				if (obj.priority >= currentPriority) {
+					return true;
+				}
+			}
+		}
+	}
+	if (obj.posY > (uint8_t)(obj.posY + objWidth)) {
+		if (Y < (uint8_t)(obj.posY + objWidth)) {
+			if (X >= obj.posX && X < ((obj.posX + objWidth) & 0x1FF)) {
+				if (obj.priority >= currentPriority) {
+					return true;
+				}
+			}
+		}
+	}
+	if (obj.posX > ((obj.posX + objWidth) & 0x1FF)) {
+		if (X < ((obj.posX + objWidth) & 0x1FF)) {
+			if (Y >= obj.posY && Y < (uint8_t)(obj.posY + objWidth)) {
+				if (obj.priority >= currentPriority) {
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 void PPU::SetBG1PixelMode7(int X, int Y) {
