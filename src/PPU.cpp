@@ -698,28 +698,30 @@ void PPU::SetPixel(int X, int Y) {
 	}
 
 	// SubSW
-	if ((CGWSEL & 0x30) == 0) {
-		// Never prevent color math
-		// Color Math
-		if (CGADSUB & (1 << mainPixel.id)) {
-			mainPixel.color = ColorMathPixel(mainPixel.color, subPixel);
-		}
-	}
-	else if (CGWSEL & 0x20) {
-		// Prevent color math inside window
-		if (!IsInsideWindow(X, 5, 0xFF)) {
+	if (!(mainPixel.id == 4 && mainPixel.palette < 4)) {		// OBJS with palettes 0-3 do not Math Color
+		if ((CGWSEL & 0x30) == 0) {
+			// Never prevent color math
 			// Color Math
 			if (CGADSUB & (1 << mainPixel.id)) {
 				mainPixel.color = ColorMathPixel(mainPixel.color, subPixel);
 			}
 		}
-	}
-	else if (CGWSEL & 0x10) {
-		// Prevent color math outside window
-		if (IsInsideWindow(X, 5, 0xFF)) {
-			// Color Math
-			if (CGADSUB & (1 << mainPixel.id)) {
-				mainPixel.color = ColorMathPixel(mainPixel.color, subPixel);
+		else if (CGWSEL & 0x20) {
+			// Prevent color math inside window
+			if (!IsInsideWindow(X, 5, 0xFF)) {
+				// Color Math
+				if (CGADSUB & (1 << mainPixel.id)) {
+					mainPixel.color = ColorMathPixel(mainPixel.color, subPixel);
+				}
+			}
+		}
+		else if (CGWSEL & 0x10) {
+			// Prevent color math outside window
+			if (IsInsideWindow(X, 5, 0xFF)) {
+				// Color Math
+				if (CGADSUB & (1 << mainPixel.id)) {
+					mainPixel.color = ColorMathPixel(mainPixel.color, subPixel);
+				}
 			}
 		}
 	}
@@ -865,6 +867,7 @@ void PPU::SetOBJPixel(int X, int Y) {
 					if (color & 0x8000) {
 						objPixel->color = color;
 						objPixel->priority = objs[i].priority;
+						objPixel->palette = objs[i].palette;
 					}
 				}
 			}
@@ -1050,7 +1053,7 @@ uint16_t PPU::ColorMathPixel(uint16_t palette, PPU::Pixel subpixel) {
 	uint8_t redSub = subpixel.color & 0x1F;
 	uint8_t greenSub = (subpixel.color >> 5) & 0x1F;
 	uint8_t blueSub = (subpixel.color >> 10) & 0x1F;
-	bool half = (CGADSUB & 0x40);// subpixel.id != 5;
+	bool half = (CGADSUB & 0x40);
 	if (CGADSUB & 0x80) {
 		palette &= ~0x1F;
 		if (red - redSub > 0) {
@@ -1182,10 +1185,6 @@ bool PPU::IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) {
 	}
 	if (!window1Enable && !window2Enable) {
 		return false;
-	}
-
-	if (BGIndex != 5 && (enableReg & (1 << BGIndex)) == 0) {
-		return true;
 	}
 
 	if (!window2Enable) {

@@ -23,6 +23,7 @@ class PPU {
 			uint16_t color = 0;
 			uint8_t priority = 0;
 			uint8_t id = 0;
+			uint8_t palette = 0;
 		};
 		Pixel mainPixelPipeline[6];
 		Pixel subPixelPipeline[6];
