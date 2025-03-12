@@ -2138,8 +2138,8 @@ uint8_t CPU::LSR() {
 
 uint8_t CPU::MVN() {
 	if (!movActive) {
-		srcBank = ReadMemory((regs.PB << 16) | regs.PC++);
 		regs.DB = ReadMemory((regs.PB << 16) | regs.PC++);
+		srcBank = ReadMemory((regs.PB << 16) | regs.PC++);
 		regs.PC -= 2;
 		movActive = true;
 	}
@@ -2163,12 +2163,12 @@ uint8_t CPU::MVN() {
 
 uint8_t CPU::MVP() {
 	if (!movActive) {
-		srcBank = ReadMemory((regs.PB << 16) | regs.PC++);
 		regs.DB = ReadMemory((regs.PB << 16) | regs.PC++);
+		srcBank = ReadMemory((regs.PB << 16) | regs.PC++);
 		regs.PC -= 2;
 		movActive = true;
 	}
-	assert(!(regs.P & XFlag) && "MVN XFlag");
+	assert(!(regs.P & XFlag) && "MVP XFlag");
 	uint8_t value = ReadMemory((srcBank << 16) | regs.X.HL);
 	WriteMemory((regs.DB << 16) | regs.Y.HL, value);
 
