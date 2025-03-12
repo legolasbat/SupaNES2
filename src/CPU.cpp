@@ -616,8 +616,8 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 				Dma[dmaChannel].tableAddress |= (value << 8);
 			}
 			else if (reg == 0xA) {	// NTRLx
-				Dma[dmaChannel].repeat = value & 0x80;
-				Dma[dmaChannel].lineCounter = value & 0x7F;
+				Dma[dmaChannel].repeat = (value - 1) & 0x80;
+				Dma[dmaChannel].lineCounter = value;
 			}
 		}
 		else {
@@ -636,8 +636,8 @@ void CPU::StartHDMA() {
 					continue;
 				}
 				uint8_t tableEntry = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
-				Dma[i].repeat = tableEntry & 0x80;
-				Dma[i].lineCounter = tableEntry & 0x7F;
+				Dma[i].repeat = (tableEntry - 1) & 0x80;
+				Dma[i].lineCounter = tableEntry;
 				Dma[i].tableAddress++;
 				if (Dma[i].indirect) {
 					Dma[i].count = ReadMemory(Dma[i].tableAddress);
@@ -665,8 +665,8 @@ void CPU::ResetHDMA() {
 			Dma[i].finished = false;
 			Dma[i].tableAddress = Dma[i].AAddress;
 			uint8_t tableEntry = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
-			Dma[i].repeat = tableEntry & 0x80;
-			Dma[i].lineCounter = tableEntry & 0x7F;
+			Dma[i].repeat = (tableEntry - 1) & 0x80;
+			Dma[i].lineCounter = tableEntry;
 			Dma[i].tableAddress++;
 
 			if (Dma[i].indirect) {
