@@ -211,32 +211,42 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	else if (reg == 0x02) {		// OAMADDL
 		OAMAddress &= 0xFF00;
 		OAMAddress |= value;
+		WrittenInternalOAMAddress = true;
 	}
 	else if (reg == 0x03) {		// OAMADDH
 		OAMAddress &= 0x00FF;
 		OAMAddress |= value << 8;
-	}
-	else if (reg == 0x04) {		// OAMDATA
-		if (OAMAddress % 2 == 0) {
-			OAM_Lsb = value;
-		}
-		else if (OAMAddress % 2 == 1 && OAMAddress < 0x200){
-			if ((OAMAddress & 0x3) == 0x1) {
-				objs[OAMAddress / 4].posX &= 0x100;
-				objs[OAMAddress / 4].posX |= OAM_Lsb;
-				objs[OAMAddress / 4].posY = value;
+		if (WrittenInternalOAMAddress) {
+			if (OAMAddress & 0x100) {
+				InternalOAMAddress = 0x200 | (OAMAddress & 0xFF);
 			}
 			else {
-				objs[OAMAddress / 4].tileID = OAM_Lsb;
-				objs[OAMAddress / 4].flipY = value & 0x80;
-				objs[OAMAddress / 4].flipX = value & 0x40;
-				objs[OAMAddress / 4].priority = (value & 0x30) >> 4;
-				objs[OAMAddress / 4].palette = (value & 0x0E) >> 1;
-				objs[OAMAddress / 4].tileID |= (value & 0x01) << 8;
+				InternalOAMAddress = OAMAddress & 0xFF;
+			}
+			WrittenInternalOAMAddress = false;
+		}
+	}
+	else if (reg == 0x04) {		// OAMDATA
+		if (InternalOAMAddress % 2 == 0) {
+			OAM_Lsb = value;
+		}
+		else if (InternalOAMAddress % 2 == 1 && InternalOAMAddress < 0x200){
+			if ((InternalOAMAddress & 0x3) == 0x1) {
+				objs[InternalOAMAddress / 4].posX &= 0x100;
+				objs[InternalOAMAddress / 4].posX |= OAM_Lsb;
+				objs[InternalOAMAddress / 4].posY = value;
+			}
+			else {
+				objs[InternalOAMAddress / 4].tileID = OAM_Lsb;
+				objs[InternalOAMAddress / 4].flipY = value & 0x80;
+				objs[InternalOAMAddress / 4].flipX = value & 0x40;
+				objs[InternalOAMAddress / 4].priority = (value & 0x30) >> 4;
+				objs[InternalOAMAddress / 4].palette = (value & 0x0E) >> 1;
+				objs[InternalOAMAddress / 4].tileID |= (value & 0x01) << 8;
 			}
 		}
-		if (OAMAddress >= 0x200) {
-			uint8_t index = OAMAddress - 0x200;
+		if (InternalOAMAddress >= 0x200) {
+			uint8_t index = InternalOAMAddress - 0x200;
 			for (uint8_t i = 0; i < 4; i++) {
 				uint8_t attr = (value >> (2 * i)) & 0x3;
 				objs[i + (index * 4)].posX &= 0x00FF;
@@ -245,8 +255,8 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 			}
 		}
 
-		OAMAddress++;
-		OAMAddress %= 0x220;
+		InternalOAMAddress++;
+		InternalOAMAddress %= 0x220;
 	}
 	else if (reg == 0x05) {		// BGMODE
 		BGMode = value;
@@ -358,6 +368,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 				remapAddress |= (lower >> 7) | (lower << 3);
 			}
 		}
+		remapAddress %= 0x8000;
 		VRAM[remapAddress] &= 0xFF00;
 		VRAM[remapAddress] |= value;
 		if (!(VMain & 0x80)) {
@@ -392,6 +403,7 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 				remapAddress |= (lower >> 7) | (lower << 3);
 			}
 		}
+		remapAddress %= 0x8000;
 		VRAM[remapAddress] &= 0x00FF;
 		VRAM[remapAddress] |= value << 8;
 		if (VMain & 0x80) {
@@ -735,12 +747,13 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 	int XScrolled = (X + HScroll) % (8 * XSize);
 	int YScrolled = (Y + VScroll + 1) % (8 * YSize);
 
-	uint16_t tile = (((BGAddress & 0xFC) << 8) % 0x8000)	// Mod 0x8000 because we use 16bits values instead of 8bits
-					+ ((((XSize == 64) ? (YScrolled % 256) : YScrolled) / 8) << 5)
-					+ ((XScrolled % 256) / 8)
+	// Mod 0x8000 because we use 16bits values instead of 8bits
+	uint16_t baseAddress = ((BGAddress & 0xFC) << 8) % 0x8000;
+	uint16_t offset = ((((XSize == 64) ? (YScrolled & 0xFF) : YScrolled) / 8) << 5)
+					+ ((XScrolled & 0xFF) / 8)
 					+ (XScrolled / 0x100) * 0x400
 					+ (XSize / 64) * ((YScrolled / 0x100) * 0x800);
-	uint16_t tileWord = VRAM[tile];
+	uint16_t tileWord = VRAM[baseAddress + offset];
 
 	uint16_t tileID = tileWord & 0x3FF;
 	uint8_t BGPaletteNumber = (tileWord >> 10) & 0x7;
