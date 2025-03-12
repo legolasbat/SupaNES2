@@ -35,11 +35,12 @@ class PPU {
 		int VCounter;
 		int frameCounter;
 
-		// Background Display Settings
-		bool BG1Selected = true;
-		bool BG2Selected = true;
-		bool BG3Selected = true;
-		bool BG4Selected = true;
+		// Layer Display Settings
+		bool BG1Display = true;
+		bool BG2Display = true;
+		bool BG3Display = true;
+		bool BG4Display = true;
+		bool ObjDisplay = true;
 
 	private:
 

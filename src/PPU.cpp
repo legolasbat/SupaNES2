@@ -563,7 +563,7 @@ void PPU::SetPixel(int X, int Y) {
 	subPixelPipeline[5].id = 5;
 
 	// BG4
-	if (((TM & 0x08) || (TS & 0x08)) && BG4Selected) {
+	if (((TM & 0x08) || (TS & 0x08)) && BG4Display) {
 		SetBGPixel(X, Y, BG4TileAddress, 3, GetColorBPPForBG(3),
 				(BG4TileAddress & 0x1) ? 64 : 32, (BG4TileAddress & 0x2) ? 64 : 32,
 				BG4HScroll, BG4VScroll);
@@ -585,7 +585,7 @@ void PPU::SetPixel(int X, int Y) {
 	}
 
 	// BG3
-	if (((TM & 0x04) || (TS & 0x04)) && BG3Selected) {
+	if (((TM & 0x04) || (TS & 0x04)) && BG3Display) {
 		SetBGPixel(X, Y, BG3TileAddress, 2, GetColorBPPForBG(2),
 				(BG3TileAddress & 0x1) ? 64 : 32, (BG3TileAddress & 0x2) ? 64 : 32,
 				BG3HScroll, BG3VScroll);
@@ -607,7 +607,7 @@ void PPU::SetPixel(int X, int Y) {
 	}
 
 	// BG2
-	if (((TM & 0x02) || (TS & 0x02)) && BG2Selected) {
+	if (((TM & 0x02) || (TS & 0x02)) && BG2Display) {
 		SetBGPixel(X, Y, BG2TileAddress, 1, GetColorBPPForBG(1),
 			(BG2TileAddress & 0x1) ? 64 : 32, (BG2TileAddress & 0x2) ? 64 : 32,
 			BG2HScroll, BG2VScroll);
@@ -629,7 +629,7 @@ void PPU::SetPixel(int X, int Y) {
 	}
 
 	// BG1
-	if (((TM & 0x01) || (TS & 0x01)) && BG1Selected) {
+	if (((TM & 0x01) || (TS & 0x01)) && BG1Display) {
 		if ((BGMode & 0x7) != 7) {
 			SetBGPixel(X, Y, BG1TileAddress, 0, GetColorBPPForBG(0),
 					(BG1TileAddress & 0x1) ? 64 : 32, (BG1TileAddress & 0x2) ? 64 : 32,
@@ -656,7 +656,7 @@ void PPU::SetPixel(int X, int Y) {
 	}
 
 	// OBJs
-	if ((TM & 0x10) || (TS & 0x10)) {
+	if (((TM & 0x10) || (TS & 0x10)) && ObjDisplay) {
 		SetOBJPixel(X, Y);
 	}
 	else {

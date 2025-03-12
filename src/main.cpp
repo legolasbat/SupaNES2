@@ -20,11 +20,12 @@ int windowSizeMultiplier = 3;
 // Main loop bool
 bool done = false;
 
-// Background Display Settings
+// Layer Display Settings
 bool BG1Selected = true;
 bool BG2Selected = true;
 bool BG3Selected = true;
 bool BG4Selected = true;
+bool OBJSelected = true;
 
 bool pause = false;
 
@@ -182,6 +183,10 @@ void HandleEvents(AppState* appstate) {
 					pause = !pause;
 					break;
 
+				case SDL_SCANCODE_F3:		// Show trace of CPU
+					appstate->supaNES->cpu->debug = !appstate->supaNES->cpu->debug;
+					break;
+
 				case SDL_SCANCODE_H:		// B bottom
 					appstate->supaNES->cpu->joypad1High |= 0x80;
 					break;
@@ -302,34 +307,34 @@ void MenuBar(AppState* appstate) {
 				if (ImGui::MenuItem("BG1", 0, BG1Selected, true)) {
 					BG1Selected = !BG1Selected;
 					if (appstate->supaNES->RomLoaded) {
-						appstate->supaNES->ppu->BG1Selected = BG1Selected;
+						appstate->supaNES->ppu->BG1Display = BG1Selected;
 					}
 				}
 				if (ImGui::MenuItem("BG2", 0, BG2Selected, true)) {
 					BG2Selected = !BG2Selected;
 					if (appstate->supaNES->RomLoaded) {
-						appstate->supaNES->ppu->BG2Selected = BG2Selected;
+						appstate->supaNES->ppu->BG2Display = BG2Selected;
 					}
 				}
 				if (ImGui::MenuItem("BG3", 0, BG3Selected, true)) {
 					BG3Selected = !BG3Selected;
 					if (appstate->supaNES->RomLoaded) {
-						appstate->supaNES->ppu->BG3Selected = BG3Selected;
+						appstate->supaNES->ppu->BG3Display = BG3Selected;
 					}
 				}
 				if (ImGui::MenuItem("BG4", 0, BG4Selected, true)) {
 					BG4Selected = !BG4Selected;
 					if (appstate->supaNES->RomLoaded) {
-						appstate->supaNES->ppu->BG4Selected = BG4Selected;
+						appstate->supaNES->ppu->BG4Display = BG4Selected;
+					}
+				}
+				if (ImGui::MenuItem("OBJ", 0, OBJSelected, true)) {
+					OBJSelected = !OBJSelected;
+					if (appstate->supaNES->RomLoaded) {
+						appstate->supaNES->ppu->ObjDisplay = OBJSelected;
 					}
 				}
 				ImGui::EndMenu();
-			}
-			if (ImGui::MenuItem("Log CPU")) {
-				// TODO: Display Log
-			}
-			if (ImGui::MenuItem("Log APU")) {
-				// TODO: Display Log
 			}
 			ImGui::EndMenu();
 		}

@@ -327,7 +327,9 @@ int CPU::Clock() {
 			}
 
 			//printf("\033[0;36mPC: 0x%02x%04x OP: %s %02x\033[0m\n", regs.PB, regs.PC, opTable[opcode].name, opcode);
-			//Debug();
+			if (debug) {
+				Debug();
+			}
 	
 			regs.PC++;
 	

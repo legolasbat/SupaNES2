@@ -57,6 +57,7 @@ class CPU {
 		uint8_t ReadCPU(uint32_t address);
 		void WriteCPU(uint32_t address, uint8_t value);
 
+		bool debug = false;
 		void Debug();
 
 		uint8_t joypad1Low;			// 0x4218
