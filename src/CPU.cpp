@@ -1979,12 +1979,11 @@ uint8_t CPU::JML() {
 
 		case AddMode::AbsoluteIndirectLong:
 		{
-			uint16_t indirectAddres = ReadMemory(regs.PC++);
-			indirectAddres |= ReadMemory(regs.PC++) << 8;
+			uint16_t indirectAddres = ReadMemory((regs.PB << 16) | regs.PC++);
+			indirectAddres |= ReadMemory((regs.PB << 16) | regs.PC++) << 8;
 			
 			fetchAddress = ReadMemory(indirectAddres);
 			fetchAddress |= ReadMemory((indirectAddres + 1) & 0xFFFF) << 8;
-
 			fetchAddress |= ReadMemory((indirectAddres + 2) & 0xFFFF) << 16;
 
 			break;
