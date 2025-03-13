@@ -12,6 +12,7 @@ PPU::PPU(SupaNES* supaNes) {
 	VCounter = 0;
 	frameCounter = 0;
 
+	OBSEL = 0;
 	BGMode = 0;
 	fixedColor = 0;
 
@@ -23,12 +24,16 @@ PPU::PPU(SupaNES* supaNes) {
 	ObjSizes[0][3] = 16;
 	ObjSizes[0][4] = 16;
 	ObjSizes[0][5] = 32;
+	ObjSizes[0][6] = 0;
+	ObjSizes[0][7] = 0;
 	ObjSizes[1][0] = 16;
 	ObjSizes[1][1] = 32;
 	ObjSizes[1][2] = 64;
 	ObjSizes[1][3] = 32;
 	ObjSizes[1][4] = 64;
 	ObjSizes[1][5] = 64;
+	ObjSizes[1][6] = 0;
+	ObjSizes[1][7] = 0;
 }
 
 void PPU::Clock() {
@@ -57,6 +62,7 @@ void PPU::Clock() {
 			memory->cpu->ResetHDMA();
 			memory->cpu->EndNMI();
 			OBJReloadSize();
+			GetOBJsToDisplay();
 		}
 	}
 }
@@ -564,18 +570,17 @@ void PPU::SetPixel(int X, int Y) {
 	subPixelPipeline[5].id = 5;
 
 	// BG4
+	mainPixelPipeline[3].color = 0;
+	mainPixelPipeline[3].priority = 0;
+	mainPixelPipeline[3].id = 3;
+	subPixelPipeline[3].color = 0;
+	subPixelPipeline[3].priority = 0;
+	subPixelPipeline[3].id = 3;
+
 	if (((TM & 0x08) || (TS & 0x08)) && BG4Display) {
 		SetBGPixel(X, Y, BG4TileAddress, 3, GetColorBPPForBG(3),
 				(BG4TileAddress & 0x1) ? 64 : 32, (BG4TileAddress & 0x2) ? 64 : 32,
 				BG4HScroll, BG4VScroll);
-	}
-	else {
-		mainPixelPipeline[3].color = 0;
-		mainPixelPipeline[3].priority = 0;
-		mainPixelPipeline[3].id = 3;
-		subPixelPipeline[3].color = 0;
-		subPixelPipeline[3].priority = 0;
-		subPixelPipeline[3].id = 3;
 	}
 	// Window BG4
 	if (IsInsideWindow(X, 3, TMW)) {
@@ -586,18 +591,17 @@ void PPU::SetPixel(int X, int Y) {
 	}
 
 	// BG3
+	mainPixelPipeline[2].color = 0;
+	mainPixelPipeline[2].priority = 0;
+	mainPixelPipeline[2].id = 2;
+	subPixelPipeline[2].color = 0;
+	subPixelPipeline[2].priority = 0;
+	subPixelPipeline[2].id = 2;
+
 	if (((TM & 0x04) || (TS & 0x04)) && BG3Display) {
 		SetBGPixel(X, Y, BG3TileAddress, 2, GetColorBPPForBG(2),
 				(BG3TileAddress & 0x1) ? 64 : 32, (BG3TileAddress & 0x2) ? 64 : 32,
 				BG3HScroll, BG3VScroll);
-	}
-	else {
-		mainPixelPipeline[2].color = 0;
-		mainPixelPipeline[2].priority = 0;
-		mainPixelPipeline[2].id = 2;
-		subPixelPipeline[2].color = 0;
-		subPixelPipeline[2].priority = 0;
-		subPixelPipeline[2].id = 2;
 	}
 	// Window BG3
 	if (IsInsideWindow(X, 2, TMW)) {
@@ -608,18 +612,17 @@ void PPU::SetPixel(int X, int Y) {
 	}
 
 	// BG2
+	mainPixelPipeline[1].color = 0;
+	mainPixelPipeline[1].priority = 0;
+	mainPixelPipeline[1].id = 1;
+	subPixelPipeline[1].color = 0;
+	subPixelPipeline[1].priority = 0;
+	subPixelPipeline[1].id = 1;
+
 	if (((TM & 0x02) || (TS & 0x02)) && BG2Display) {
 		SetBGPixel(X, Y, BG2TileAddress, 1, GetColorBPPForBG(1),
 			(BG2TileAddress & 0x1) ? 64 : 32, (BG2TileAddress & 0x2) ? 64 : 32,
 			BG2HScroll, BG2VScroll);
-	}
-	else {
-		mainPixelPipeline[1].color = 0;
-		mainPixelPipeline[1].priority = 0;
-		mainPixelPipeline[1].id = 1;
-		subPixelPipeline[1].color = 0;
-		subPixelPipeline[1].priority = 0;
-		subPixelPipeline[1].id = 1;
 	}
 	// Window BG2
 	if (IsInsideWindow(X, 1, TMW)) {
@@ -630,6 +633,13 @@ void PPU::SetPixel(int X, int Y) {
 	}
 
 	// BG1
+	mainPixelPipeline[0].color = 0;
+	mainPixelPipeline[0].priority = 0;
+	mainPixelPipeline[0].id = 0;
+	subPixelPipeline[0].color = 0;
+	subPixelPipeline[0].priority = 0;
+	subPixelPipeline[0].id = 0;
+	
 	if (((TM & 0x01) || (TS & 0x01)) && BG1Display) {
 		if ((BGMode & 0x7) != 7) {
 			SetBGPixel(X, Y, BG1TileAddress, 0, GetColorBPPForBG(0),
@@ -640,14 +650,6 @@ void PPU::SetPixel(int X, int Y) {
 			SetBG1PixelMode7(X, Y);
 		}
 	}
-	else {
-		mainPixelPipeline[0].color = 0;
-		mainPixelPipeline[0].priority = 0;
-		mainPixelPipeline[0].id = 0;
-		subPixelPipeline[0].color = 0;
-		subPixelPipeline[0].priority = 0;
-		subPixelPipeline[0].id = 0;
-	}
 	// Window BG1
 	if (IsInsideWindow(X, 0, TMW)) {
 		mainPixelPipeline[0].color = 0;
@@ -657,16 +659,16 @@ void PPU::SetPixel(int X, int Y) {
 	}
 
 	// OBJs
+	mainPixelPipeline[4].color = 0;
+	mainPixelPipeline[4].priority = 0;
+	mainPixelPipeline[4].id = 4;
+	mainPixelPipeline[4].palette = 0;
+	subPixelPipeline[4].color = 0;
+	subPixelPipeline[4].priority = 0;
+	subPixelPipeline[4].id = 4;
+	subPixelPipeline[4].palette = 0;
 	if (((TM & 0x10) || (TS & 0x10)) && ObjDisplay) {
 		SetOBJPixel(X, Y);
-	}
-	else {
-		mainPixelPipeline[4].color = 0;
-		mainPixelPipeline[4].priority = 0;
-		mainPixelPipeline[4].id = 0;
-		subPixelPipeline[4].color = 0;
-		subPixelPipeline[4].priority = 0;
-		subPixelPipeline[4].id = 0;
 	}
 	// Window OBJ
 	if (IsInsideWindow(X, 4, TMW)) {
@@ -819,77 +821,80 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 		mainPixelPipeline[BGIndex].priority = BGPriority ? 1 : 0;
 		mainPixelPipeline[BGIndex].id = BGIndex;
 	}
-	else {
-		mainPixelPipeline[BGIndex].color = 0;
-		mainPixelPipeline[BGIndex].priority = 0;
-		mainPixelPipeline[BGIndex].id = BGIndex;
-	}
 	// Subscreen
 	if (TS & (1 << BGIndex)) {
 		subPixelPipeline[BGIndex].color = palette;
 		subPixelPipeline[BGIndex].priority = BGPriority ? 1 : 0;
 		subPixelPipeline[BGIndex].id = BGIndex;
 	}
-	else {
-		subPixelPipeline[BGIndex].color = 0;
-		subPixelPipeline[BGIndex].priority = 0;
-		subPixelPipeline[BGIndex].id = BGIndex;
-	}
 }
 
 void PPU::SetOBJPixel(int X, int Y) {
-	PPU::Pixel* objPixel = &mainPixelPipeline[4];
-	objPixel->color = 0;
-	objPixel->priority = 0;
-	objPixel->id = 4;
+	PPU::Pixel objPixel;
+	objPixel.color = 0;
+	objPixel.priority = 0;
+	objPixel.palette = 0;
 
+	int index = 0;
+	PPU::OBJECT obj;
 	for (int i = 127; i >= 0; i--) {
-		if (IsOBJOnScreen(X, Y, objs[i], objPixel->priority)) {
-			uint8_t objX = X - objs[i].posX;
-			uint8_t objY = Y - objs[i].posY;
+		index = objsToDisplay[i];
+		if (index == -1) {
+			break;
+		}
+		obj = objs[index];
+		if (IsOBJOnScreen(X, Y, obj, objPixel.priority)) {
+			uint8_t objX = X - obj.posX;
+			uint8_t objY = Y - obj.posY;
 
-			uint8_t objWidth = ObjSizes[objs[i].size ? 1 : 0][OBSEL >> 5];
+			uint8_t objWidth = ObjSizes[obj.size ? 1 : 0][OBSEL >> 5];
 
-			if (objs[i].flipX) {
+			if (obj.flipX) {
 				objX = objWidth - objX - 1;
 			}
-			if (objs[i].flipY) {
+			if (obj.flipY) {
 				objY = objWidth - objY - 1;
 			}
 
 			uint8_t offsetX = 7 - (objX % 8);
 			uint16_t baseAddress = (OBSEL & 0x7) << 13;
-			uint16_t tileAddress = baseAddress + (objs[i].tileID + objX / 8) * 0x10 + (objY % 8) + (objY / 8 * 0x100);
-			uint16_t color = GetColor4BPP(tileAddress, objs[i].palette + 8, offsetX);
+			uint16_t tileAddress = baseAddress + (obj.tileID + objX / 8) * 0x10 + (objY % 8) + (objY / 8 * 0x100);
+			uint16_t color = GetColor4BPP(tileAddress, obj.palette + 8, offsetX);
 
 			if (color & 0x8000) {
-				objPixel->color = color;
-				objPixel->priority = objs[i].priority;
-				objPixel->palette = objs[i].palette;
+				objPixel.color = color;
+				objPixel.priority = obj.priority;
+				objPixel.palette = obj.palette;
 			}
 		}
 	}
-
-	subPixelPipeline[4].color = mainPixelPipeline[4].color;
-	subPixelPipeline[4].priority = mainPixelPipeline[4].priority;
-	subPixelPipeline[4].id = mainPixelPipeline[4].id;
+	
+	if (TM & 0x10) {
+		mainPixelPipeline[4].color = objPixel.color;
+		mainPixelPipeline[4].priority = objPixel.priority;
+		mainPixelPipeline[4].palette = objPixel.palette;
+	}
+	if (TS & 0x10) {
+		subPixelPipeline[4].color = objPixel.color;
+		subPixelPipeline[4].priority = objPixel.priority;
+		subPixelPipeline[4].palette = objPixel.palette;
+	}
 }
 
 bool PPU::IsOBJOnScreen(int X, int Y, PPU::OBJECT& obj, uint8_t currentPriority) {
-	if (obj.posY < obj.maxY) {
-		if (Y < obj.posY || Y >= obj.maxY) {
-			return false;
-		}
-	}
-	else if (Y >= obj.maxY) {
+	if (X >= obj.maxX) {
 		return false;
 	}
-	if (obj.posX < obj.maxX) {
-		if (X < obj.posX || X >= obj.maxX) {
-			return false;
-		}
+	if (Y >= obj.maxY) {
+		return false;
 	}
-	else if (X >= obj.maxX) {
+	if (obj.clipping == 3) {
+		return obj.priority >= currentPriority;
+	}
+	if (X < obj.posX && obj.clipping != 2) {
+		return false;
+	}
+	if (Y < obj.posY && obj.clipping != 1) {
 		return false;
 	}
 	return obj.priority >= currentPriority;
@@ -901,7 +906,34 @@ void PPU::OBJReloadSize() {
 		size = ObjSizes[objs[i].size ? 1 : 0][OBSEL >> 5];
 		objs[i].maxX = (objs[i].posX + size) & 0x1FF;
 		objs[i].maxY = objs[i].posY + size;
+		objs[i].clipping = 0;
 	}
+}
+
+void PPU::GetOBJsToDisplay() {
+	int pointer = 127;
+	for (int i = 127; i >= 0; i--) {
+		if (objs[i].posY < height && objs[i].posX < width) {
+			objsToDisplay[pointer--] = i;
+			continue;
+		}
+		if (objs[i].maxY != 0 && objs[i].maxY < objs[i].posY && objs[i].posX < width) {
+			objs[i].clipping = 1;
+			objsToDisplay[pointer--] = i;
+			continue;
+		}
+		if (objs[i].maxX != 0 && objs[i].maxX < objs[i].posX && objs[i].posY < height) {
+			objs[i].clipping = 2;
+			objsToDisplay[pointer--] = i;
+			continue;
+		}
+		if (objs[i].maxX != 0 && objs[i].maxY != 0 && objs[i].maxX < objs[i].posX && objs[i].maxY < objs[i].posY) {
+			objs[i].clipping = 3;
+			objsToDisplay[pointer--] = i;
+			continue;
+		}
+	}
+	objsToDisplay[pointer] = -1;
 }
 
 void PPU::SetBG1PixelMode7(int X, int Y) {

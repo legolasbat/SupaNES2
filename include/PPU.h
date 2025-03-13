@@ -60,23 +60,26 @@ class PPU {
 		uint16_t GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift);
 		uint16_t GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift);
 
-		uint8_t ObjSizes[2][6];
+		uint8_t ObjSizes[2][8];
 
 		struct OBJECT {
-			uint16_t posX = 0;
-			uint16_t maxX = 0;
-			uint8_t posY = 0;
-			uint8_t maxY = 0;
+			uint16_t posX = 0xFF;
+			uint16_t maxX = 0xFF;
+			uint8_t posY = 0xE0;
+			uint8_t maxY = 0xE0;
 			uint16_t tileID = 0;
 			bool flipX = false;
 			bool flipY = false;
 			uint8_t priority = 0;
 			uint8_t palette = 0;
 			bool size = false;
+			uint8_t clipping = 0;
 		};
 		OBJECT objs[128];
+		int objsToDisplay[128];
 
 		void OBJReloadSize();
+		void GetOBJsToDisplay();
 
 		bool IsOBJOnScreen(int X, int Y, PPU::OBJECT& obj, uint8_t currentPriority);
 
