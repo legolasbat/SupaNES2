@@ -153,8 +153,56 @@ bool Cartridge::LoadROM(const char* filepath, uint16_t* excVectors) {
 	uint8_t devID = 0;
 	fread(&devID, sizeof(uint8_t), 1, file);
 	if(devID == 0x33){
-		printf("Cartridge Ver. 3 not handled.\n");
-		return false;
+		printf("Cartridge Ver. 3.\n");
+		long currentPos = ftell(file);
+		fseek(file, currentPos - 0x2B, SEEK_SET);
+
+		// ASCII Maker Code
+		uint16_t makerCode = 0;
+		fread(&makerCode, sizeof(uint16_t), 1, file);
+
+		// ASCII Game Code
+		uint32_t gameCode = 0;
+		fread(&gameCode, sizeof(uint32_t), 1, file);
+
+		// 6 bytes that should be 0s
+		uint16_t nullRead = 0;
+		for (uint8_t i = 0; i < 3; i++) {
+			fread(&nullRead, sizeof(uint16_t), 1, file);
+		}
+
+		// Expansion flash
+		uint8_t expFlash = 0;
+		fread(&expFlash, sizeof(uint8_t), 1, file);
+		if (expFlash != 0) {
+			printf("Expansion flash not handled.\n");
+			fclose(file);
+			return false;
+		}
+
+		// Expansion RAM
+		uint8_t expRAM = 0;
+		fread(&expRAM, sizeof(uint8_t), 1, file);
+		if (expRAM != 0) {
+			printf("Expansion RAM not handled.\n");
+			fclose(file);
+			return false;
+		}
+
+		// Special version (usually 0)
+		uint8_t specialVer = 0;
+		fread(&specialVer, sizeof(uint8_t), 1, file);
+
+		// Chipset subtype
+		uint8_t chipsetSubtype = 0;
+		fread(&chipsetSubtype, sizeof(uint8_t), 1, file);
+		if (chipsetSubtype != 0) {
+			printf("Chipset not handled.\n");
+			fclose(file);
+			return false;
+		}
+
+		fseek(file, currentPos, SEEK_SET);
 	}
 
 	// Version
@@ -172,7 +220,6 @@ bool Cartridge::LoadROM(const char* filepath, uint16_t* excVectors) {
 	for (int i = 0; i < 16; i++) {
 		printf("Vector %d: 0x%04x\n", i, excVectors[i]);
 	}
-	//TODO: Load Vectors in memory
 
 	ROM = (uint8_t*)malloc(sizeof(uint8_t) * romSizeByte);
 	fseek(file, offset, SEEK_SET);
@@ -312,7 +359,7 @@ uint8_t Cartridge::ReadRom(uint32_t address) {
 		// Check bottom half
 		else if (page < 0x80) {
 			// SRAM 2Q
-			if (bank >= 0x40 && bank < 0x7E) {
+			if (bank >= 0x40 && bank < 0x7E && RAMSize != 0) {
 				value = RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize];
 			}
 			// ROM bottom half 4Q
@@ -322,7 +369,7 @@ uint8_t Cartridge::ReadRom(uint32_t address) {
 				assert(false);
 			}
 			// SRAM 4Q
-			else if (bank >= 0xF0) {
+			else if (bank >= 0xF0 && RAMSize != 0) {
 				value = RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize];
 			}
 		}
