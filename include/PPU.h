@@ -64,17 +64,21 @@ class PPU {
 
 		struct OBJECT {
 			uint16_t posX = 0;
+			uint16_t maxX = 0;
 			uint8_t posY = 0;
-			bool size = false;
+			uint8_t maxY = 0;
 			uint16_t tileID = 0;
 			bool flipX = false;
 			bool flipY = false;
 			uint8_t priority = 0;
 			uint8_t palette = 0;
+			bool size = false;
 		};
 		OBJECT objs[128];
 
-		bool IsOBJOnScreen(int X, int Y, PPU::OBJECT& obj, uint16_t objWidth, uint8_t currentPriority);
+		void OBJReloadSize();
+
+		bool IsOBJOnScreen(int X, int Y, PPU::OBJECT& obj, uint8_t currentPriority);
 
 		uint16_t ColorMathPixel(uint16_t palette, Pixel subpixel);
 

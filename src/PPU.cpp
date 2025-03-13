@@ -56,6 +56,7 @@ void PPU::Clock() {
 			VCounter = 0;
 			memory->cpu->ResetHDMA();
 			memory->cpu->EndNMI();
+			OBJReloadSize();
 		}
 	}
 }
@@ -842,13 +843,12 @@ void PPU::SetOBJPixel(int X, int Y) {
 	objPixel->priority = 0;
 	objPixel->id = 4;
 
-	uint16_t objWidth;
-
 	for (int i = 127; i >= 0; i--) {
-		objWidth = ObjSizes[objs[i].size ? 1 : 0][OBSEL >> 5];
-		if (IsOBJOnScreen(X, Y, objs[i], objWidth, objPixel->priority)) {
+		if (IsOBJOnScreen(X, Y, objs[i], objPixel->priority)) {
 			uint8_t objX = X - objs[i].posX;
 			uint8_t objY = Y - objs[i].posY;
+
+			uint8_t objWidth = ObjSizes[objs[i].size ? 1 : 0][OBSEL >> 5];
 
 			if (objs[i].flipX) {
 				objX = objWidth - objX - 1;
@@ -875,36 +875,33 @@ void PPU::SetOBJPixel(int X, int Y) {
 	subPixelPipeline[4].id = mainPixelPipeline[4].id;
 }
 
-bool PPU::IsOBJOnScreen(int X, int Y, PPU::OBJECT& obj, uint16_t objWidth, uint8_t currentPriority) {
-	if (obj.posY < height && obj.posX < width) {
-		if (Y >= obj.posY && Y < (uint8_t)(obj.posY + objWidth)) {
-			if (X >= obj.posX && X < ((obj.posX + objWidth) & 0x1FF)) {
-				if (obj.priority >= currentPriority) {
-					return true;
-				}
-			}
+bool PPU::IsOBJOnScreen(int X, int Y, PPU::OBJECT& obj, uint8_t currentPriority) {
+	if (obj.posY < obj.maxY) {
+		if (Y < obj.posY || Y >= obj.maxY) {
+			return false;
 		}
 	}
-	if (obj.posY > (uint8_t)(obj.posY + objWidth)) {
-		if (Y < (uint8_t)(obj.posY + objWidth)) {
-			if (X >= obj.posX && X < ((obj.posX + objWidth) & 0x1FF)) {
-				if (obj.priority >= currentPriority) {
-					return true;
-				}
-			}
+	else if (Y >= obj.maxY) {
+		return false;
+	}
+	if (obj.posX < obj.maxX) {
+		if (X < obj.posX || X >= obj.maxX) {
+			return false;
 		}
 	}
-	if (obj.posX > ((obj.posX + objWidth) & 0x1FF)) {
-		if (X < ((obj.posX + objWidth) & 0x1FF)) {
-			if (Y >= obj.posY && Y < (uint8_t)(obj.posY + objWidth)) {
-				if (obj.priority >= currentPriority) {
-					return true;
-				}
-			}
-		}
+	else if (X >= obj.maxX) {
+		return false;
 	}
+	return obj.priority >= currentPriority;
+}
 
-	return false;
+void PPU::OBJReloadSize() {
+	uint8_t size = 0;
+	for (uint8_t i = 0; i < 128; i++) {
+		size = ObjSizes[objs[i].size ? 1 : 0][OBSEL >> 5];
+		objs[i].maxX = (objs[i].posX + size) & 0x1FF;
+		objs[i].maxY = objs[i].posY + size;
+	}
 }
 
 void PPU::SetBG1PixelMode7(int X, int Y) {
