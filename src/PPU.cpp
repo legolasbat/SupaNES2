@@ -1082,6 +1082,9 @@ uint16_t PPU::ColorMathPixel(uint16_t palette, PPU::Pixel subpixel) {
 	uint8_t greenSub = (subpixel.color >> 5) & 0x1F;
 	uint8_t blueSub = (subpixel.color >> 10) & 0x1F;
 	bool half = (CGADSUB & 0x40);
+	if ((TS & 0x1F) == 0 && (CGWSEL & 0x2)) {
+		half = false;
+	}
 	if (CGADSUB & 0x80) {
 		palette &= ~0x1F;
 		if (red - redSub > 0) {
