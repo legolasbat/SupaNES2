@@ -35,6 +35,7 @@ CPU::CPU(SupaNES* supaNes) {
 	regs.P = 0x34;
 
 	nmi = 2;
+	NMITIMEN = 0;
 
 	joypad1Low = 0;
 	joypad1High = 0;
