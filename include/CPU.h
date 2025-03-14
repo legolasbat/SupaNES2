@@ -59,6 +59,7 @@ class CPU {
 
 		bool debug = false;
 		void Debug();
+		char* DebugAddress();
 
 		uint8_t joypad1Low;			// 0x4218
 		uint8_t joypad1High;		// 0x4219
@@ -142,7 +143,9 @@ class CPU {
 			DirectPageIndirectLong,
 			DirectPageIndirectLongIndexedY,
 			StackRelative,
-			StackRelativeIndirectIndexedY
+			StackRelativeIndirectIndexedY,
+			Branch,
+			A
 		};
 		
 		struct Instruction {
@@ -174,7 +177,7 @@ class CPU {
 		uint8_t FetchValue(AddMode addMode, bool is16Bits);
 		uint8_t WriteValue(AddMode addMode, uint16_t value, bool is16Bits, bool read = false);
 
-		uint8_t IMP(bool is16Bits);
+		uint8_t GetA(bool is16Bits);
 		uint8_t IMM(bool is16Bits);
 		uint8_t ABS();
 		uint8_t ABSLong();

@@ -50,14 +50,14 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x07] = {"ora", &CPU::ORA, AddMode::DirectPageIndirectLong, 6};
 	opTable[0x08] = {"php", &CPU::PHP, AddMode::Implied, 3};
 	opTable[0x09] = {"ora", &CPU::ORA, AddMode::Immediate, 2};
-	opTable[0x0A] = {"asl", &CPU::ASL, AddMode::Implied, 2};
+	opTable[0x0A] = {"asl", &CPU::ASL, AddMode::A, 2};
 	opTable[0x0B] = {"phd", &CPU::PHD, AddMode::Implied, 4};
 	opTable[0x0C] = {"tsb", &CPU::TSB, AddMode::Absolute, 6};
 	opTable[0x0D] = {"ora", &CPU::ORA, AddMode::Absolute, 4};
 	opTable[0x0E] = {"asl", &CPU::ASL, AddMode::Absolute, 6};
 	opTable[0x0F] = {"ora", &CPU::ORA, AddMode::AbsoluteLong, 5};
 
-	opTable[0x10] = {"bpl", &CPU::BPL, AddMode::Implied, 2};
+	opTable[0x10] = {"bpl", &CPU::BPL, AddMode::Branch, 2};
 	opTable[0x11] = {"ora", &CPU::ORA, AddMode::DirectPageIndirectIndexedY, 5};
 	opTable[0x12] = {"ora", &CPU::ORA, AddMode::DirectPageIndirect, 5};
 	opTable[0x13] = {"ora", &CPU::ORA, AddMode::StackRelativeIndirectIndexedY, 7};
@@ -67,7 +67,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x17] = {"ora", &CPU::ORA, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0x18] = {"clc", &CPU::CLC, AddMode::Implied, 2};
 	opTable[0x19] = {"ora", &CPU::ORA, AddMode::AbsoluteIndexedY, 4};
-	opTable[0x1A] = {"inc", &CPU::INC, AddMode::Implied, 2};
+	opTable[0x1A] = {"inc", &CPU::INC, AddMode::A, 2};
 	opTable[0x1B] = {"tcs", &CPU::TCS, AddMode::Implied, 2};
 	opTable[0x1C] = {"trb", &CPU::TRB, AddMode::Absolute, 6};
 	opTable[0x1D] = {"ora", &CPU::ORA, AddMode::AbsoluteIndexedX, 4};
@@ -84,14 +84,14 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x27] = {"and", &CPU::AND, AddMode::DirectPageIndirectLong, 6};
 	opTable[0x28] = {"plp", &CPU::PLP, AddMode::Implied, 4};
 	opTable[0x29] = {"and", &CPU::AND, AddMode::Immediate, 2};
-	opTable[0x2A] = {"rol", &CPU::ROL, AddMode::Implied, 2};
+	opTable[0x2A] = {"rol", &CPU::ROL, AddMode::A, 2};
 	opTable[0x2B] = {"pld", &CPU::PLD, AddMode::Implied, 5};
 	opTable[0x2C] = {"bit", &CPU::BIT, AddMode::Absolute, 4};
 	opTable[0x2D] = {"and", &CPU::AND, AddMode::Absolute, 4};
 	opTable[0x2E] = {"rol", &CPU::ROL, AddMode::Absolute, 6};
 	opTable[0x2F] = {"and", &CPU::AND, AddMode::AbsoluteLong, 5};
 
-	opTable[0x30] = {"bmi", &CPU::BMI, AddMode::Implied, 2};
+	opTable[0x30] = {"bmi", &CPU::BMI, AddMode::Branch, 2};
 	opTable[0x31] = {"and", &CPU::AND, AddMode::DirectPageIndirectIndexedY, 5};
 	opTable[0x32] = {"and", &CPU::AND, AddMode::DirectPageIndirect, 5};
 	opTable[0x33] = {"and", &CPU::AND, AddMode::StackRelativeIndirectIndexedY, 7};
@@ -101,7 +101,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x37] = {"and", &CPU::AND, AddMode::DirectPageIndirectLongIndexedY, 6};
 	opTable[0x38] = {"sec", &CPU::SEC, AddMode::Implied, 2};
 	opTable[0x39] = {"and", &CPU::AND, AddMode::AbsoluteIndexedY, 4};
-	opTable[0x3A] = {"dec", &CPU::DEC, AddMode::Implied, 2};
+	opTable[0x3A] = {"dec", &CPU::DEC, AddMode::A, 2};
 	opTable[0x3B] = {"tsc", &CPU::TSC, AddMode::Implied, 2};
 	opTable[0x3C] = {"bit", &CPU::BIT, AddMode::AbsoluteIndexedX, 4};
 	opTable[0x3D] = {"and", &CPU::AND, AddMode::AbsoluteIndexedX, 4};
@@ -118,14 +118,14 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x47] = {"eor", &CPU::EOR, AddMode::DirectPageIndirectLong, 6};
 	opTable[0x48] = {"pha", &CPU::PHA, AddMode::Implied, 3};
 	opTable[0x49] = {"eor", &CPU::EOR, AddMode::Immediate, 2};
-	opTable[0x4A] = {"lsr", &CPU::LSR, AddMode::Implied, 2};
+	opTable[0x4A] = {"lsr", &CPU::LSR, AddMode::A, 2};
 	opTable[0x4B] = {"phk", &CPU::PHK, AddMode::Implied, 3};
 	opTable[0x4C] = {"jmp", &CPU::JMP, AddMode::Absolute, 3};
 	opTable[0x4D] = {"eor", &CPU::EOR, AddMode::Absolute, 4};
 	opTable[0x4E] = {"lsr", &CPU::LSR, AddMode::Absolute, 6};
 	opTable[0x4F] = {"eor", &CPU::EOR, AddMode::AbsoluteLong, 5};
 
-	opTable[0x50] = {"bvc", &CPU::BVC, AddMode::Implied, 2};
+	opTable[0x50] = {"bvc", &CPU::BVC, AddMode::Branch, 2};
 	opTable[0x51] = {"eor", &CPU::EOR, AddMode::DirectPageIndirectIndexedY, 5};
 	opTable[0x52] = {"eor", &CPU::EOR, AddMode::DirectPageIndirect, 5};
 	opTable[0x53] = {"eor", &CPU::EOR, AddMode::StackRelativeIndirectIndexedY, 7};
@@ -152,14 +152,14 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x67] = {"adc", &CPU::ADC, AddMode::DirectPageIndirectLong, 6};
 	opTable[0x68] = {"pla", &CPU::PLA, AddMode::Implied, 4};
 	opTable[0x69] = {"adc", &CPU::ADC, AddMode::Immediate, 2};
-	opTable[0x6A] = {"ror", &CPU::ROR, AddMode::Implied, 2};
+	opTable[0x6A] = {"ror", &CPU::ROR, AddMode::A, 2};
 	opTable[0x6B] = {"rtl", &CPU::RTL, AddMode::Implied, 6};
 	opTable[0x6C] = {"jmp", &CPU::JMP, AddMode::AbsoluteIndirect, 5};
 	opTable[0x6D] = {"adc", &CPU::ADC, AddMode::Absolute, 4};
 	opTable[0x6E] = {"ror", &CPU::ROR, AddMode::Absolute, 6};
 	opTable[0x6F] = {"adc", &CPU::ADC, AddMode::AbsoluteLong, 5};
 
-	opTable[0x70] = {"bvs", &CPU::BVS, AddMode::Implied, 2};
+	opTable[0x70] = {"bvs", &CPU::BVS, AddMode::Branch, 2};
 	opTable[0x71] = {"adc", &CPU::ADC, AddMode::DirectPageIndirectIndexedY, 5};
 	opTable[0x72] = {"adc", &CPU::ADC, AddMode::DirectPageIndirect, 5};
 	opTable[0x73] = {"adc", &CPU::ADC, AddMode::StackRelativeIndirectIndexedY, 7};
@@ -193,7 +193,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0x8E] = {"stx", &CPU::STX, AddMode::Absolute, 4};
 	opTable[0x8F] = {"sta", &CPU::STA, AddMode::AbsoluteLong, 5};
 
-	opTable[0x90] = {"bcc", &CPU::BCC, AddMode::Implied, 2};
+	opTable[0x90] = {"bcc", &CPU::BCC, AddMode::Branch, 2};
 	opTable[0x91] = {"sta", &CPU::STA, AddMode::DirectPageIndirectIndexedY, 6};
 	opTable[0x92] = {"sta", &CPU::STA, AddMode::DirectPageIndirect, 5};
 	opTable[0x93] = {"sta", &CPU::STA, AddMode::StackRelativeIndirectIndexedY, 7};
@@ -217,7 +217,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xA4] = {"ldy", &CPU::LDY, AddMode::DirectPage, 3};
 	opTable[0xA5] = {"lda", &CPU::LDA, AddMode::DirectPage, 3};
 	opTable[0xA6] = {"ldx", &CPU::LDX, AddMode::DirectPage, 3};
-	opTable[0xA7] = {"lad", &CPU::LDA, AddMode::DirectPageIndirectLong, 6};
+	opTable[0xA7] = {"lda", &CPU::LDA, AddMode::DirectPageIndirectLong, 6};
 	opTable[0xA8] = {"tay", &CPU::TAY, AddMode::Implied, 2};
 	opTable[0xA9] = {"lda", &CPU::LDA, AddMode::Immediate, 2};
 	opTable[0xAA] = {"tax", &CPU::TAX, AddMode::Implied, 2};
@@ -227,7 +227,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xAE] = {"ldx", &CPU::LDX, AddMode::Absolute, 4};
 	opTable[0xAF] = {"lda", &CPU::LDA, AddMode::AbsoluteLong, 5};
 
-	opTable[0xB0] = {"bcs", &CPU::BCS, AddMode::Implied, 2};
+	opTable[0xB0] = {"bcs", &CPU::BCS, AddMode::Branch, 2};
 	opTable[0xB1] = {"lda", &CPU::LDA, AddMode::DirectPageIndirectIndexedY, 5};
 	opTable[0xB2] = {"lda", &CPU::LDA, AddMode::DirectPageIndirect, 5};
 	opTable[0xB3] = {"lda", &CPU::LDA, AddMode::StackRelativeIndirectIndexedY, 7};
@@ -261,7 +261,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xCE] = {"dec", &CPU::DEC, AddMode::Absolute, 6};
 	opTable[0xCF] = {"cmp", &CPU::CMP, AddMode::AbsoluteLong, 5};
 
-	opTable[0xD0] = {"bne", &CPU::BNE, AddMode::Implied, 2};
+	opTable[0xD0] = {"bne", &CPU::BNE, AddMode::Branch, 2};
 	opTable[0xD1] = {"cmp", &CPU::CMP, AddMode::DirectPageIndirectIndexedY, 5};
 	opTable[0xD2] = {"cmp", &CPU::CMP, AddMode::DirectPageIndirect, 5};
 	opTable[0xD3] = {"cmp", &CPU::CMP, AddMode::StackRelativeIndirectIndexedY, 7};
@@ -295,7 +295,7 @@ CPU::CPU(SupaNES* supaNes) {
 	opTable[0xEE] = {"inc", &CPU::INC, AddMode::Absolute, 6};
 	opTable[0xEF] = {"sbc", &CPU::SBC, AddMode::AbsoluteLong, 5};
 
-	opTable[0xF0] = {"beq", &CPU::BEQ, AddMode::Implied, 2};
+	opTable[0xF0] = {"beq", &CPU::BEQ, AddMode::Branch, 2};
 	opTable[0xF1] = {"sbc", &CPU::SBC, AddMode::DirectPageIndirectIndexedY, 5};
 	opTable[0xF2] = {"sbc", &CPU::SBC, AddMode::DirectPageIndirect, 5};
 	opTable[0xF3] = {"sbc", &CPU::SBC, AddMode::StackRelativeIndirectIndexedY, 7};
@@ -811,8 +811,9 @@ int logfileLineCount = 0;
 void CPU::Debug() {
 	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Descargas/SMW_log.txt", "w");
 	if (logfile) {
-		fprintf(logfile, "%02x%04x %s A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s V:%3d H:%3d F:%2d\n",
-				regs.PB, regs.PC, opTable[opcode].name, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
+		fprintf(logfile, "%02x%04x %s %s A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s V:%3d H:%3d F:%2d\n",
+				regs.PB, regs.PC, opTable[opcode].name, DebugAddress(),
+				regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
 				(regs.P & NFlag) ? "N" : "n",
 				(regs.P & VFlag) ? "V" : "v",
 				emulationMode ? "1" : (regs.P & MFlag) ? "M" : "m",
@@ -829,8 +830,9 @@ void CPU::Debug() {
 			assert(false);
 		}
 	} else {
-		printf("%02x%04x %s A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s V:%3d H:%3d F:%2d\n",
-			regs.PB, regs.PC, opTable[opcode].name, regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
+		printf("%02x%04x %s %s A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s V:%3d H:%3d F:%2d\n",
+			regs.PB, regs.PC, opTable[opcode].name, DebugAddress(),
+			regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
 			(regs.P & NFlag) ? "N" : "n",
 			(regs.P & VFlag) ? "V" : "v",
 			emulationMode ? "1" : (regs.P & MFlag) ? "M" : "m",
@@ -840,6 +842,237 @@ void CPU::Debug() {
 			(regs.P & ZFlag) ? "Z" : "z",
 			(regs.P & CFlag) ? "C" : "c",
 			memory->ppu->VCounter, memory->ppu->HCounter, memory->ppu->frameCounter);
+	}
+}
+
+char* CPU::DebugAddress() {
+	static char buffer[23] = "                  ";
+	switch (opTable[opcode].addMode) {
+	case AddMode::Implied:
+		sprintf(buffer, "                  ");
+		return buffer;
+
+	case AddMode::Immediate:
+	{
+		uint16_t value = ReadMemory((regs.PB << 16) | (regs.PC + 1));
+		if (!(regs.P & MFlag)) {
+			value |= ReadMemory((regs.PB << 16) | (regs.PC + 2)) << 8;
+			sprintf(buffer, "#$%04x            ", value);
+			return buffer;
+		}
+
+		sprintf(buffer, "#$%02x              ", value);
+		return buffer;
+	}
+
+	case AddMode::Absolute:
+	{
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		address |= ReadMemory((regs.PB << 16) | regs.PC + 2) << 8;
+		uint32_t fullAddress = (regs.DB << 16) | address;
+
+		sprintf(buffer, "$%04x     [%06x]", address, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::AbsoluteLong:
+	{
+		uint32_t address = ReadMemory((regs.PB << 16) | (regs.PC + 1));
+		address |= ReadMemory((regs.PB << 16) | (regs.PC + 2)) << 8;
+		address |= ReadMemory((regs.PB << 16) | (regs.PC + 3)) << 16;
+
+		sprintf(buffer, "$%06x           ", address);
+		return buffer;
+	}
+
+	case AddMode::AbsoluteLongIndexedX:
+	{
+		uint32_t address = ReadMemory((regs.PB << 16) | (regs.PC + 1));
+		address |= ReadMemory((regs.PB << 16) | (regs.PC + 2)) << 8;
+		address |= ReadMemory((regs.PB << 16) | (regs.PC + 3)) << 16;
+		uint16_t offset = (regs.P & XFlag) ? regs.X.L : regs.X.HL;
+		uint32_t fullAddress = address + offset;
+
+		sprintf(buffer, "$%06x,x [%06x]", address, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::AbsoluteIndexedX:
+	{
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		address |= ReadMemory((regs.PB << 16) | regs.PC + 2) << 8;
+		uint16_t offset = (regs.P & XFlag) ? regs.X.L : regs.X.HL;
+		uint32_t fullAddress = address + offset;
+		fullAddress |= (regs.DB << 16);
+
+		sprintf(buffer, "$%04x,x   [%06x]", address, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::AbsoluteIndexedY:
+	{
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		address |= ReadMemory((regs.PB << 16) | regs.PC + 2) << 8;
+		uint16_t offset = (regs.P & XFlag) ? regs.Y.L : regs.Y.HL;
+		uint32_t fullAddress = address + offset;
+		fullAddress |= (regs.DB << 16);
+
+		sprintf(buffer, "$%04x,y   [%06x]", address, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::DirectPage:
+	{
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint32_t fullAddress = address + regs.DP;
+		
+		sprintf(buffer, "$%02x       [%06x]", address, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::DirectPageIndexedX:
+	{
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t offset = (regs.P & XFlag) ? regs.X.L : regs.X.HL;
+		uint32_t fullAddress = address + regs.DP + offset;
+
+		sprintf(buffer, "$%02x,x     [%06x]", address, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::DirectPageIndexedY:
+	{
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t offset = (regs.P & XFlag) ? regs.Y.L : regs.Y.HL;
+		uint32_t fullAddress = address + regs.DP + offset;
+
+		sprintf(buffer, "$%02x,y      [%06x]", address, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::DirectPageIndirect:
+	{
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t indirectAddress = address + regs.DP;
+
+		uint32_t fullAddress = ReadMemory(indirectAddress);
+		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+
+		sprintf(buffer, "($%02x)     [%06x]", address, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::DirectPageIndirectX:
+	{
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t indirectAddress = address + regs.DP + regs.X.HL;
+
+		uint32_t fullAddress = ReadMemory(indirectAddress);
+		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+
+		sprintf(buffer, "($%02x,x)   [%06x]", address, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::DirectPageIndirectIndexedY:
+	{
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t indirectAddress = address + regs.DP;
+
+		uint32_t fullAddress = ReadMemory(indirectAddress);
+		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+		fullAddress += regs.Y.HL;
+
+		sprintf(buffer, "($%02x),y   [%06x]", address, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::DirectPageIndirectLong:
+	{
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t indirectAddress = address + regs.DP;
+
+		uint32_t fullAddress = ReadMemory(indirectAddress);
+		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+		fullAddress |= ReadMemory((indirectAddress + 2) & 0xFFFF) << 16;
+
+		sprintf(buffer, "[$%02x]     [%06x]", address, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::DirectPageIndirectLongIndexedY:
+	{
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t indirectAddress = address + regs.DP;
+
+		uint32_t fullAddress = ReadMemory(indirectAddress);
+		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+		fullAddress |= ReadMemory((indirectAddress + 2) & 0xFFFF) << 16;
+
+		fullAddress += regs.Y.HL;
+
+		sprintf(buffer, "[$%02x],y   [%06x]", address, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::StackRelative:
+	{
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t fullAddress = address + regs.SP;
+
+		sprintf(buffer, "$%02x,s      [%06x]", address, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::StackRelativeIndirectIndexedY:
+	{
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t indirectAddress = address + regs.SP;
+
+		uint32_t fullAddress = ReadMemory(indirectAddress);
+		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+		fullAddress |= regs.DB << 16;
+		fullAddress += regs.Y.HL;
+		fullAddress &= 0xFFFFFF;
+
+		sprintf(buffer, "$%02x,sy     [%06x]", address, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::AbsoluteIndirectLong:
+	{
+		uint16_t indirectAddress = ReadMemory((regs.PB << 16) | (regs.PC + 1));
+		indirectAddress |= ReadMemory((regs.PB << 16) | (regs.PC + 2)) << 8;
+
+		uint32_t fullAddress = ReadMemory(indirectAddress);
+		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+		fullAddress |= ReadMemory((indirectAddress + 2) & 0xFFFF) << 16;
+
+		sprintf(buffer, "$%04x     [%06x]", indirectAddress, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::Branch:
+	{
+		int8_t offset = ReadMemory((regs.PB << 16) | (regs.PC + 1));
+
+		uint16_t address = regs.PC + offset + 2;
+
+		uint32_t fullAddress = address | (regs.PB << 16);
+
+		sprintf(buffer, "$%04x     [%06x]", address, fullAddress);
+		return buffer;
+	}
+
+	case AddMode::A:
+	{
+		sprintf(buffer, "a                 ");
+		return buffer;
+	}
+
+	default:
+		assert(false && "No read addressing mode");
+		return 0;
 	}
 }
 
@@ -879,8 +1112,8 @@ void CPU::PushStack(uint8_t value) {
 
 uint8_t CPU::FetchValue(AddMode addMode, bool is16Bits) {
 	switch (addMode) {
-		case AddMode::Implied:
-			return IMP(is16Bits);
+		case AddMode::A:
+			return GetA(is16Bits);
 
 		case AddMode::Immediate:
 			return IMM(is16Bits);
@@ -1067,7 +1300,7 @@ uint8_t CPU::FetchValue(AddMode addMode, bool is16Bits) {
 
 uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits, bool read) {
 	switch (addMode) {
-		case AddMode::Implied:
+		case AddMode::A:
 		{
 			if (is16Bits) {
 				regs.A.HL = value;
@@ -1298,7 +1531,7 @@ uint8_t CPU::WriteValue(AddMode addMode, uint16_t value, bool is16Bits, bool rea
 	}
 }
 
-uint8_t CPU::IMP(bool is16Bits) {
+uint8_t CPU::GetA(bool is16Bits) {
 	if (is16Bits) {
 		fetched = regs.A.HL;
 	} else {
