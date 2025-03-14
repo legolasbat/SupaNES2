@@ -1733,6 +1733,7 @@ uint8_t CPU::BRK() {
 	SetFlag(IFlag, true);
 	SetFlag(DFlag, false);
 
+	regs.PB = 0;
 	regs.PC = excVectors.BRKVector;
 
 	return emulationMode ? 0 : 1;
@@ -1825,6 +1826,7 @@ uint8_t CPU::COP() {
 	SetFlag(IFlag, true);
 	SetFlag(DFlag, false);
 
+	regs.PB = 0;
 	regs.PC = excVectors.COPVector;
 
 	return emulationMode ? 0 : 1;
