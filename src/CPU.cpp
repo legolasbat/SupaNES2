@@ -1735,6 +1735,8 @@ uint8_t CPU::ADC() {
 			CheckZFlag8Bits(result);
 			SetFlag(CFlag, (uint8_t)result < regs.A.L);
 
+			SetFlag(VFlag, ~(regs.A.L ^ fetched) & (regs.A.L ^ result) & 0x80);
+
 			regs.A.L = result;
 
 		} else {
@@ -1744,7 +1746,7 @@ uint8_t CPU::ADC() {
 
 			SetFlag(CFlag, result < regs.A.L);
 
-			SetFlag(VFlag, (int8_t)result < -128 || result > 127);
+			SetFlag(VFlag, ~(regs.A.L ^ fetched) & (regs.A.L ^ result) & 0x80);
 
 			regs.A.L = result;
 		}
@@ -1779,6 +1781,8 @@ uint8_t CPU::ADC() {
 			CheckZFlag16Bits(result);
 			SetFlag(CFlag, (uint16_t)result < regs.A.HL);
 
+			SetFlag(VFlag, ~(regs.A.HL ^ fetched) & (regs.A.HL ^ result) & 0x8000);
+
 			regs.A.HL = result;
 
 		} else {
@@ -1788,7 +1792,7 @@ uint8_t CPU::ADC() {
 
 			SetFlag(CFlag, result < regs.A.HL);
 
-			SetFlag(VFlag, (int16_t)result < -32768 || result > 32767);
+			SetFlag(VFlag, ~(regs.A.HL ^ fetched) & (regs.A.HL ^ result) & 0x8000);
 
 			regs.A.HL = result;
 		}
