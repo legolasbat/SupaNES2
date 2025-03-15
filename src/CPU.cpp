@@ -1052,6 +1052,18 @@ char* CPU::DebugAddress() {
 		return buffer;
 	}
 
+	case AddMode::AbsoluteIndexedIndirectX:
+	{
+		uint16_t indirectAddress = ReadMemory((regs.PB << 16) | (regs.PC + 1));
+		indirectAddress |= ReadMemory((regs.PB << 16) | (regs.PC + 2)) << 8;
+
+		uint32_t fullAddress = ReadMemory((regs.PB << 16) | ((indirectAddress + regs.X.HL) & 0xFFFF));
+		fullAddress |= ReadMemory((regs.PB << 16) | ((indirectAddress + regs.X.HL + 1) & 0xFFFF)) << 8;
+
+		sprintf(buffer, "$%04x     [%06x]", indirectAddress, fullAddress);
+		return buffer;
+	}
+
 	case AddMode::Branch:
 	{
 		int8_t offset = ReadMemory((regs.PB << 16) | (regs.PC + 1));
@@ -2251,22 +2263,22 @@ uint8_t CPU::JMP() {
 
 		case AddMode::AbsoluteIndirect:
 		{
-			uint16_t indirectAddres = ReadMemory((regs.PB << 16) | regs.PC++);
-			indirectAddres |= ReadMemory((regs.PB << 16) | regs.PC++) << 8;
+			uint16_t indirectAddress = ReadMemory((regs.PB << 16) | regs.PC++);
+			indirectAddress |= ReadMemory((regs.PB << 16) | regs.PC++) << 8;
 			
-			fetchAddress = ReadMemory(indirectAddres);
-			fetchAddress |= ReadMemory((indirectAddres + 1) & 0xFFFF) << 8;
+			fetchAddress = ReadMemory(indirectAddress);
+			fetchAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
 
 			break;
 		}
 
 		case AddMode::AbsoluteIndexedIndirectX:
 		{
-			uint16_t indirectAddres = ReadMemory((regs.PB << 16) | regs.PC++);
-			indirectAddres |= ReadMemory((regs.PB << 16) | regs.PC++) << 8;
+			uint16_t indirectAddress = ReadMemory((regs.PB << 16) | regs.PC++);
+			indirectAddress |= ReadMemory((regs.PB << 16) | regs.PC++) << 8;
 			
-			fetchAddress = ReadMemory((regs.PB << 16) | ((indirectAddres + regs.X.HL) & 0xFFFF));
-			fetchAddress |= ReadMemory((regs.PB << 16) | ((indirectAddres + regs.X.HL + 1) & 0xFFFF)) << 8;
+			fetchAddress = ReadMemory((regs.PB << 16) | ((indirectAddress + regs.X.HL) & 0xFFFF));
+			fetchAddress |= ReadMemory((regs.PB << 16) | ((indirectAddress + regs.X.HL + 1) & 0xFFFF)) << 8;
 
 			break;
 		}
