@@ -166,6 +166,8 @@ class PPU {
 
 		uint16_t fixedColor;	// Fixed Color Data					0x2132
 
+		bool overscan = false;	// Screen Mode/Video Select			0x2133
+
 		int32_t multResult;		// Signed Multiply Result			0x2134/5/6
 
 		// Flipflops for 0x213C/D

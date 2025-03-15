@@ -542,7 +542,8 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	}
 	else if (reg == 0x33) {
 		printf("\033[0;32mWritting SETINI: %02x\033[0m\n", value);
-		assert(value == 0);
+		overscan = value & 0x04;
+		assert((value & ~0x04) == 0);
 	}
 	else if (reg == 0x34) {
 		printf("\033[0;32mWritting MPYL (read only): %02x\033[0m\n", value);
@@ -580,7 +581,7 @@ void PPU::SetPixel(int X, int Y) {
 	if (((TM & 0x08) || (TS & 0x08)) && BG4Display) {
 		SetBGPixel(X, Y, BG4TileAddress, 3, GetColorBPPForBG(3),
 				(BG4TileAddress & 0x1) ? 64 : 32, (BG4TileAddress & 0x2) ? 64 : 32,
-				BG4HScroll, BG4VScroll);
+				BG4HScroll, BG4VScroll + 1);
 	}
 	// Window BG4
 	if (IsInsideWindow(X, 3, TMW)) {
@@ -601,7 +602,7 @@ void PPU::SetPixel(int X, int Y) {
 	if (((TM & 0x04) || (TS & 0x04)) && BG3Display) {
 		SetBGPixel(X, Y, BG3TileAddress, 2, GetColorBPPForBG(2),
 				(BG3TileAddress & 0x1) ? 64 : 32, (BG3TileAddress & 0x2) ? 64 : 32,
-				BG3HScroll, BG3VScroll);
+				BG3HScroll, BG3VScroll + 1);
 	}
 	// Window BG3
 	if (IsInsideWindow(X, 2, TMW)) {
@@ -622,7 +623,7 @@ void PPU::SetPixel(int X, int Y) {
 	if (((TM & 0x02) || (TS & 0x02)) && BG2Display) {
 		SetBGPixel(X, Y, BG2TileAddress, 1, GetColorBPPForBG(1),
 			(BG2TileAddress & 0x1) ? 64 : 32, (BG2TileAddress & 0x2) ? 64 : 32,
-			BG2HScroll, BG2VScroll);
+			BG2HScroll, BG2VScroll + 1);
 	}
 	// Window BG2
 	if (IsInsideWindow(X, 1, TMW)) {
@@ -644,7 +645,7 @@ void PPU::SetPixel(int X, int Y) {
 		if ((BGMode & 0x7) != 7) {
 			SetBGPixel(X, Y, BG1TileAddress, 0, GetColorBPPForBG(0),
 					(BG1TileAddress & 0x1) ? 64 : 32, (BG1TileAddress & 0x2) ? 64 : 32,
-					BG1HScroll, BG1VScroll);
+					BG1HScroll, BG1VScroll + 1);
 		}
 		else {
 			SetBG1PixelMode7(X, Y);
@@ -750,7 +751,7 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 						uint8_t XSize, uint8_t YSize,
 						uint16_t HScroll, uint16_t VScroll) {
 	int XScrolled = (X + HScroll) % (8 * XSize);
-	int YScrolled = (Y + VScroll + 1) % (8 * YSize);
+	int YScrolled = (Y + VScroll + (overscan ? 8 : 0)) % (8 * YSize);
 
 	// Mod 0x8000 because we use 16bits values instead of 8bits
 	uint16_t baseAddress = ((BGAddress & 0xFC) << 8) % 0x8000;
@@ -904,6 +905,9 @@ void PPU::OBJReloadSize() {
 	uint8_t size = 0;
 	for (uint8_t i = 0; i < 128; i++) {
 		size = ObjSizes[objs[i].size ? 1 : 0][OBSEL >> 5];
+		if (overscan) {
+			objs[i].posY -= 8;
+		}
 		objs[i].maxX = (objs[i].posX + size) & 0x1FF;
 		objs[i].maxY = objs[i].posY + size;
 		objs[i].clipping = 0;

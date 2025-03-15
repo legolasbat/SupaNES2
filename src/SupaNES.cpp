@@ -332,7 +332,7 @@ void SupaNES::WriteMemoryQ3(uint32_t address, uint8_t value) {
 	}
 	else if (memoryPage >= 0x80) {
 		printf("Write %06X\n", address);
-		assert(false && "Writting Q1 Cart");
+		//assert(false && "Writting Q1 Cart");
 	}
 }
 
