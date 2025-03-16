@@ -229,6 +229,9 @@ bool Cartridge::LoadROM(const char* filepath, uint16_t* excVectors) {
 	if (ramSizeByte > 0) {
 		RAM = (uint8_t*)malloc(sizeof(uint8_t) * ramSizeByte);
 		RAMSize = ramSizeByte;
+		for (int i = 0; i < RAMSize; i++) {
+			RAM[i] = 0xFF;
+		}
 	}
 
 	fclose(file);
