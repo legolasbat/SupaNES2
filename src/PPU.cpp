@@ -65,6 +65,7 @@ void PPU::Clock() {
 			GetOBJsToDisplay();
 		}
 	}
+	memory->cpu->IRQ();
 }
 
 uint8_t PPU::ReadPPU(uint32_t address) {

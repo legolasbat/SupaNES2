@@ -48,7 +48,6 @@ class CPU {
 		
 		void NMI();
 		void EndNMI();
-		bool CheckIRQ();
 		void IRQ();
 
 		void ResetHDMA();
@@ -68,6 +67,8 @@ class CPU {
 		int cycles = 0;
 		
 		bool emulationMode;
+
+		bool waiting = false;
 
 		uint8_t NMITIMEN;
 		uint8_t nmi;

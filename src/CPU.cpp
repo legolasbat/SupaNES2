@@ -316,10 +316,7 @@ CPU::CPU(SupaNES* supaNes) {
 int CPU::Clock() {
 	int opcycles = 0;
 	if (cycles <= 0) {
-		if (CheckIRQ()) {
-			IRQ();
-		}
-		else {
+		if (!waiting) {
 			opcode = ReadMemory((regs.PB << 16) | regs.PC);
 	
 			if (pendingDMA) {
@@ -336,6 +333,10 @@ int CPU::Clock() {
 	
 			opcycles = opTable[opcode].cycles;
 			opcycles += (this->*opTable[opcode].execute)();
+			cycles = opcycles;
+		}
+		else {
+			opcycles = 3;
 			cycles = opcycles;
 		}
 	}
@@ -366,6 +367,10 @@ void CPU::NMI() {
 	nmi |= 0x80;
 
 	if (NMITIMEN & 0x80) {
+		if (waiting) {
+			waiting = false;
+		}
+
 		PushStack(regs.PB);
 
 		PushStack(regs.PC >> 8);
@@ -381,7 +386,6 @@ void CPU::NMI() {
 		regs.PC = excVectors.NMIVector;
 
 		cycles += 8;
-		// TODO: Check if Waiting
 	}
 }
 
@@ -389,12 +393,8 @@ void CPU::EndNMI() {
 	nmi &= ~0x80;
 }
 
-bool CPU::CheckIRQ() {
-	// IRQ Interrupts disable
-	if (regs.P & IFlag) {
-		return false;
-	}
-
+void CPU::IRQ() {
+	bool doIRQ = false;
 	// IRQ Interrupts enable
 	if (NMITIMEN & 0x30) {
 		bool VCheck = NMITIMEN & 0x20;
@@ -402,42 +402,55 @@ bool CPU::CheckIRQ() {
 
 		if (VCheck && HCheck) {
 			if (memory->ppu->VCounter == VTIME) {
-				if (memory->ppu->HCounter >= HTIME) {
-					return true;
+				if (memory->ppu->HCounter == HTIME) {
+					if (waiting) {
+						waiting = false;
+					}
+					doIRQ = true;
 				}
 			}
 		}
 		else if (VCheck) {
 			if (memory->ppu->VCounter == VTIME) {
-				return true;
+				if (waiting) {
+					waiting = false;
+				}
+				doIRQ = true;
 			}
 		}
 		else if (HCheck) {
 			if (memory->ppu->HCounter == HTIME) {
-				return true;
+				if (waiting) {
+					waiting = false;
+				}
+				doIRQ = true;
 			}
 		}
 	}
-	return false;
-}
 
-void CPU::IRQ() {
-	TIMEUP = true;
-	PushStack(regs.PB);
+	// IRQ Interrupts disable
+	if (regs.P & IFlag) {
+		doIRQ = false;
+	}
 
-	PushStack(regs.PC >> 8);
-	PushStack(regs.PC & 0xFF);
+	if (doIRQ) {
+		TIMEUP = true;
+		PushStack(regs.PB);
 
-	PushStack(regs.P);
+		PushStack(regs.PC >> 8);
+		PushStack(regs.PC & 0xFF);
 
-	regs.P |= IFlag;
-	regs.P &= ~DFlag;
+		PushStack(regs.P);
 
-	regs.PB = 0;
+		regs.P |= IFlag;
+		regs.P &= ~DFlag;
 
-	regs.PC = excVectors.IRQVector;
+		regs.PB = 0;
 
-	cycles += 8;
+		regs.PC = excVectors.IRQVector;
+
+		cycles += 8;
+	}
 }
 
 uint8_t CPU::ReadCPU(uint32_t address) {
@@ -1020,7 +1033,7 @@ char* CPU::DebugAddress() {
 		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
 		uint16_t fullAddress = address + regs.SP;
 
-		sprintf(buffer, "$%02x,s      [%06x]", address, fullAddress);
+		sprintf(buffer, "$%02x,s     [%06x]", address, fullAddress);
 		return buffer;
 	}
 
@@ -3042,7 +3055,7 @@ uint8_t CPU::TYX() {
 }
 
 uint8_t CPU::WAI() {
-	assert(false && "WAI OPCODE");
+	waiting = true;
 	return 0;
 }
 
