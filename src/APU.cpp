@@ -219,7 +219,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0xA7] = {"SBC", &APU::SBCA, AddMode::IndirectX, 6};
 	opTable[0xA8] = {"SBC", &APU::SBCA, AddMode::Immediate, 2};
 	opTable[0xA9] = {"SBC", &APU::SBC, AddMode::ZeroPage, 6};
-	opTable[0xAA] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0xAA] = {"LDC", &APU::LDC, AddMode::Implied, 2};
 	opTable[0xAB] = {"INC", &APU::INC, AddMode::ZeroPage, 4};
 	opTable[0xAC] = {"INC", &APU::INC, AddMode::Absolute, 5};
 	opTable[0xAD] = {"CPY", &APU::CPY, AddMode::Immediate, 2};
@@ -253,7 +253,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0xC7] = {"STA", &APU::STA, AddMode::IndirectX, 2};
 	opTable[0xC8] = {"CPX", &APU::CPX, AddMode::Immediate, 2};
 	opTable[0xC9] = {"STX", &APU::STX, AddMode::Absolute, 5};
-	opTable[0xCA] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0xCA] = {"STC", &APU::STC, AddMode::Implied, 2};
 	opTable[0xCB] = {"STY", &APU::STY, AddMode::ZeroPage, 4};
 	opTable[0xCC] = {"STY", &APU::STY, AddMode::Absolute, 5};
 	opTable[0xCD] = {"LDX", &APU::LDX, AddMode::Immediate, 2};
@@ -287,7 +287,7 @@ APU::APU(SupaNES* supaNes) {
 	opTable[0xE7] = {"LDA", &APU::LDA, AddMode::IndirectX, 6};
 	opTable[0xE8] = {"LDA", &APU::LDA, AddMode::Immediate, 2};
 	opTable[0xE9] = {"LDX", &APU::LDX, AddMode::Absolute, 4};
-	opTable[0xEA] = {"", &APU::XXX, AddMode::Implied, 2};
+	opTable[0xEA] = {"NOT", &APU::NOT, AddMode::Implied, 2};
 	opTable[0xEB] = {"LDY", &APU::LDY, AddMode::ZeroPage, 3};
 	opTable[0xEC] = {"LDY", &APU::LDY, AddMode::Absolute, 4};
 	opTable[0xED] = {"NOTC", &APU::NOTC, AddMode::Implied, 3};
@@ -1438,6 +1438,20 @@ uint8_t APU::LDA() {
 	return 0;
 }
 
+uint8_t APU::LDC() {
+	uint16_t address = ReadAPUMemory(PC++);
+	address |= ReadAPUMemory(PC++) << 8;
+
+	uint8_t bit = (address & 0xE000) >> 13;
+	address &= 0x1FFF;
+
+	uint8_t value = ReadAPUMemory(address);
+
+	SetFlag(CFlag, value & (1 << bit));
+
+	return 0;
+}
+
 uint8_t APU::LDX() {
 	FetchValue(opTable[opcode].addMode);
 
@@ -1512,6 +1526,26 @@ uint8_t APU::MUL() {
 
 	CheckNFlag(Y);
 	CheckZFlag(Y);
+
+	return 0;
+}
+
+uint8_t APU::NOT() {
+	uint16_t address = ReadAPUMemory(PC++);
+	address |= ReadAPUMemory(PC++) << 8;
+
+	uint8_t bit = (address & 0xE000) >> 13;
+	address &= 0x1FFF;
+
+	uint8_t value = ReadAPUMemory(address);
+
+	if (value & (1 << bit)) {
+		value &= ~(1 << bit);
+	}
+	else {
+		value |= (1 << bit);
+	}
+	WriteAPUMemory(address, value);
 
 	return 0;
 }
@@ -1794,6 +1828,26 @@ uint8_t APU::TSET() {
 
 uint8_t APU::STA() {
 	WriteValue(opTable[opcode].addMode, A);
+
+	return 0;
+}
+
+uint8_t APU::STC() {
+	uint16_t address = ReadAPUMemory(PC++);
+	address |= ReadAPUMemory(PC++) << 8;
+
+	uint8_t bit = (address & 0xE000) >> 13;
+	address &= 0x1FFF;
+
+	uint8_t value = ReadAPUMemory(address);
+
+	if (PSW & CFlag) {
+		value |= (1 << bit);
+	}
+	else {
+		value &= ~(1 << bit);
+	}
+	WriteAPUMemory(address, value);
 
 	return 0;
 }

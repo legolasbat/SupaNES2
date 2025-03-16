@@ -167,12 +167,14 @@ class APU {
 		uint8_t JMP();
 		uint8_t JSR();
 		uint8_t LDA();
+		uint8_t LDC();
 		uint8_t LDX();
 		uint8_t LDY();
 		uint8_t LDW();
 		uint8_t LSR();
 		uint8_t MOV();
 		uint8_t MUL();
+		uint8_t NOT();
 		uint8_t NOTC();
 		uint8_t ORA();
 		uint8_t OR();
@@ -197,6 +199,7 @@ class APU {
 		uint8_t SET();
 		uint8_t TSET();
 		uint8_t STA();
+		uint8_t STC();
 		uint8_t STW();
 		uint8_t STX();
 		uint8_t STY();
