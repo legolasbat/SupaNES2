@@ -18,6 +18,18 @@ PPU::PPU(SupaNES* supaNes) {
 
 	OAMAddress = 0;
 
+	W12SEL = 0;
+	W34SEL = 0;
+	WOBJSEL = 0;
+
+	window1Left = 0;
+	window1Right = 0;
+	window2Left = 0;
+	window2Right = 0;
+
+	WBGLOG = 0;
+	WOBJLOG = 0;
+
 	ObjSizes[0][0] = 8;
 	ObjSizes[0][1] = 8;
 	ObjSizes[0][2] = 8;
