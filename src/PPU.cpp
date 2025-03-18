@@ -49,13 +49,17 @@ PPU::PPU(SupaNES* supaNes) {
 }
 
 void PPU::Clock() {
-	if (HCounter < width && VCounter < height) {
-		SetPixel(HCounter, VCounter);
-	}
 	HCounter++;
 
 	if (HCounter == 256) {
 		memory->cpu->StartHDMA();
+	}
+	else if (HCounter == 0x112) {
+		if (VCounter + 1 < height) {
+			for (int i = 0; i < width; i++) {
+				SetPixel(i, VCounter + 1);
+			}
+		}
 	}
 	else if (HCounter == 339) {
 		HCounter = 0;
@@ -75,6 +79,9 @@ void PPU::Clock() {
 			memory->cpu->EndNMI();
 			OBJReloadSize();
 			GetOBJsToDisplay();
+			for (int i = 0; i < width; i++) {
+				SetPixel(i, VCounter);
+			}
 		}
 	}
 	memory->cpu->IRQ();
@@ -1206,7 +1213,7 @@ bool PPU::IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) {
 			}
 		}
 	}
-	if (BGIndex == 2 || BGIndex == 3) {
+	else if (BGIndex == 2 || BGIndex == 3) {
 		uint8_t offset = (BGIndex == 2) ? 0 : 4;
 		if (W34SEL & (0x2 << offset)) {
 			window1Enable = true;
@@ -1233,7 +1240,7 @@ bool PPU::IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) {
 			}
 		}
 	}
-	if (BGIndex == 4 || BGIndex == 5) {
+	else if (BGIndex == 4 || BGIndex == 5) {
 		uint8_t offset = (BGIndex == 4) ? 0 : 4;
 		if (WOBJSEL & (0x2 << offset)) {
 			window1Enable = true;

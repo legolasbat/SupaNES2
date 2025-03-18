@@ -401,7 +401,7 @@ void CPU::IRQ() {
 		bool HCheck = NMITIMEN & 0x10;
 
 		if (VCheck && HCheck) {
-			if (memory->ppu->VCounter == VTIME) {
+			if (memory->ppu->VCounter + 1 == VTIME) {
 				if (memory->ppu->HCounter == HTIME) {
 					if (waiting) {
 						waiting = false;
@@ -411,7 +411,7 @@ void CPU::IRQ() {
 			}
 		}
 		else if (VCheck) {
-			if (memory->ppu->VCounter == VTIME) {
+			if (memory->ppu->VCounter + 1 == VTIME) {
 				if (waiting) {
 					waiting = false;
 				}
@@ -472,7 +472,7 @@ uint8_t CPU::ReadCPU(uint32_t address) {
 		}
 		else if (reg == 0x12) {
 			value |= (memory->ppu->VCounter >= 225) ? 0x80 : 0x00;
-			value |= (memory->ppu->HCounter >= 0x121) ? 0x40 : 0x00;
+			value |= (memory->ppu->HCounter >= 0x112) ? 0x40 : 0x00;
 			// Bit 0 is Auto-Joypad Status
 			return value;
 		}
