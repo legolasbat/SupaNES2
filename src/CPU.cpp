@@ -653,7 +653,7 @@ void CPU::StartHDMA() {
 				}
 				uint8_t tableEntry = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
 				Dma[i].repeat = (tableEntry - 1) & 0x80;
-				Dma[i].lineCounter = tableEntry;
+				Dma[i].lineCounter = tableEntry & 0x7F;
 				Dma[i].tableAddress++;
 				if (Dma[i].indirect) {
 					Dma[i].count = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
@@ -682,7 +682,7 @@ void CPU::ResetHDMA() {
 			Dma[i].tableAddress = Dma[i].AAddress;
 			uint8_t tableEntry = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
 			Dma[i].repeat = (tableEntry - 1) & 0x80;
-			Dma[i].lineCounter = tableEntry;
+			Dma[i].lineCounter = tableEntry & 0x7F;
 			Dma[i].tableAddress++;
 
 			if (Dma[i].indirect) {
