@@ -700,8 +700,8 @@ void PPU::SetPixel(int X, int Y) {
 	}
 
 	// Get Priority Pixel
-	PPU::Pixel mainPixel = GetMainPixelByPriority();
-	PPU::Pixel subPixel = (CGWSEL & 0x2) == 0 ? subPixelPipeline[5] : GetSubPixelByPriority();
+	PPU::Pixel mainPixel = GetPixelByPriority(mainPixelPipeline);
+	PPU::Pixel subPixel = (CGWSEL & 0x2) == 0 ? subPixelPipeline[5] : GetPixelByPriority(subPixelPipeline);
 
 	// MainSW
 	if ((CGWSEL & 0xC0) == 0xC0) {
@@ -1298,352 +1298,178 @@ bool PPU::IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) const {
 	return false;
 }
 
-PPU::Pixel PPU::GetMainPixelByPriority() const {
+PPU::Pixel PPU::GetPixelByPriority(PPU::Pixel* pixels) const {
 	uint8_t mode = BGMode & 0x07;
 	switch (mode) {
 		// Check pixels from front to back
-		case 0:
-		{
-			// Sprites with priority 3
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 3)
-				return mainPixelPipeline[4];
-			// BG1 tiles with priority 1
-			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 1)
-				return mainPixelPipeline[0];
-			// BG2 tiles with priority 1
-			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 1)
-				return mainPixelPipeline[1];
-			// Sprites with priority 2
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 2)
-				return mainPixelPipeline[4];
-			// BG1 tiles with priority 0
-			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 0)
-				return mainPixelPipeline[0];
-			// BG2 tiles with priority 0
-			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 0)
-				return mainPixelPipeline[1];
-			// Sprites with priority 1
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 1)
-				return mainPixelPipeline[4];
-			// BG3 tiles with priority 1
-			if ((mainPixelPipeline[2].color & 0x8000) && mainPixelPipeline[2].priority == 1)
-				return mainPixelPipeline[2];
-			// BG4 tiles with priority 1
-			if ((mainPixelPipeline[3].color & 0x8000) && mainPixelPipeline[3].priority == 1)
-				return mainPixelPipeline[3];
-			// Sprites with priority 0
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 0)
-				return mainPixelPipeline[4];
-			// BG3 tiles with priority 0
-			if ((mainPixelPipeline[2].color & 0x8000) && mainPixelPipeline[2].priority == 0)
-				return mainPixelPipeline[2];
-			// BG4 tiles with priority 0
-			if ((mainPixelPipeline[3].color & 0x8000) && mainPixelPipeline[3].priority == 0)
-				return mainPixelPipeline[3];
+	case 0:
+	{
+		// Sprites with priority 3
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 3)
+			return pixels[4];
+		// BG1 tiles with priority 1
+		if ((pixels[0].color & 0x8000) && pixels[0].priority == 1)
+			return pixels[0];
+		// BG2 tiles with priority 1
+		if ((pixels[1].color & 0x8000) && pixels[1].priority == 1)
+			return pixels[1];
+		// Sprites with priority 2
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 2)
+			return pixels[4];
+		// BG1 tiles with priority 0
+		if ((pixels[0].color & 0x8000) && pixels[0].priority == 0)
+			return pixels[0];
+		// BG2 tiles with priority 0
+		if ((pixels[1].color & 0x8000) && pixels[1].priority == 0)
+			return pixels[1];
+		// Sprites with priority 1
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 1)
+			return pixels[4];
+		// BG3 tiles with priority 1
+		if ((pixels[2].color & 0x8000) && pixels[2].priority == 1)
+			return pixels[2];
+		// BG4 tiles with priority 1
+		if ((pixels[3].color & 0x8000) && pixels[3].priority == 1)
+			return pixels[3];
+		// Sprites with priority 0
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 0)
+			return pixels[4];
+		// BG3 tiles with priority 0
+		if ((pixels[2].color & 0x8000) && pixels[2].priority == 0)
+			return pixels[2];
+		// BG4 tiles with priority 0
+		if ((pixels[3].color & 0x8000) && pixels[3].priority == 0)
+			return pixels[3];
 
-			break;
-		}
-
-		case 1:
-		{
-			bool BG3Priority = BGMode & 0x08;
-			// BG3 tiles with priority 1 if bit 3 of $2105 is set
-			if ((mainPixelPipeline[2].color & 0x8000) && mainPixelPipeline[2].priority == 1 && BG3Priority)
-				return mainPixelPipeline[2];
-			// Sprites with priority 3
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 3)
-				return mainPixelPipeline[4];
-			// BG1 tiles with priority 1
-			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 1)
-				return mainPixelPipeline[0];
-			// BG2 tiles with priority 1
-			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 1)
-				return mainPixelPipeline[1];
-			// Sprites with priority 2
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 2)
-				return mainPixelPipeline[4];
-			// BG1 tiles with priority 0
-			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 0)
-				return mainPixelPipeline[0];
-			// BG2 tiles with priority 0
-			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 0)
-				return mainPixelPipeline[1];
-			// Sprites with priority 1
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 1)
-				return mainPixelPipeline[4];
-			// BG3 tiles with priority 1 if bit 3 of $2105 is clear
-			if ((mainPixelPipeline[2].color & 0x8000) && mainPixelPipeline[2].priority == 1 && !BG3Priority)
-				return mainPixelPipeline[2];
-			// Sprites with priority 0
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 0)
-				return mainPixelPipeline[4];
-			// BG3 tiles with priority 0
-			if ((mainPixelPipeline[2].color & 0x8000) && mainPixelPipeline[2].priority == 0)
-				return mainPixelPipeline[2];
-
-			break;
-		}
-
-		case 2:
-		{
-			// Sprites with priority 3
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 3)
-				return mainPixelPipeline[4];
-			// BG1 tiles with priority 1
-			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 1)
-				return mainPixelPipeline[0];
-			// Sprites with priority 2
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 2)
-				return mainPixelPipeline[4];
-			// BG2 tiles with priority 1
-			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 1)
-				return mainPixelPipeline[1];
-			// Sprites with priority 1
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 1)
-				return mainPixelPipeline[4];
-			// BG1 tiles with priority 0
-			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 0)
-				return mainPixelPipeline[0];
-			// Sprites with priority 0
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 0)
-				return mainPixelPipeline[4];
-			// BG2 tiles with priority 0
-			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 0)
-				return mainPixelPipeline[1];
-
-			break;
-		}
-
-		case 3:
-		{
-			// Sprites with priority 3
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 3)
-				return mainPixelPipeline[4];
-			// BG1 tiles with priority 1
-			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 1)
-				return mainPixelPipeline[0];
-			// Sprites with priority 2
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 2)
-				return mainPixelPipeline[4];
-			// BG2 tiles with priority 1
-			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 1)
-				return mainPixelPipeline[1];
-			// Sprites with priority 1
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 1)
-				return mainPixelPipeline[4];
-			// BG1 tiles with priority 0
-			if ((mainPixelPipeline[0].color & 0x8000) && mainPixelPipeline[0].priority == 0)
-				return mainPixelPipeline[0];
-			// Sprites with priority 0
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 0)
-				return mainPixelPipeline[4];
-			// BG2 tiles with priority 0
-			if ((mainPixelPipeline[1].color & 0x8000) && mainPixelPipeline[1].priority == 0)
-				return mainPixelPipeline[1];
-
-			break;
-		}
-
-		case 7:
-		{
-			// Sprites with priority 3
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 3)
-				return mainPixelPipeline[4];
-			// Sprites with priority 2
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 2)
-				return mainPixelPipeline[4];
-			// Sprites with priority 1
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 1)
-				return mainPixelPipeline[4];
-			// BG1 tiles
-			if (mainPixelPipeline[0].color & 0x8000)
-				return mainPixelPipeline[0];
-			// Sprites with priority 0
-			if ((mainPixelPipeline[4].color & 0x8000) && mainPixelPipeline[4].priority == 0)
-				return mainPixelPipeline[4];
-
-			break;
-		}
-
-		default:
-			assert(false);
+		break;
 	}
 
-	return mainPixelPipeline[5];
-}
+	case 1:
+	{
+		bool BG3Priority = BGMode & 0x08;
+		// BG3 tiles with priority 1 if bit 3 of $2105 is set
+		if ((pixels[2].color & 0x8000) && pixels[2].priority == 1 && BG3Priority)
+			return pixels[2];
+		// Sprites with priority 3
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 3)
+			return pixels[4];
+		// BG1 tiles with priority 1
+		if ((pixels[0].color & 0x8000) && pixels[0].priority == 1)
+			return pixels[0];
+		// BG2 tiles with priority 1
+		if ((pixels[1].color & 0x8000) && pixels[1].priority == 1)
+			return pixels[1];
+		// Sprites with priority 2
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 2)
+			return pixels[4];
+		// BG1 tiles with priority 0
+		if ((pixels[0].color & 0x8000) && pixels[0].priority == 0)
+			return pixels[0];
+		// BG2 tiles with priority 0
+		if ((pixels[1].color & 0x8000) && pixels[1].priority == 0)
+			return pixels[1];
+		// Sprites with priority 1
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 1)
+			return pixels[4];
+		// BG3 tiles with priority 1 if bit 3 of $2105 is clear
+		if ((pixels[2].color & 0x8000) && pixels[2].priority == 1 && !BG3Priority)
+			return pixels[2];
+		// Sprites with priority 0
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 0)
+			return pixels[4];
+		// BG3 tiles with priority 0
+		if ((pixels[2].color & 0x8000) && pixels[2].priority == 0)
+			return pixels[2];
 
-PPU::Pixel PPU::GetSubPixelByPriority() const {
-	uint8_t mode = BGMode & 0x07;
-	switch (mode) {
-		// Check pixels from front to back
-		case 0:
-		{
-			// Sprites with priority 3
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 3)
-				return subPixelPipeline[4];
-			// BG1 tiles with priority 1
-			if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 1)
-				return subPixelPipeline[0];
-			// BG2 tiles with priority 1
-			if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 1)
-				return subPixelPipeline[1];
-			// Sprites with priority 2
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 2)
-				return subPixelPipeline[4];
-			// BG1 tiles with priority 0
-			if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 0)
-				return subPixelPipeline[0];
-			// BG2 tiles with priority 0
-			if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 0)
-				return subPixelPipeline[1];
-			// Sprites with priority 1
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 1)
-				return subPixelPipeline[4];
-			// BG3 tiles with priority 1
-			if ((subPixelPipeline[2].color & 0x8000) && subPixelPipeline[2].priority == 1)
-				return subPixelPipeline[2];
-			// BG4 tiles with priority 1
-			if ((subPixelPipeline[3].color & 0x8000) && subPixelPipeline[3].priority == 1)
-				return subPixelPipeline[3];
-			// Sprites with priority 0
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 0)
-				return subPixelPipeline[4];
-			// BG3 tiles with priority 0
-			if ((subPixelPipeline[2].color & 0x8000) && subPixelPipeline[2].priority == 0)
-				return subPixelPipeline[2];
-			// BG4 tiles with priority 0
-			if ((subPixelPipeline[3].color & 0x8000) && subPixelPipeline[3].priority == 0)
-				return subPixelPipeline[3];
-
-			break;
-		}
-
-		case 1:
-		{
-			bool BG3Priority = BGMode & 0x08;
-			// BG3 tiles with priority 1 if bit 3 of $2105 is set
-			if ((subPixelPipeline[2].color & 0x8000) && subPixelPipeline[2].priority == 1 && BG3Priority)
-				return subPixelPipeline[2];
-			// Sprites with priority 3
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 3)
-				return subPixelPipeline[4];
-			// BG1 tiles with priority 1
-			if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 1)
-				return subPixelPipeline[0];
-			// BG2 tiles with priority 1
-			if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 1)
-				return subPixelPipeline[1];
-			// Sprites with priority 2
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 2)
-				return subPixelPipeline[4];
-			// BG1 tiles with priority 0
-			if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 0)
-				return subPixelPipeline[0];
-			// BG2 tiles with priority 0
-			if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 0)
-				return subPixelPipeline[1];
-			// Sprites with priority 1
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 1)
-				return subPixelPipeline[4];
-			// BG3 tiles with priority 1 if bit 3 of $2105 is clear
-			if ((subPixelPipeline[2].color & 0x8000) && subPixelPipeline[2].priority == 1 && !BG3Priority)
-				return subPixelPipeline[2];
-			// Sprites with priority 0
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 0)
-				return subPixelPipeline[4];
-			// BG3 tiles with priority 0
-			if ((subPixelPipeline[2].color & 0x8000) && subPixelPipeline[2].priority == 0)
-				return subPixelPipeline[2];
-
-			break;
-		}
-
-		case 2:
-		{
-			// Sprites with priority 3
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 3)
-				return subPixelPipeline[4];
-			// BG1 tiles with priority 1
-			if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 1)
-				return subPixelPipeline[0];
-			// Sprites with priority 2
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 2)
-				return subPixelPipeline[4];
-			// BG2 tiles with priority 1
-			if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 1)
-				return subPixelPipeline[1];
-			// Sprites with priority 1
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 1)
-				return subPixelPipeline[4];
-			// BG1 tiles with priority 0
-			if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 0)
-				return subPixelPipeline[0];
-			// Sprites with priority 0
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 0)
-				return subPixelPipeline[4];
-			// BG2 tiles with priority 0
-			if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 0)
-				return subPixelPipeline[1];
-
-			break;
-		}
-
-		case 3:
-		{
-			// Sprites with priority 3
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 3)
-				return subPixelPipeline[4];
-			// BG1 tiles with priority 1
-			if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 1)
-				return subPixelPipeline[0];
-			// Sprites with priority 2
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 2)
-				return subPixelPipeline[4];
-			// BG2 tiles with priority 1
-			if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 1)
-				return subPixelPipeline[1];
-			// Sprites with priority 1
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 1)
-				return subPixelPipeline[4];
-			// BG1 tiles with priority 0
-			if ((subPixelPipeline[0].color & 0x8000) && subPixelPipeline[0].priority == 0)
-				return subPixelPipeline[0];
-			// Sprites with priority 0
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 0)
-				return subPixelPipeline[4];
-			// BG2 tiles with priority 0
-			if ((subPixelPipeline[1].color & 0x8000) && subPixelPipeline[1].priority == 0)
-				return subPixelPipeline[1];
-
-			break;
-		}
-
-		case 7:
-		{
-			// Sprites with priority 3
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 3)
-				return subPixelPipeline[4];
-			// Sprites with priority 2
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 2)
-				return subPixelPipeline[4];
-			// Sprites with priority 1
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 1)
-				return subPixelPipeline[4];
-			// BG1 tiles
-			if (subPixelPipeline[0].color & 0x8000)
-				return subPixelPipeline[0];
-			// Sprites with priority 0
-			if ((subPixelPipeline[4].color & 0x8000) && subPixelPipeline[4].priority == 0)
-				return subPixelPipeline[4];
-
-			break;
-		}
-
-		default:
-			assert(false);
+		break;
 	}
 
-	return subPixelPipeline[5];
+	case 2:
+	{
+		// Sprites with priority 3
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 3)
+			return pixels[4];
+		// BG1 tiles with priority 1
+		if ((pixels[0].color & 0x8000) && pixels[0].priority == 1)
+			return pixels[0];
+		// Sprites with priority 2
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 2)
+			return pixels[4];
+		// BG2 tiles with priority 1
+		if ((pixels[1].color & 0x8000) && pixels[1].priority == 1)
+			return pixels[1];
+		// Sprites with priority 1
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 1)
+			return pixels[4];
+		// BG1 tiles with priority 0
+		if ((pixels[0].color & 0x8000) && pixels[0].priority == 0)
+			return pixels[0];
+		// Sprites with priority 0
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 0)
+			return pixels[4];
+		// BG2 tiles with priority 0
+		if ((pixels[1].color & 0x8000) && pixels[1].priority == 0)
+			return pixels[1];
+
+		break;
+	}
+
+	case 3:
+	{
+		// Sprites with priority 3
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 3)
+			return pixels[4];
+		// BG1 tiles with priority 1
+		if ((pixels[0].color & 0x8000) && pixels[0].priority == 1)
+			return pixels[0];
+		// Sprites with priority 2
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 2)
+			return pixels[4];
+		// BG2 tiles with priority 1
+		if ((pixels[1].color & 0x8000) && pixels[1].priority == 1)
+			return pixels[1];
+		// Sprites with priority 1
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 1)
+			return pixels[4];
+		// BG1 tiles with priority 0
+		if ((pixels[0].color & 0x8000) && pixels[0].priority == 0)
+			return pixels[0];
+		// Sprites with priority 0
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 0)
+			return pixels[4];
+		// BG2 tiles with priority 0
+		if ((pixels[1].color & 0x8000) && pixels[1].priority == 0)
+			return pixels[1];
+
+		break;
+	}
+
+	case 7:
+	{
+		// Sprites with priority 3
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 3)
+			return pixels[4];
+		// Sprites with priority 2
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 2)
+			return pixels[4];
+		// Sprites with priority 1
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 1)
+			return pixels[4];
+		// BG1 tiles
+		if (pixels[0].color & 0x8000)
+			return pixels[0];
+		// Sprites with priority 0
+		if ((pixels[4].color & 0x8000) && pixels[4].priority == 0)
+			return pixels[4];
+
+		break;
+	}
+
+	default:
+		assert(false);
+	}
+
+	return pixels[5];
 }
 
 void PPU::SetFrame(void* texturePixels, int pitch) {

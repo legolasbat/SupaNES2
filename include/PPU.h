@@ -90,8 +90,7 @@ class PPU {
 
 		bool IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) const;
 
-		Pixel GetMainPixelByPriority() const;
-		Pixel GetSubPixelByPriority() const;
+		Pixel GetPixelByPriority(Pixel* pixels) const;
 
 		uint8_t inidisp;		// INIDISP							0x2100
 
