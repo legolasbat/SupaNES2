@@ -27,11 +27,15 @@ bool BG3Selected = true;
 bool BG4Selected = true;
 bool OBJSelected = true;
 
+bool displayVRAM = false;
+
 bool pause = false;
 
 void SDLCALL openFileCallback(void* userdata, const char* const* filelist, int filter);
 void HandleEvents(AppState* appstate);
 void MenuBar(AppState* appstate);
+
+void ShowVRAMWindow(AppState* appstate);
 
 int main(int argc, char* argv[]) {
 	// Init systems
@@ -125,6 +129,10 @@ int main(int argc, char* argv[]) {
 			ImGui::NewFrame();
 		
 			MenuBar(as);
+
+			if (displayVRAM) {
+				ShowVRAMWindow(as);
+			}
 
 			ImGui::Render();
 		
@@ -336,12 +344,38 @@ void MenuBar(AppState* appstate) {
 				}
 				ImGui::EndMenu();
 			}
+			if (ImGui::MenuItem("Display VRAM", 0, displayVRAM, true)) {
+				displayVRAM = !displayVRAM;
+				pause = displayVRAM;
+			}
 			ImGui::EndMenu();
 		}
 		ImGui::EndMainMenuBar();
 	}
 }
 
+void ShowVRAMWindow(AppState* appstate) {
+	ImGui::Begin("VRAM", &displayVRAM);
+
+	SupaNES* supaNES = appstate->supaNES;
+
+	for (int row = 0; row < 0x10000; row += 16) {
+		ImGui::Text("%04x:", row);
+		ImGui::SameLine();
+		for (int i = row; i < row + 16; i++) {
+			if (i % 2) {
+				ImGui::Text("%02x ", supaNES->ppu->VRAM[i / 2] >> 8);
+			}
+			else {
+				ImGui::Text("%02x ", supaNES->ppu->VRAM[i / 2] & 0xFF);
+			}
+			ImGui::SameLine();
+		}
+		ImGui::Text("");
+	}
+
+	ImGui::End();
+}
 
 void SDLCALL openFileCallback(void* userdata, const char* const* filelist, int filter) {
 	if (!filelist) {
