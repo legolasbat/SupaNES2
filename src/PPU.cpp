@@ -1028,7 +1028,7 @@ void PPU::SetBG1PixelMode7(int X, int Y) {
 	}
 }
 
-void PPU::CalculateMode7Coor(int& X, int& Y) {
+void PPU::CalculateMode7Coor(int& X, int& Y) const {
 	float Xi = (int16_t)X / 256.0f;
 	float Yi = (int16_t)Y / 256.0f;
 
@@ -1046,7 +1046,7 @@ void PPU::CalculateMode7Coor(int& X, int& Y) {
 	Y = (int16_t)((C * (Xi + H - X0) + D * (Yi + V - Y0) + Y0) * 256.0f);
 }
 
-uint8_t PPU::GetColorBPPForBG(uint8_t BGIndex) {
+uint8_t PPU::GetColorBPPForBG(uint8_t BGIndex) const {
 	uint8_t mode = BGMode & 0x07;
 
 	if (mode == 0) {
@@ -1078,7 +1078,7 @@ uint8_t PPU::GetColorBPPForBG(uint8_t BGIndex) {
 	return 0;
 }
 
-uint16_t PPU::GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift, uint8_t BGIndex) {
+uint16_t PPU::GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift, uint8_t BGIndex) const {
 	uint8_t BGLo = VRAM[charAddress] & 0xFF;
 	uint8_t BGHi = VRAM[charAddress] >> 8;
 	uint8_t paletteIndex = ((BGLo >> HShift) & 1) + (2 * ((BGHi >> HShift) & 1));
@@ -1093,7 +1093,7 @@ uint16_t PPU::GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift
 	return CGRAM[paletteIndex + palette * 4] | 0x8000;
 }
 
-uint16_t PPU::GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift) {
+uint16_t PPU::GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift) const {
 	uint8_t BGLo1 = VRAM[charAddress] & 0xFF;
 	uint8_t BGLo2 = VRAM[charAddress] >> 8;
 	uint8_t BGHi1 = VRAM[charAddress + 8] & 0xFF;
@@ -1107,7 +1107,7 @@ uint16_t PPU::GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift
 	return CGRAM[paletteIndex + palette * 16] | 0x8000;
 }
 
-uint16_t PPU::GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift) {
+uint16_t PPU::GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift) const {
 	uint8_t BG1 = VRAM[charAddress] & 0xFF;
 	uint8_t BG2 = VRAM[charAddress] >> 8;
 	uint8_t BG3 = VRAM[charAddress + 8] & 0xFF;
@@ -1127,7 +1127,7 @@ uint16_t PPU::GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift
 	return CGRAM[paletteIndex] | 0x8000;
 }
 
-uint16_t PPU::ColorMathPixel(uint16_t palette, PPU::Pixel subpixel) {
+uint16_t PPU::ColorMathPixel(uint16_t palette, PPU::Pixel subpixel) const {
 	uint8_t red = palette & 0x1F;
 	uint8_t green = (palette >> 5) & 0x1F;
 	uint8_t blue = (palette >> 10) & 0x1F;
@@ -1181,7 +1181,7 @@ uint16_t PPU::ColorMathPixel(uint16_t palette, PPU::Pixel subpixel) {
 	return palette;
 }
 
-bool PPU::IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) {
+bool PPU::IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) const {
 	bool window1Enable = false;
 	bool isInsideWindow1 = false;
 	bool window2Enable = false;
@@ -1298,7 +1298,7 @@ bool PPU::IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) {
 	return false;
 }
 
-PPU::Pixel PPU::GetMainPixelByPriority() {
+PPU::Pixel PPU::GetMainPixelByPriority() const {
 	uint8_t mode = BGMode & 0x07;
 	switch (mode) {
 		// Check pixels from front to back
@@ -1472,7 +1472,7 @@ PPU::Pixel PPU::GetMainPixelByPriority() {
 	return mainPixelPipeline[5];
 }
 
-PPU::Pixel PPU::GetSubPixelByPriority() {
+PPU::Pixel PPU::GetSubPixelByPriority() const {
 	uint8_t mode = BGMode & 0x07;
 	switch (mode) {
 		// Check pixels from front to back

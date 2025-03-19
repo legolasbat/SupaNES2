@@ -42,6 +42,8 @@ class PPU {
 		bool BG4Display = true;
 		bool ObjDisplay = true;
 
+		uint16_t VRAM[0x8000];
+
 	private:
 
 		bool isEven = false;
@@ -53,12 +55,12 @@ class PPU {
 		void SetOBJPixel(int X, int Y);
 
 		void SetBG1PixelMode7(int X, int Y);
-		void CalculateMode7Coor(int& X, int& Y);
+		void CalculateMode7Coor(int& X, int& Y) const;
 
-		uint8_t GetColorBPPForBG(uint8_t BGIndex);
-		uint16_t GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift, uint8_t BGIndex);
-		uint16_t GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift);
-		uint16_t GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift);
+		uint8_t GetColorBPPForBG(uint8_t BGIndex) const;
+		uint16_t GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift, uint8_t BGIndex) const;
+		uint16_t GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift) const;
+		uint16_t GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift) const;
 
 		uint8_t ObjSizes[2][8];
 
@@ -83,12 +85,12 @@ class PPU {
 
 		bool IsOBJOnScreen(int X, int Y, PPU::OBJECT& obj, uint8_t currentPriority);
 
-		uint16_t ColorMathPixel(uint16_t palette, Pixel subpixel);
+		uint16_t ColorMathPixel(uint16_t palette, Pixel subpixel) const;
 
-		bool IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg);
+		bool IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) const;
 
-		Pixel GetMainPixelByPriority();
-		Pixel GetSubPixelByPriority();
+		Pixel GetMainPixelByPriority() const;
+		Pixel GetSubPixelByPriority() const;
 
 		uint8_t inidisp;		// INIDISP							0x2100
 
@@ -128,7 +130,6 @@ class PPU {
 		uint16_t BG4VScroll;	// BG4 Vertical Scroll				0x2114
 		
 		uint8_t VMain;			// Video Port Control				0x2115
-		uint16_t VRAM[0x8000];
 		uint16_t VRAMAddress;	// VRAM Address						0x2116/7
 
 		uint8_t M7SEL;			// Mode 7 Settings					0x211A
