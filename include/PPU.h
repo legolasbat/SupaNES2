@@ -43,6 +43,7 @@ class PPU {
 		bool ObjDisplay = true;
 
 		uint16_t VRAM[0x8000];
+		uint16_t CGRAM[0x100];
 
 	private:
 
@@ -142,7 +143,6 @@ class PPU {
 		int16_t M7X;			// Mode 7 Center X					0x211F
 		int16_t M7Y;			// Mode 7 Center Y					0x2120
 
-		uint16_t CGRAM[0x100];
 		uint8_t CGRAMAddress;	// CGRAM Address					0x2121
 		bool CGRAMFlipflop;
 

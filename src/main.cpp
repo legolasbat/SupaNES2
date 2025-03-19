@@ -17,6 +17,13 @@ const int width = 256;
 const int height = 224;
 int windowSizeMultiplier = 3;
 
+char windowTitle[128];
+uint64_t deltaTime = 0;
+uint64_t lastFrame = 0;
+uint64_t currentTime = 0;
+int fps = 60;
+float desiredDelta = 1000.0f / fps;
+
 // Main loop bool
 bool done = false;
 
@@ -28,14 +35,18 @@ bool BG4Selected = true;
 bool OBJSelected = true;
 
 bool displayVRAM = false;
+bool displayPalette = false;
 
 bool pause = false;
+
+void RenderFrame(AppState* appstate);
 
 void SDLCALL openFileCallback(void* userdata, const char* const* filelist, int filter);
 void HandleEvents(AppState* appstate);
 void MenuBar(AppState* appstate);
 
 void ShowVRAMWindow(AppState* appstate);
+void ShowPaletteWindow(AppState* appstate);
 
 int main(int argc, char* argv[]) {
 	// Init systems
@@ -70,15 +81,9 @@ int main(int argc, char* argv[]) {
 	as->supaNES = new SupaNES();
 	int cycles = 0;
 
-	char windowTitle[128];
-	uint64_t deltaTime = 0;
-	uint64_t lastFrame = 0;
-	int fps = 60;
-	float desiredDelta = 1000.0f / fps;
-
 	// Main Loop
 	while(!done) {
-		uint64_t currentTime = SDL_GetTicks();
+		currentTime = SDL_GetTicks();
 		
 		// SupaNes clock
 		if(!pause && as->supaNES->RomLoaded) {
@@ -88,70 +93,13 @@ int main(int argc, char* argv[]) {
 			
 				HandleEvents(as);
 		
-				// Start frame
-				ImGui_ImplSDLRenderer3_NewFrame();
-				ImGui_ImplSDL3_NewFrame();
-				ImGui::NewFrame();
-		
-				MenuBar(as);
-
-				ImGui::Render();
-		
-				// Render
-				SDL_SetRenderDrawColor(as->renderer, 0, 0, 0, 255);
-				SDL_RenderClear(as->renderer);
-				void* texturePixels;
-				int pitch;
-				SDL_LockTexture(as->texture, NULL, &texturePixels, &pitch);
-				as->supaNES->ppu->SetFrame(texturePixels, pitch);
-				SDL_UnlockTexture(as->texture);
-				int windowWidth;
-				int windowHeight;
-				SDL_GetWindowSize(as->window, &windowWidth, &windowHeight);
-				SDL_FRect destRect = { 0.0f, ImGui::GetFrameHeight(),
-										(float)windowWidth, windowHeight - ImGui::GetFrameHeight()};
-				SDL_RenderTexture(as->renderer, as->texture, NULL, &destRect);
-				ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), as->renderer);
-				SDL_RenderPresent(as->renderer);
-				
-				deltaTime = currentTime - lastFrame;
-				lastFrame = currentTime;
-				snprintf(windowTitle, 128, "SupaNES2 | %.0f", 1000.0f / deltaTime);
-				SDL_SetWindowTitle(as->window, windowTitle);
+				RenderFrame(as);
 			}
 		}
 		else {
 			HandleEvents(as);
 		
-			// Start frame
-			ImGui_ImplSDLRenderer3_NewFrame();
-			ImGui_ImplSDL3_NewFrame();
-			ImGui::NewFrame();
-		
-			MenuBar(as);
-
-			if (displayVRAM) {
-				ShowVRAMWindow(as);
-			}
-
-			ImGui::Render();
-		
-			// Render
-			if (as->supaNES->RomLoaded) {
-				int windowWidth;
-				int windowHeight;
-				SDL_GetWindowSize(as->window, &windowWidth, &windowHeight);
-				SDL_FRect destRect = { 0.0f, ImGui::GetFrameHeight(),
-										(float)windowWidth, windowHeight - ImGui::GetFrameHeight()};
-				SDL_RenderTexture(as->renderer, as->texture, NULL, &destRect);
-			} else {
-				SDL_SetRenderDrawColor(as->renderer, 255, 0, 0, 255);
-				SDL_RenderClear(as->renderer);
-			}
-			ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), as->renderer);
-			SDL_RenderPresent(as->renderer);
-			deltaTime = currentTime - lastFrame;
-			lastFrame = currentTime;
+			RenderFrame(as);
 		}
 	}
 	
@@ -169,6 +117,53 @@ int main(int argc, char* argv[]) {
 	SDL_Quit();
 
 	return 0;
+}
+
+void RenderFrame(AppState* appstate) {
+	// Start frame
+	ImGui_ImplSDLRenderer3_NewFrame();
+	ImGui_ImplSDL3_NewFrame();
+	ImGui::NewFrame();
+
+	MenuBar(appstate);
+
+	if (displayVRAM) {
+		ShowVRAMWindow(appstate);
+	}
+
+	if (displayPalette) {
+		ShowPaletteWindow(appstate);
+	}
+
+	ImGui::Render();
+
+	// Render
+	if (appstate->supaNES->RomLoaded) {
+		SDL_SetRenderDrawColor(appstate->renderer, 0, 0, 0, 255);
+		SDL_RenderClear(appstate->renderer);
+		void* texturePixels;
+		int pitch;
+		SDL_LockTexture(appstate->texture, NULL, &texturePixels, &pitch);
+		appstate->supaNES->ppu->SetFrame(texturePixels, pitch);
+		SDL_UnlockTexture(appstate->texture);
+		int windowWidth;
+		int windowHeight;
+		SDL_GetWindowSize(appstate->window, &windowWidth, &windowHeight);
+		SDL_FRect destRect = { 0.0f, ImGui::GetFrameHeight(),
+								(float)windowWidth, windowHeight - ImGui::GetFrameHeight() };
+		SDL_RenderTexture(appstate->renderer, appstate->texture, NULL, &destRect);
+
+		deltaTime = currentTime - lastFrame;
+		lastFrame = currentTime;
+		snprintf(windowTitle, 128, "SupaNES2 | %.0f", 1000.0f / deltaTime);
+		SDL_SetWindowTitle(appstate->window, windowTitle);
+	}
+	else {
+		SDL_SetRenderDrawColor(appstate->renderer, 255, 0, 0, 255);
+		SDL_RenderClear(appstate->renderer);
+	}
+	ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), appstate->renderer);
+	SDL_RenderPresent(appstate->renderer);
 }
 
 void HandleEvents(AppState* appstate) {
@@ -344,9 +339,14 @@ void MenuBar(AppState* appstate) {
 				}
 				ImGui::EndMenu();
 			}
-			if (ImGui::MenuItem("Display VRAM", 0, displayVRAM, true)) {
-				displayVRAM = !displayVRAM;
-				pause = displayVRAM;
+			if (ImGui::BeginMenu("Display Memory")) {
+				if (ImGui::MenuItem("Display VRAM", 0, displayVRAM, true)) {
+					displayVRAM = !displayVRAM;
+				}
+				if (ImGui::MenuItem("Display Palette", 0, displayPalette, true)) {
+					displayPalette = !displayPalette;
+				}
+				ImGui::EndMenu();
 			}
 			ImGui::EndMenu();
 		}
@@ -371,9 +371,29 @@ void ShowVRAMWindow(AppState* appstate) {
 			}
 			ImGui::SameLine();
 		}
-		ImGui::Text("");
+		ImGui::NewLine();
 	}
 
+	ImGui::End();
+}
+
+void ShowPaletteWindow(AppState* appstate) {
+	ImGui::Begin("Palette", &displayPalette);
+	SupaNES* supaNES = appstate->supaNES;
+
+	for (int row = 0; row < 0x100; row += 16) {
+		ImGui::Text("%04x:", row);
+		ImGui::SameLine();
+		for (int i = row; i < row + 16; i++) {
+			uint16_t colorBit = supaNES->ppu->CGRAM[i];
+			float color[] = {(float)(colorBit & 0x1F) / 31.0f, (float)((colorBit >> 5) & 0x1F) / 31.0f, (float)((colorBit >> 10) & 0x1F) / 31.0f };
+			ImGui::PushID(i);
+			ImGui::ColorEdit3("", color, ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoPicker);
+			ImGui::PopID();
+			ImGui::SameLine();
+		}
+		ImGui::NewLine();
+	}
 	ImGui::End();
 }
 
