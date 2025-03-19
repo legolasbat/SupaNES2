@@ -31,6 +31,8 @@ class PPU {
 		bool frameCompleted;
 		void SetFrame(void* texturePixels, int pitch);
 
+		void GetMode7BG(void* texturePixels, int pitch);
+
 		int HCounter;
 		int VCounter;
 		int frameCounter;

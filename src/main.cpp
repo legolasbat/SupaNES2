@@ -13,6 +13,8 @@ typedef struct {
 	SupaNES* supaNES;
 } AppState;
 
+SDL_Texture* mode7Texture;
+
 const int width = 256;
 const int height = 224;
 int windowSizeMultiplier = 3;
@@ -36,6 +38,7 @@ bool OBJSelected = true;
 
 bool displayVRAM = false;
 bool displayPalette = false;
+bool showMode7 = false;
 
 bool pause = false;
 
@@ -74,6 +77,7 @@ int main(int argc, char* argv[]) {
 		return SDL_APP_FAILURE;
 	}
 	as->texture = SDL_CreateTexture(as->renderer, SDL_PIXELFORMAT_ABGR1555, SDL_TEXTUREACCESS_STREAMING, width, height);
+	mode7Texture = SDL_CreateTexture(as->renderer, SDL_PIXELFORMAT_ABGR1555, SDL_TEXTUREACCESS_STREAMING, 1024, 1024);
 
 	ImGui_ImplSDL3_InitForSDLRenderer(as->window, as->renderer);
 	ImGui_ImplSDLRenderer3_Init(as->renderer);
@@ -108,7 +112,10 @@ int main(int argc, char* argv[]) {
 	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
 
+	SDL_DestroyTexture(mode7Texture);
+
 	if(as) {
+		SDL_DestroyTexture(as->texture);
 		SDL_DestroyRenderer(as->renderer);
 		SDL_DestroyWindow(as->window);
 		SDL_free(as);
@@ -133,6 +140,17 @@ void RenderFrame(AppState* appstate) {
 
 	if (displayPalette) {
 		ShowPaletteWindow(appstate);
+	}
+
+	if (showMode7) {
+		ImGui::Begin("Mode 7", &showMode7);
+		void* texturePixelsMode7;
+		int pitchMode7;
+		SDL_LockTexture(mode7Texture, NULL, &texturePixelsMode7, &pitchMode7);
+		appstate->supaNES->ppu->GetMode7BG(texturePixelsMode7, pitchMode7);
+		SDL_UnlockTexture(mode7Texture);
+		ImGui::Image((ImTextureID)(intptr_t)mode7Texture, ImVec2(width, height));
+		ImGui::End();
 	}
 
 	ImGui::Render();
@@ -345,6 +363,9 @@ void MenuBar(AppState* appstate) {
 				}
 				if (ImGui::MenuItem("Display Palette", 0, displayPalette, true)) {
 					displayPalette = !displayPalette;
+				}
+				if (ImGui::MenuItem("Display Mode7", 0, showMode7, true)) {
+					showMode7 = !showMode7;
 				}
 				ImGui::EndMenu();
 			}

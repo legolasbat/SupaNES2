@@ -1481,3 +1481,24 @@ void PPU::SetFrame(void* texturePixels, int pitch) {
 		}
 	}
 }
+
+void PPU::GetMode7BG(void* texturePixels, int pitch) {
+	uint16_t* outPixels = (uint16_t*)texturePixels;
+	for (int y = 0; y < 1024; y++) {
+		for (int x = 0; x < 1024; x++) {
+			uint16_t tileID = ((y >> 3) << 7) | (x >> 3);
+			tileID = VRAM[tileID] & 0xFF;
+
+			uint16_t palette = (tileID << 6) | ((y & 0x7) << 3) | (x & 0x7);
+			palette = VRAM[palette] >> 8;
+
+			if (palette == 0) {
+				palette = CGRAM[0] | 0x8000;
+			}
+			else {
+				palette = CGRAM[palette] | 0x8000;
+			}
+			outPixels[y * (pitch / 2) + x] = palette;
+		}
+	}
+}
