@@ -2734,7 +2734,7 @@ uint8_t CPU::SBC() {
 			carry = (result > 0x0F) ? 1 : 0;
 
 			result = (regs.A.L & 0xF0) - (fetched & 0xF0) - (carry << 4) + (result & 0x0F);
-			SetFlag(VFlag, (int16_t)result < -128 || (int16_t)result > 127);
+			SetFlag(VFlag, ~(regs.A.L ^ ~fetched) & (regs.A.L ^ result) & 0x80);
 			if (result > 0x9F) {
 				result -= 0x60;
 			}
@@ -2752,7 +2752,7 @@ uint8_t CPU::SBC() {
 
 			SetFlag(CFlag, result <= regs.A.L);
 
-			SetFlag(VFlag, (int8_t)result < -128 || result > 127);
+			SetFlag(VFlag, ~(regs.A.L ^ ~fetched) & (regs.A.L ^ result) & 0x80);
 
 			regs.A.L = result;
 		}
@@ -2778,7 +2778,7 @@ uint8_t CPU::SBC() {
 			carry = (result > 0x0FFF) ? 1 : 0;
 
 			result = (regs.A.HL & 0xF000) - (fetched & 0xF000) - (carry << 12) + (result & 0x0FFF);
-			SetFlag(VFlag, (int32_t)result < -32768 || (int32_t)result > 32767);
+			SetFlag(VFlag, ~(regs.A.HL ^ ~fetched) & (regs.A.HL ^ result) & 0x8000);
 			if (result > 0x9FFF) {
 				result -= 0x6000;
 			}
@@ -2796,7 +2796,7 @@ uint8_t CPU::SBC() {
 
 			SetFlag(CFlag, result <= regs.A.HL);
 
-			SetFlag(VFlag, (int16_t)result < -32768 || result > 32767);
+			SetFlag(VFlag, ~(regs.A.HL ^ ~fetched) & (regs.A.HL ^ result) & 0x8000);
 
 			regs.A.HL = result;
 		}
