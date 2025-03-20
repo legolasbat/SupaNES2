@@ -1271,6 +1271,10 @@ bool PPU::IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) const {
 		return false;
 	}
 
+	if ((enableReg & (1 << BGIndex)) == 0) {
+		return false;
+	}
+
 	if (!window2Enable) {
 		return isInsideWindow1;
 	}
