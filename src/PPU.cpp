@@ -18,6 +18,20 @@ PPU::PPU(SupaNES* supaNes) {
 
 	OAMAddress = 0;
 
+	BG1HScroll = 0;
+	M7HOFS = 0;
+	BG1VScroll = 0;
+	M7VOFS = 0;
+
+	BG2HScroll = 0;
+	BG2VScroll = 0;
+
+	BG3HScroll = 0;
+	BG3VScroll = 0;
+
+	BG4HScroll = 0;
+	BG4VScroll = 0;
+
 	W12SEL = 0;
 	W34SEL = 0;
 	WOBJSEL = 0;
@@ -770,15 +784,38 @@ void PPU::SetPixel(int X, int Y) {
 void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t bpp,
 						uint8_t XSize, uint8_t YSize,
 						uint16_t HScroll, uint16_t VScroll) {
-	int XScrolled = (X + HScroll) % (8 * XSize);
-	int YScrolled = (Y + VScroll + (overscan ? 8 : 0)) % (8 * YSize);
+	uint8_t spriteSize = 8;
+	if (BGMode & (0x10 << BGIndex)) {
+		spriteSize = 16;
+	}
+
+	int XScrolled = (X + HScroll) % (spriteSize * XSize);
+	int YScrolled = (Y + VScroll + (overscan ? 8 : 0)) % (spriteSize * YSize);
 
 	// Mod 0x8000 because we use 16bits values instead of 8bits
-	uint16_t baseAddress = ((BGAddress & 0xFC) << 8) % 0x8000;
-	uint16_t offset = ((((XSize == 64) ? (YScrolled & 0xFF) : YScrolled) / 8) << 5)
-					+ ((XScrolled & 0xFF) / 8)
-					+ (XScrolled / 0x100) * 0x400
-					+ (XSize / 64) * ((YScrolled / 0x100) * 0x800);
+	uint16_t baseAddress = ((BGAddress >> 2) << 10) % 0x8000;
+
+	uint8_t TileX = XScrolled / spriteSize;
+	uint8_t TileY = YScrolled / spriteSize;
+
+	uint16_t rowSize = 0xFF + 0x100 * (spriteSize / 16);
+	uint16_t offset = (((YScrolled & rowSize) / spriteSize) << 5) + ((XScrolled & rowSize) / spriteSize);
+	// Right map
+	if (TileX >= 32) {
+		offset += (XSize == 64) ? 0x400 : 0;
+	}
+	// Down map
+	if (TileY >= 32) {
+		if (YSize == 64) {
+			if (XSize == 64) {
+				offset += 0x800;
+			}
+			else {
+				offset += 0x400;
+			}
+		}
+	}
+
 	uint16_t tileWord = VRAM[baseAddress + offset];
 
 	uint16_t tileID = tileWord & 0x3FF;
@@ -786,6 +823,15 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 	bool BGPriority = tileWord & 0x2000;
 	bool BGFlipX = tileWord & 0x4000;
 	bool BGFlipY = tileWord & 0x8000;
+
+	if (spriteSize == 16) {
+		if (XScrolled % 16 >= 8) {
+			tileID += 1;
+		}
+		if (YScrolled % 16 >= 8) {
+			tileID += 16;
+		}
+	}
 
 	uint8_t i = YScrolled % 8;
 	uint8_t j = XScrolled % 8;
