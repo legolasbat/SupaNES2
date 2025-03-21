@@ -133,6 +133,7 @@ class PPU {
 		
 		uint8_t VMain;			// Video Port Control				0x2115
 		uint16_t VRAMAddress;	// VRAM Address						0x2116/7
+		bool VRAMAddressReset = false;
 
 		uint8_t M7SEL;			// Mode 7 Settings					0x211A
 

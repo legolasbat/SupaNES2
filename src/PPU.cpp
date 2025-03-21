@@ -142,7 +142,10 @@ uint8_t PPU::ReadPPU(uint32_t address) {
 			}
 		}
 		value = VRAM[remapAddress] & 0x00FF;
-		if (!(VMain & 0x80)) {
+		if (VRAMAddressReset) {
+			VRAMAddressReset = false;
+		}
+		else if (!(VMain & 0x80)) {
 			if ((VMain & 0x3) == 0) {
 				VRAMAddress++;
 			}
@@ -175,7 +178,10 @@ uint8_t PPU::ReadPPU(uint32_t address) {
 			}
 		}
 		value = VRAM[remapAddress] >> 8;
-		if (!(VMain & 0x80)) {
+		if (VRAMAddressReset) {
+			VRAMAddressReset = false;
+		}
+		else if (VMain & 0x80) {
 			if ((VMain & 0x3) == 0) {
 				VRAMAddress++;
 			}
@@ -385,10 +391,12 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 	else if (reg == 0x16) {		// VMAADDL
 		VRAMAddress &= 0xFF00;
 		VRAMAddress |= value;
+		VRAMAddressReset = true;
 	}
 	else if (reg == 0x17) {		// VMADDH
 		VRAMAddress &= 0x00FF;
 		VRAMAddress |= value << 8;
+		VRAMAddressReset = true;
 	}
 	else if (reg == 0x18) {		// VMDATAL
 		uint16_t remapAddress = VRAMAddress;
