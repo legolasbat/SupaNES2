@@ -569,9 +569,7 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 			}
 		}
 		else if (reg == 0x0C) {	// HDMAEN
-			if (value != 0) {
-				enabledHDMA = value;
-			}
+			enabledHDMA = value;
 		}
 		else if (reg == 0x0D) {	// MEMSEL
 			if (value & 0x1) {
