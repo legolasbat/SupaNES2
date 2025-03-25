@@ -644,14 +644,16 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 void CPU::StartHDMA() {
 	for (uint8_t i = 0; i < 8; i++) {
 		if ((enabledHDMA & (1 << i)) && !Dma[i].finished) {
-			if (--Dma[i].lineCounter == 0) {
+			Dma[i].lineCounter--;
+			Dma[i].repeat = Dma[i].lineCounter & 0x80;
+			if ((Dma[i].lineCounter & 0x7F) == 0) {
 				if (ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)) == 0) {
 					Dma[i].finished = true;
 					continue;
 				}
 				uint8_t tableEntry = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
-				Dma[i].repeat = (tableEntry - 1) & 0x80;
-				Dma[i].lineCounter = tableEntry & 0x7F;
+				Dma[i].repeat = tableEntry & 0x80;
+				Dma[i].lineCounter = tableEntry;
 				Dma[i].tableAddress++;
 				if (Dma[i].indirect) {
 					Dma[i].count = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
@@ -679,8 +681,8 @@ void CPU::ResetHDMA() {
 			Dma[i].finished = false;
 			Dma[i].tableAddress = Dma[i].AAddress;
 			uint8_t tableEntry = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
-			Dma[i].repeat = (tableEntry - 1) & 0x80;
-			Dma[i].lineCounter = tableEntry & 0x7F;
+			Dma[i].repeat = tableEntry & 0x80;
+			Dma[i].lineCounter = tableEntry;
 			Dma[i].tableAddress++;
 
 			if (Dma[i].indirect) {
@@ -710,6 +712,9 @@ void CPU::DMA() {
 }
 
 int CPU::TransferDMA(uint16_t& AAddress, uint8_t Bank, uint16_t BAddress, uint8_t mode, bool direction, uint8_t increment, uint16_t count) {
+	bool fixedTransfer = increment & 1;
+	int8_t incrementValue = (increment == 0) ? 1 : -1;
+
 	switch (mode) {
 		case 0:
 		{
@@ -719,7 +724,9 @@ int CPU::TransferDMA(uint16_t& AAddress, uint8_t Bank, uint16_t BAddress, uint8_
 			else {
 				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress));
 			}
-			AAddress += (increment == 0) ? 1 : ((increment == 2) ? -1 : 0);
+			if (!fixedTransfer) {
+				AAddress += incrementValue;
+			}
 			if (!--count) return 0;
 			break;
 		}
@@ -728,15 +735,23 @@ int CPU::TransferDMA(uint16_t& AAddress, uint8_t Bank, uint16_t BAddress, uint8_
 		{
 			if (!direction) {
 				WriteMemory(BAddress, ReadMemory(AAddress | (Bank << 16)));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
 				if (!--count) return 0;
-				WriteMemory(BAddress + 1, ReadMemory(AAddress + 1 | (Bank << 16)));
+				WriteMemory(BAddress + 1, ReadMemory(AAddress | (Bank << 16)));
 			}
 			else {
 				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
 				if (!--count) return 0;
-				WriteMemory(AAddress + 1 | (Bank << 16), ReadMemory(BAddress + 1));
+				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress + 1));
 			}
-			AAddress += (increment == 0) ? 2 : ((increment == 2) ? -2 : 0);
+			if (!fixedTransfer) {
+				AAddress += incrementValue;
+			}
 			if (!--count) return 0;
 			break;
 		}
@@ -745,15 +760,23 @@ int CPU::TransferDMA(uint16_t& AAddress, uint8_t Bank, uint16_t BAddress, uint8_
 		{
 			if (!direction) {
 				WriteMemory(BAddress, ReadMemory(AAddress | (Bank << 16)));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
 				if (!--count) return 0;
-				WriteMemory(BAddress, ReadMemory(AAddress + 1 | (Bank << 16)));
+				WriteMemory(BAddress, ReadMemory(AAddress | (Bank << 16)));
 			}
 			else {
 				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
 				if (!--count) return 0;
-				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress + 1));
+				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress));
 			}
-			AAddress += (increment == 0) ? 2 : ((increment == 2) ? -2 : 0);
+			if (!fixedTransfer) {
+				AAddress += incrementValue;
+			}
 			if (!--count) return 0;
 			break;
 		}
@@ -762,23 +785,43 @@ int CPU::TransferDMA(uint16_t& AAddress, uint8_t Bank, uint16_t BAddress, uint8_
 		{
 			if (!direction) {
 				WriteMemory(BAddress, ReadMemory(AAddress | (Bank << 16)));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
 				if (!--count) return 0;
-				WriteMemory(BAddress, ReadMemory(AAddress + 1 | (Bank << 16)));
+				WriteMemory(BAddress, ReadMemory(AAddress | (Bank << 16)));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
 				if (!--count) return 0;
-				WriteMemory(BAddress + 1, ReadMemory(AAddress + 2 | (Bank << 16)));
+				WriteMemory(BAddress + 1, ReadMemory(AAddress | (Bank << 16)));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
 				if (!--count) return 0;
-				WriteMemory(BAddress + 1, ReadMemory(AAddress + 3 | (Bank << 16)));
+				WriteMemory(BAddress + 1, ReadMemory(AAddress | (Bank << 16)));
 			}
 			else {
 				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
+				if (!--count) return 0;
+				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
 				if (!--count) return 0;
 				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress + 1));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
 				if (!--count) return 0;
-				WriteMemory(AAddress + 1 | (Bank << 16), ReadMemory(BAddress + 2));
-				if (!--count) return 0;
-				WriteMemory(AAddress + 1 | (Bank << 16), ReadMemory(BAddress + 3));
+				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress + 1));
 			}
-			AAddress += (increment == 0) ? 4 : ((increment == 2) ? -4 : 0);
+			if (!fixedTransfer) {
+				AAddress += incrementValue;
+			}
 			if (!--count) return 0;
 			break;
 		}
@@ -787,23 +830,43 @@ int CPU::TransferDMA(uint16_t& AAddress, uint8_t Bank, uint16_t BAddress, uint8_
 		{
 			if (!direction) {
 				WriteMemory(BAddress, ReadMemory(AAddress | (Bank << 16)));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
 				if (!--count) return 0;
-				WriteMemory(BAddress + 1, ReadMemory(AAddress + 1 | (Bank << 16)));
+				WriteMemory(BAddress + 1, ReadMemory(AAddress | (Bank << 16)));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
 				if (!--count) return 0;
-				WriteMemory(BAddress + 2, ReadMemory(AAddress + 2 | (Bank << 16)));
+				WriteMemory(BAddress + 2, ReadMemory(AAddress | (Bank << 16)));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
 				if (!--count) return 0;
-				WriteMemory(BAddress + 3, ReadMemory(AAddress + 3 | (Bank << 16)));
+				WriteMemory(BAddress + 3, ReadMemory(AAddress | (Bank << 16)));
 			}
 			else {
 				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
 				if (!--count) return 0;
-				WriteMemory(AAddress + 1 | (Bank << 16), ReadMemory(BAddress + 1));
+				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress + 1));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
 				if (!--count) return 0;
-				WriteMemory(AAddress + 2 | (Bank << 16), ReadMemory(BAddress + 2));
+				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress + 2));
+				if (!fixedTransfer) {
+					AAddress += incrementValue;
+				}
 				if (!--count) return 0;
-				WriteMemory(AAddress + 3 | (Bank << 16), ReadMemory(BAddress + 3));
+				WriteMemory(AAddress | (Bank << 16), ReadMemory(BAddress + 3));
 			}
-			AAddress += (increment == 0) ? 4 : ((increment == 2) ? -4 : 0);
+			if (!fixedTransfer) {
+				AAddress += incrementValue;
+			}
 			if (!--count) return 0;
 			break;
 		}
