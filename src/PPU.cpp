@@ -69,15 +69,17 @@ PPU::PPU(SupaNES* supaNes) {
 void PPU::Clock() {
 	HCounter++;
 
+	// Draw next scanline
 	if (HCounter == 256) {
-		memory->cpu->StartHDMA();
-	}
-	else if (HCounter == 0x112) {
 		if (VCounter + 1 < height) {
 			for (int i = 0; i < width; i++) {
 				SetPixel(i, VCounter + 1);
 			}
 		}
+	}
+	// Check HDMA
+	else if (HCounter == 0x112) {
+		memory->cpu->StartHDMA();
 	}
 	else if (HCounter == 339) {
 		HCounter = 0;
@@ -1085,21 +1087,15 @@ void PPU::SetBG1PixelMode7(int X, int Y) {
 }
 
 void PPU::CalculateMode7Coor(int& X, int& Y) const {
-	float Xi = (int16_t)X / 256.0f;
-	float Yi = (int16_t)Y / 256.0f;
+	// TODO: Check if flip
 
-	float A = M7A / 256.0f;
-	float B = M7B / 256.0f;
-	float C = M7C / 256.0f;
-	float D = M7D / 256.0f;
+	#define CLIP(a) (((a) & 0x2000) ? ((a) | ~0x3FF) : ((a) & 0x3FF))
 
-	float X0 = M7X / 256.0f;
-	float Y0 = M7Y / 256.0f;
-	float H = M7HOFS / 256.0f;
-	float V = M7VOFS / 256.0f;
+	int originX = (M7A * CLIP(M7HOFS - M7X) & ~0x3F) + (M7B * CLIP(M7VOFS - M7Y) & ~0x3F) + (M7B * Y & ~0x3F) + (M7X << 8);
+	int originY = (M7C * CLIP(M7HOFS - M7X) & ~0x3F) + (M7D * CLIP(M7VOFS - M7Y) & ~0x3F) + (M7D * Y & ~0x3F) + (M7Y << 8);
 
-	X = (int16_t)((A * (Xi + H - X0) + B * (Yi + V - Y0) + X0) * 256.0f);
-	Y = (int16_t)((C * (Xi + H - X0) + D * (Yi + V - Y0) + Y0) * 256.0f);
+	Y = originY + M7C * X >> 8;
+	X = originX + M7A * X >> 8;
 }
 
 uint8_t PPU::GetColorBPPForBG(uint8_t BGIndex) const {
