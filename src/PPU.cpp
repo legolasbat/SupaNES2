@@ -60,6 +60,10 @@ PPU::PPU(SupaNES* supaNes) {
 	ObjSizes[1][5] = 64;
 	ObjSizes[1][6] = 0;
 	ObjSizes[1][7] = 0;
+
+	for (int i = 0; i < 0x8000; i++) {
+		VRAM[i] = 0;
+	}
 }
 
 void PPU::Clock() {
@@ -128,19 +132,20 @@ uint8_t PPU::ReadPPU(uint32_t address) {
 			if ((VMain & 0xC) == 0x4) {
 				uint8_t lower = VRAMAddress & 0xFF;
 				remapAddress &= 0xFF00;
-				remapAddress |= (lower >> 5) | (lower << 3);
+				remapAddress |= (lower >> 5) | (lower << 3 & 0x00F8);
 			}
 			else if ((VMain & 0xC) == 0x8) {
 				uint16_t lower = VRAMAddress & 0x1FF;
 				remapAddress &= 0xFE00;
-				remapAddress |= (lower >> 6) | (lower << 3);
+				remapAddress |= (lower >> 6) | (lower << 3 & 0x01F8);
 			}
 			else if ((VMain & 0xC) == 0xC) {
 				uint16_t lower = VRAMAddress & 0x3FF;
 				remapAddress &= 0xFC00;
-				remapAddress |= (lower >> 7) | (lower << 3);
+				remapAddress |= (lower >> 7) | (lower << 3 & 0x03F8);
 			}
 		}
+		remapAddress %= 0x8000;
 		value = VRAM[remapAddress] & 0x00FF;
 		if (VRAMAddressReset) {
 			VRAMAddressReset = false;
@@ -155,7 +160,6 @@ uint8_t PPU::ReadPPU(uint32_t address) {
 			else {
 				VRAMAddress += 128;
 			}
-			VRAMAddress = VRAMAddress % 0x8000;
 		}
 	}
 	else if (reg == 0x3A) {		// VMDATAHREAD
@@ -164,19 +168,20 @@ uint8_t PPU::ReadPPU(uint32_t address) {
 			if ((VMain & 0xC) == 0x4) {
 				uint8_t lower = VRAMAddress & 0xFF;
 				remapAddress &= 0xFF00;
-				remapAddress |= (lower >> 5) | (lower << 3);
+				remapAddress |= (lower >> 5) | (lower << 3 & 0x00F8);
 			}
 			else if ((VMain & 0xC) == 0x8) {
 				uint16_t lower = VRAMAddress & 0x1FF;
 				remapAddress &= 0xFE00;
-				remapAddress |= (lower >> 6) | (lower << 3);
+				remapAddress |= (lower >> 6) | (lower << 3 & 0x01F8);
 			}
 			else if ((VMain & 0xC) == 0xC) {
 				uint16_t lower = VRAMAddress & 0x3FF;
 				remapAddress &= 0xFC00;
-				remapAddress |= (lower >> 7) | (lower << 3);
+				remapAddress |= (lower >> 7) | (lower << 3 & 0x03F8);
 			}
 		}
+		remapAddress %= 0x8000;
 		value = VRAM[remapAddress] >> 8;
 		if (VRAMAddressReset) {
 			VRAMAddressReset = false;
@@ -191,7 +196,6 @@ uint8_t PPU::ReadPPU(uint32_t address) {
 			else {
 				VRAMAddress += 128;
 			}
-			VRAMAddress = VRAMAddress % 0x8000;
 		}
 	}
 	else if (reg == 0x3B) {		// CGDATA
@@ -404,17 +408,17 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 			if ((VMain & 0xC) == 0x4) {
 				uint8_t lower = VRAMAddress & 0xFF;
 				remapAddress &= 0xFF00;
-				remapAddress |= (lower >> 5) | (lower << 3);
+				remapAddress |= (lower >> 5) | (lower << 3 & 0x00F8);
 			}
 			else if ((VMain & 0xC) == 0x8) {
 				uint16_t lower = VRAMAddress & 0x1FF;
 				remapAddress &= 0xFE00;
-				remapAddress |= (lower >> 6) | (lower << 3);
+				remapAddress |= (lower >> 6) | (lower << 3 & 0x01F8);
 			}
 			else if ((VMain & 0xC) == 0xC) {
 				uint16_t lower = VRAMAddress & 0x3FF;
 				remapAddress &= 0xFC00;
-				remapAddress |= (lower >> 7) | (lower << 3);
+				remapAddress |= (lower >> 7) | (lower << 3 & 0x03F8);
 			}
 		}
 		remapAddress %= 0x8000;
@@ -430,7 +434,6 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 			else {
 				VRAMAddress += 128;
 			}
-			VRAMAddress = VRAMAddress % 0x8000;
 		}
 	}
 	else if (reg == 0x19) {		// VMDATAH
@@ -439,17 +442,17 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 			if ((VMain & 0xC) == 0x4) {
 				uint8_t lower = VRAMAddress & 0xFF;
 				remapAddress &= 0xFF00;
-				remapAddress |= (lower >> 5) | (lower << 3);
+				remapAddress |= (lower >> 5) | (lower << 3 & 0x00F8);
 			}
 			else if ((VMain & 0xC) == 0x8) {
 				uint16_t lower = VRAMAddress & 0x1FF;
 				remapAddress &= 0xFE00;
-				remapAddress |= (lower >> 6) | (lower << 3);
+				remapAddress |= (lower >> 6) | (lower << 3 & 0x01F8);
 			}
 			else if ((VMain & 0xC) == 0xC) {
 				uint16_t lower = VRAMAddress & 0x3FF;
 				remapAddress &= 0xFC00;
-				remapAddress |= (lower >> 7) | (lower << 3);
+				remapAddress |= (lower >> 7) | (lower << 3 & 0x03F8);
 			}
 		}
 		remapAddress %= 0x8000;
@@ -465,7 +468,6 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 			else {
 				VRAMAddress += 128;
 			}
-			VRAMAddress = VRAMAddress % 0x8000;
 		}
 	}
 	else if (reg == 0x1A) {		// M7SEL
