@@ -32,7 +32,9 @@ class SupaNES {
 		uint8_t memoryBank;
 		uint8_t memoryPage;
 
-		uint16_t joypad1Latch = 16;
+		bool latchController = false;
+		uint16_t joypad1Latch = 0;
+		uint16_t joypad2Latch = 0;
 
 		uint8_t ReadMemoryQ1(uint32_t address);
 		uint8_t ReadMemoryQ2(uint32_t address);

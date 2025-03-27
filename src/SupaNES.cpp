@@ -119,11 +119,52 @@ uint8_t SupaNES::ReadMemoryQ1(uint32_t address) {
 		// Reading Joypad register
 		if ((address & 0xFF) == 0x16) {
 			if (joypad1Latch >= 16) {
-				value = 1;
+				return 1;
+			}
+			if (latchController) {
+				return cpu->joypad1High >> 7;
+			}
+
+			switch (joypad1Latch++) {
+			case  0: return (cpu->joypad1High >> 7) & 1;
+			case  1: return (cpu->joypad1High >> 6) & 1;
+			case  2: return (cpu->joypad1High >> 5) & 1;
+			case  3: return (cpu->joypad1High >> 4) & 1;
+			case  4: return (cpu->joypad1High >> 3) & 1;
+			case  5: return (cpu->joypad1High >> 2) & 1;
+			case  6: return (cpu->joypad1High >> 1) & 1;
+			case  7: return (cpu->joypad1High >> 0) & 1;
+			case  8: return (cpu->joypad1Low >> 7) & 1;
+			case  9: return (cpu->joypad1Low >> 6) & 1;
+			case 10: return (cpu->joypad1Low >> 5) & 1;
+			case 11: return (cpu->joypad1Low >> 4) & 1;
+			default: return 0;
 			}
 		}
 		else if ((address & 0xFF) == 0x17) {
-			value = 0x1C;
+			if (joypad2Latch >= 16) {
+				return 1;
+			}
+			if (latchController) {
+				return 0;
+				//return cpu->joypad2High >> 7;
+			}
+
+			switch (joypad2Latch++) {
+			//case  0: return (cpu->joypad2High >> 7) & 1;
+			//case  1: return (cpu->joypad2High >> 6) & 1;
+			//case  2: return (cpu->joypad2High >> 5) & 1;
+			//case  3: return (cpu->joypad2High >> 4) & 1;
+			//case  4: return (cpu->joypad2High >> 3) & 1;
+			//case  5: return (cpu->joypad2High >> 2) & 1;
+			//case  6: return (cpu->joypad2High >> 1) & 1;
+			//case  7: return (cpu->joypad2High >> 0) & 1;
+			//case  8: return (cpu->joypad2Low >> 7) & 1;
+			//case  9: return (cpu->joypad2Low >> 6) & 1;
+			//case 10: return (cpu->joypad2Low >> 5) & 1;
+			//case 11: return (cpu->joypad2Low >> 4) & 1;
+			default: return 0;
+			}
 		}
 		else {
 			printf("Read %06X\n", address);
