@@ -1812,16 +1812,14 @@ uint8_t CPU::ADC() {
 			carry = (result > 0x0F) ? 1 : 0;
 
 			result = (regs.A.L & 0xF0) + (fetched & 0xF0) + (carry << 4) + (result & 0x0F);
-			SetFlag(VFlag, (int8_t)result < -128 || result > 127);
+			SetFlag(VFlag, ~(regs.A.L ^ fetched) & (regs.A.L ^ result) & 0x80);
 			if (result > 0x9F) {
 				result += 0x60;
 			}
 
 			CheckNFlag8Bits(result);
 			CheckZFlag8Bits(result);
-			SetFlag(CFlag, (uint8_t)result < regs.A.L);
-
-			SetFlag(VFlag, ~(regs.A.L ^ fetched) & (regs.A.L ^ result) & 0x80);
+			SetFlag(CFlag, (uint8_t)result - carry < regs.A.L);
 
 			regs.A.L = result;
 
@@ -1830,7 +1828,7 @@ uint8_t CPU::ADC() {
 			CheckNFlag8Bits(result);
 			CheckZFlag8Bits(result);
 
-			SetFlag(CFlag, result < regs.A.L);
+			SetFlag(CFlag, result - carry < regs.A.L);
 
 			SetFlag(VFlag, ~(regs.A.L ^ fetched) & (regs.A.L ^ result) & 0x80);
 
@@ -1858,16 +1856,14 @@ uint8_t CPU::ADC() {
 			carry = (result > 0x0FFF) ? 1 : 0;
 
 			result = (regs.A.HL & 0xF000) + (fetched & 0xF000) + (carry << 12) + (result & 0x0FFF);
-			SetFlag(VFlag, (int16_t)result < -32768 || result > 32767);
+			SetFlag(VFlag, ~(regs.A.HL ^ fetched) & (regs.A.HL ^ result) & 0x8000);
 			if (result > 0x9FFF) {
 				result += 0x6000;
 			}
 
 			CheckNFlag16Bits(result);
 			CheckZFlag16Bits(result);
-			SetFlag(CFlag, (uint16_t)result < regs.A.HL);
-
-			SetFlag(VFlag, ~(regs.A.HL ^ fetched) & (regs.A.HL ^ result) & 0x8000);
+			SetFlag(CFlag, (uint16_t)result - carry < regs.A.HL);
 
 			regs.A.HL = result;
 
@@ -1876,7 +1872,7 @@ uint8_t CPU::ADC() {
 			CheckNFlag16Bits(result);
 			CheckZFlag16Bits(result);
 
-			SetFlag(CFlag, result < regs.A.HL);
+			SetFlag(CFlag, result - carry < regs.A.HL);
 
 			SetFlag(VFlag, ~(regs.A.HL ^ fetched) & (regs.A.HL ^ result) & 0x8000);
 
