@@ -691,55 +691,46 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 void CPU::StartHDMA() {
 	for (uint8_t i = 0; i < 8; i++) {
 		if ((enabledHDMA & (1 << i)) && !Dma[i].finished) {
+			if (Dma[i].repeat) {
+				if (Dma[i].indirect) {
+					TransferDMA(Dma[i].count, Dma[i].indirectBank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
+				} else {
+					TransferDMA(Dma[i].tableAddress, Dma[i].ABank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
+				}
+			}
 			Dma[i].lineCounter--;
 			Dma[i].repeat = Dma[i].lineCounter & 0x80;
-			if ((Dma[i].lineCounter & 0x7F) == 0) {
-				if (ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16)) == 0) {
-					Dma[i].finished = true;
-					continue;
-				}
-				uint8_t tableEntry = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
-				Dma[i].repeat = tableEntry & 0x80;
-				Dma[i].lineCounter = tableEntry;
-				Dma[i].tableAddress++;
-				if (Dma[i].indirect) {
-					Dma[i].count = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
-					Dma[i].count |= ReadMemory((Dma[i].tableAddress + 1) | (Dma[i].ABank << 16)) << 8;
-					Dma[i].tableAddress += 2;
-					TransferDMA(Dma[i].count, Dma[i].indirectBank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
-				} else {
-					TransferDMA(Dma[i].tableAddress, Dma[i].ABank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
-				}
-			}
-			else if (Dma[i].repeat) {
-				if (Dma[i].indirect) {
-					TransferDMA(Dma[i].count, Dma[i].indirectBank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
-				} else {
-					TransferDMA(Dma[i].tableAddress, Dma[i].ABank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
-				}
-			}
+			ReloadHDMA(i);
+		}
+	}
+}
+
+void CPU::ReloadHDMA(uint8_t index) {
+	if ((Dma[index].lineCounter & 0x7F) == 0) {
+		uint8_t tableEntry = ReadMemory(Dma[index].tableAddress | (Dma[index].ABank << 16));
+		Dma[index].lineCounter = tableEntry;
+		Dma[index].tableAddress++;
+
+		Dma[index].finished = tableEntry == 0;
+		Dma[index].repeat = tableEntry != 0;
+
+		if (Dma[index].indirect) {
+			Dma[index].count = ReadMemory(Dma[index].tableAddress | (Dma[index].ABank << 16));
+			Dma[index].count |= ReadMemory((Dma[index].tableAddress + 1) | (Dma[index].ABank << 16)) << 8;
+			Dma[index].tableAddress += 2;
 		}
 	}
 }
 
 void CPU::ResetHDMA() {
 	for (uint8_t i = 0; i < 8; i++) {
+		Dma[i].finished = false;
+		Dma[i].repeat = false;
 		if (enabledHDMA & (1 << i)) {
-			Dma[i].finished = false;
 			Dma[i].tableAddress = Dma[i].AAddress;
-			uint8_t tableEntry = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
-			Dma[i].repeat = tableEntry & 0x80;
-			Dma[i].lineCounter = tableEntry;
-			Dma[i].tableAddress++;
-
-			if (Dma[i].indirect) {
-				Dma[i].count = ReadMemory(Dma[i].tableAddress | (Dma[i].ABank << 16));
-				Dma[i].count |= ReadMemory((Dma[i].tableAddress + 1) | (Dma[i].ABank << 16)) << 8;
-				Dma[i].tableAddress += 2;
-				TransferDMA(Dma[i].count, Dma[i].indirectBank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
-			} else {
-				TransferDMA(Dma[i].tableAddress, Dma[i].ABank, Dma[i].BAddress, Dma[i].mode, Dma[i].direction, 0, 0xFFFF);
-			}
+			Dma[i].lineCounter = 0;
+			ReloadHDMA(i);
+			
 		}
 	}
 }

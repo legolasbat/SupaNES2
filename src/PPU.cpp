@@ -96,6 +96,7 @@ void PPU::Clock() {
 			}
 			VCounter = 0;
 			memory->cpu->ResetHDMA();
+			memory->cpu->StartHDMA();
 			memory->cpu->EndNMI();
 			OBJReloadSize();
 			GetOBJsToDisplay();

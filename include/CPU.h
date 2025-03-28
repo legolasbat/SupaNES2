@@ -106,6 +106,8 @@ class CPU {
 		};
 		DMA Dma[8];
 
+		void ReloadHDMA(uint8_t index);
+
 		uint8_t enabledDMA = 0;
 		uint8_t enabledHDMA = 0;
 		void DMA();
