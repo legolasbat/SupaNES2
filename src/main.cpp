@@ -41,6 +41,7 @@ bool displayPalette = false;
 bool showMode7 = false;
 
 bool pause = false;
+bool waitingFrame = false;
 
 void RenderFrame(AppState* appstate);
 
@@ -98,6 +99,10 @@ int main(int argc, char* argv[]) {
 				HandleEvents(as);
 		
 				RenderFrame(as);
+
+				if (waitingFrame) {
+					pause = true;
+				}
 			}
 		}
 		else {
@@ -201,7 +206,20 @@ void HandleEvents(AppState* appstate) {
 					break;
 				}
 				case SDL_SCANCODE_P:
-					pause = !pause;
+					if (waitingFrame) {
+						waitingFrame = false;
+						pause = false;
+					}
+					else {
+						pause = !pause;
+					}
+					break;
+
+				case SDL_SCANCODE_SPACE:
+					if (pause) {
+						pause = false;
+					}
+					waitingFrame = true;
 					break;
 
 				case SDL_SCANCODE_F3:		// Show trace of CPU
