@@ -504,6 +504,53 @@ uint8_t CPU::ReadCPU(uint32_t address) {
 			printf("\033[0;36mReading CPU: %06x\033[0m\n", address);
 		}
 	}
+	else if (page == 0x43) {
+		uint8_t dmaChannel = (reg & 0xF0) >> 4;
+		reg &= 0xF;
+
+		if (dmaChannel < 8 && reg < 11) {
+			if (reg == 0x0) {		// DMAPx
+				value |= Dma[dmaChannel].direction ? 0x80 : 0;
+				value |= Dma[dmaChannel].indirect ? 0x40 : 0;
+				value |= Dma[dmaChannel].increment << 3;
+				value |= Dma[dmaChannel].mode;
+			}
+			else if (reg == 0x1) {	// BBADx
+				value = Dma[dmaChannel].BAddress & 0xFF;
+			}
+			else if (reg == 0x2) {	// A1TxL
+				value = Dma[dmaChannel].AAddress & 0xFF;
+			}
+			else if (reg == 0x3) {	// A1TxH
+				value = Dma[dmaChannel].AAddress >> 8;
+			}
+			else if (reg == 0x4) {	// A1Bx
+				value = Dma[dmaChannel].ABank;
+			}
+			else if (reg == 0x5) {	// DASxL
+				value = Dma[dmaChannel].count & 0xFF;
+			}
+			else if (reg == 0x6) {	// DASxH
+				value = Dma[dmaChannel].count >> 8;
+			}
+			else if (reg == 0x7) {	// DASBx
+				value = Dma[dmaChannel].indirectBank;
+			}
+			else if (reg == 0x8) {	// A2AxL
+				value = Dma[dmaChannel].tableAddress & 0xFF;
+			}
+			else if (reg == 0x9) {	// A2AxH
+				value = Dma[dmaChannel].tableAddress >> 8;
+			}
+			else if (reg == 0xA) {	// NTRLx
+				value = Dma[dmaChannel].lineCounter;
+			}
+		}
+		else {
+			printf("\033[0;36mReading CPU: %06x = %02x\033[0m\n", address, value);
+			//TODO: CPU Reading
+		}
+	}
 	//TODO: CPU Reading
 	return value;
 }
