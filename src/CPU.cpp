@@ -402,7 +402,7 @@ void CPU::IRQ() {
 
 		if (VCheck && HCheck) {
 			if (memory->ppu->VCounter + 1 == VTIME) {
-				if (memory->ppu->HCounter == HTIME) {
+				if (memory->ppu->HCounter >= HTIME) {
 					if (waiting) {
 						waiting = false;
 					}
@@ -419,7 +419,7 @@ void CPU::IRQ() {
 			}
 		}
 		else if (HCheck) {
-			if (memory->ppu->HCounter == HTIME) {
+			if (memory->ppu->HCounter >= HTIME) {
 				if (waiting) {
 					waiting = false;
 				}
