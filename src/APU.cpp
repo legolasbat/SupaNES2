@@ -419,9 +419,11 @@ uint8_t APU::ReadAPUMemory(uint16_t address) {
 	}
 	// Registers
 	else if (address <= 0x00FF) {
-		if (address <= 0xF3) {
-			assert(address >= 0xF2 && "Reading APU: F0 or F1");
-			value = registers0[address- 0xF0];
+		if (address <= 0xF1) {		// F0 and F1 are write only
+			value = 0;
+		}
+		else if (address <= 0xF3) {
+			value = registers0[address - 0xF0];
 		}
 		else if (address <= 0xF7) {
 			value = ReadCPUPorts(address);
