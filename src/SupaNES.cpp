@@ -290,8 +290,12 @@ void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
 	}
 	else if (memoryPage == 0x40) {
 		// Writting Joypad register
-		if ((address & 0xFF) == 0x16) {
-			printf("Writting Joypad 1: %02x\n", value);
+		if ((address & 0xFF) == 0x16) {			// JOYSER0
+			if (latchController != (value & 0x1)) {
+				latchController = (value & 0x1);
+				joypad1Latch = 0;
+				joypad2Latch = 0;
+			}
 		}
 		else {
 			printf("Write Page 40: %06X\n", address);
