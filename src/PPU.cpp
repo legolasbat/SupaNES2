@@ -129,6 +129,38 @@ uint8_t PPU::ReadPPU(uint32_t address) {
 		value = 0;	// Actually it should be open bus
 		// Reading here updates regs 0x3C and 0x3D
 	}
+	else if (reg == 0x38) {		// OAMDATAREAD
+		if (InternalOAMAddress < 0x200) {
+			if ((InternalOAMAddress & 0x3) == 0) {
+				value = objs[InternalOAMAddress / 4].posX & 0xFF;
+			}
+			else if ((InternalOAMAddress & 0x3) == 1) {
+				value = objs[InternalOAMAddress / 4].posY;
+			}
+			else if ((InternalOAMAddress & 0x3) == 2) {
+				value = objs[InternalOAMAddress / 4].tileID & 0xFF;
+			}
+			else {
+				value |= objs[InternalOAMAddress / 4].flipY ? 0x80 : 0;
+				value |= objs[InternalOAMAddress / 4].flipX ? 0x40 : 0;
+				value |= objs[InternalOAMAddress / 4].priority << 4;
+				value |= objs[InternalOAMAddress / 4].palette << 1;
+				value |= objs[InternalOAMAddress / 4].tileID >> 8 & 0x01;
+			}
+		}
+		else if (InternalOAMAddress >= 0x200) {
+			uint8_t index = InternalOAMAddress - 0x200;
+			for (uint8_t i = 0; i < 4; i++) {
+				uint8_t attr = 0;
+				attr |= objs[i + (index * 4)].posX >> 8 & 0x01;
+				attr |= objs[i + (index * 4)].size ? 0x2 : 0;
+				value |= attr << (2 * i);
+			}
+		}
+
+		InternalOAMAddress++;
+		InternalOAMAddress %= 0x220;
+	}
 	else if (reg == 0x39) {		// VMDATALREAD
 		uint16_t remapAddress = VRAMAddress;
 		if ((VMain & 0xC) != 0) {
