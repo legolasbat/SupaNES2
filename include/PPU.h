@@ -82,11 +82,14 @@ class PPU {
 		};
 		OBJECT objs[128];
 		int objsToDisplay[128];
+		int lastObjDrawn = -1;
+		uint16_t firstObj[2] = { 0xFFFF, 0xFFFF };
+		uint16_t lastObj[2] = { 0, 0 };
 
 		void OBJReloadSize();
 		void GetOBJsToDisplay();
 
-		bool IsOBJOnScreen(int X, int Y, PPU::OBJECT& obj, uint8_t currentPriority);
+		bool IsOBJOnScreen(int X, int Y, PPU::OBJECT& obj, uint8_t currentPriority, int& index);
 
 		uint16_t ColorMathPixel(uint16_t palette, Pixel subpixel) const;
 

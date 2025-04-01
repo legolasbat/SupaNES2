@@ -910,20 +910,33 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t b
 }
 
 void PPU::SetOBJPixel(int X, int Y) {
+	if (!(X >= firstObj[0] && Y >= firstObj[1] && X < lastObj[0] && Y < lastObj[1])) {
+		return;
+	}
 	PPU::Pixel objPixel;
 	objPixel.color = 0;
 	objPixel.priority = 0;
 	objPixel.palette = 0;
 
+	int objIndex = 127;
+	if (lastObjDrawn != -1) {
+		if (objs[objsToDisplay[lastObjDrawn]].maxX < X) {
+			objIndex = lastObjDrawn;
+			lastObjDrawn = -1;
+		}
+	}
 	int index = 0;
 	PPU::OBJECT obj;
-	for (int i = 127; i >= 0; i--) {
+	for (int i = objIndex; i >= 0; i--) {
 		index = objsToDisplay[i];
 		if (index == -1) {
 			break;
 		}
+		if (index == -2) {
+			continue;
+		}
 		obj = objs[index];
-		if (IsOBJOnScreen(X, Y, obj, objPixel.priority)) {
+		if (IsOBJOnScreen(X, Y, obj, objPixel.priority, objsToDisplay[i])) {
 			uint8_t objX = X - obj.posX;
 			uint8_t objY = Y - obj.posY;
 
@@ -946,6 +959,7 @@ void PPU::SetOBJPixel(int X, int Y) {
 				objPixel.priority = obj.priority;
 				objPixel.palette = obj.palette;
 			}
+			lastObjDrawn = i;
 		}
 	}
 	
@@ -961,7 +975,11 @@ void PPU::SetOBJPixel(int X, int Y) {
 	}
 }
 
-bool PPU::IsOBJOnScreen(int X, int Y, PPU::OBJECT& obj, uint8_t currentPriority) {
+bool PPU::IsOBJOnScreen(int X, int Y, PPU::OBJECT& obj, uint8_t currentPriority, int& index) {
+	if (X >= obj.maxX && Y >= obj.maxY) {
+		index = -2;
+		return false;
+	}
 	if (X >= obj.maxX) {
 		return false;
 	}
@@ -995,22 +1013,70 @@ void PPU::OBJReloadSize() {
 
 void PPU::GetOBJsToDisplay() {
 	int pointer = 127;
+	firstObj[0] = 0xFFFF;
+	firstObj[1] = 0xFFFF;
+	lastObj[0] = 0;
+	lastObj[1] = 0;
 	for (int i = 127; i >= 0; i--) {
+		// OBJ Fully visible
 		if (objs[i].posY < height && objs[i].posX < width) {
+			if (objs[i].posX < firstObj[0]) {
+				firstObj[0] = objs[i].posX;
+			}
+			if (objs[i].posY < firstObj[1]) {
+				firstObj[1] = objs[i].posY;
+			}
+			if (objs[i].maxX > lastObj[0]) {
+				lastObj[0] = objs[i].maxX;
+			}
+			if (objs[i].maxY > lastObj[1]) {
+				lastObj[1] = objs[i].maxY;
+			}
 			objsToDisplay[pointer--] = i;
 			continue;
 		}
+		// OBJ Vertical Clipping
 		if (objs[i].maxY != 0 && objs[i].maxY < objs[i].posY && objs[i].posX < width) {
+			if (objs[i].posX < firstObj[0]) {
+				firstObj[0] = objs[i].posX;
+			}
+			firstObj[1] = 0;
+			if (objs[i].maxX > lastObj[0]) {
+				lastObj[0] = objs[i].maxX;
+			}
+			if (objs[i].maxY > lastObj[1]) {
+				lastObj[1] = objs[i].maxY;
+			}
 			objs[i].clipping = 1;
 			objsToDisplay[pointer--] = i;
 			continue;
 		}
+		// OBJ Horizontal Clipping
 		if (objs[i].maxX != 0 && objs[i].maxX < objs[i].posX && objs[i].posY < height) {
+			firstObj[0] = 0;
+			if (objs[i].posY < firstObj[1]) {
+				firstObj[1] = objs[i].posY;
+			}
+			if (objs[i].maxX > lastObj[0]) {
+				lastObj[0] = objs[i].maxX;
+			}
+			if (objs[i].maxY > lastObj[1]) {
+				lastObj[1] = objs[i].maxY;
+			}
 			objs[i].clipping = 2;
 			objsToDisplay[pointer--] = i;
 			continue;
 		}
+		// OBJ Corner Clipping
 		if (objs[i].maxX != 0 && objs[i].maxY != 0 && objs[i].maxX < objs[i].posX && objs[i].maxY < objs[i].posY) {
+			firstObj[0] = 0;
+			firstObj[1] = 0;
+			if (objs[i].maxX > lastObj[0]) {
+				lastObj[0] = objs[i].maxX;
+			}
+			if (objs[i].maxY > lastObj[1]) {
+				lastObj[1] = objs[i].maxY;
+			}
 			objs[i].clipping = 3;
 			objsToDisplay[pointer--] = i;
 			continue;
