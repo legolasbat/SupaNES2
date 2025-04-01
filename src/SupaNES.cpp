@@ -167,8 +167,8 @@ uint8_t SupaNES::ReadMemoryQ1(uint32_t address) {
 			}
 		}
 		else {
-			printf("Read %06X\n", address);
-			assert(false && "Reading Q1 Page 40");
+			// Open Bus
+			value = 0;
 		}
 	}
 	else if (memoryPage == 0x42 || memoryPage == 0x43) {
