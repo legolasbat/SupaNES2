@@ -575,6 +575,12 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 		if (reg == 0x00) {		// NMITIMEN
 			NMITIMEN = value;
 		}
+		else if (reg == 0x01) {	// WRIO
+			if ((wrio & 0x80) && !(value & 0x80)) {
+				memory->ppu->latchCounter = true;
+			}
+			wrio = value;
+		}
 		else if (reg == 0x02) {	// WRMPYA
 			mult1 = value;
 		}

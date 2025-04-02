@@ -33,6 +33,7 @@ class PPU {
 
 		void GetMode7BG(void* texturePixels, int pitch) const;
 
+		bool latchCounter;
 		int HCounter;
 		int VCounter;
 		int frameCounter;

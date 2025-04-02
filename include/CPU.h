@@ -60,6 +60,8 @@ class CPU {
 		void Debug();
 		char* DebugAddress();
 
+		uint8_t wrio;				// 0x4201
+
 		uint8_t joypad1Low;			// 0x4218
 		uint8_t joypad1High;		// 0x4219
 

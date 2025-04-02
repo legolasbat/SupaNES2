@@ -270,10 +270,15 @@ uint8_t PPU::ReadPPU(uint32_t address) {
 		value = 0x01;			// 3-0 PPU1 Version
 	}
 	else if (reg == 0x3F) {		// STAT78
-		printf("Reading PPU STAT78\n");
 		value = isEven ? 0x80 : 0x00;
 		// BIT 4 is 0 if NTSC or 1 if PAL
 		value |= 0x01;			// 3-0 PPU2 Version
+		if (memory->cpu->wrio & 0x80) {
+			value |= latchCounter ? 0x40 : 0;
+			latchCounter = false;
+		} else {
+			value |= 0x40;
+		}
 		OPHCTFlipflop = false;
 		OPVCTFlipflop = false;
 	}
