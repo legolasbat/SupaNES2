@@ -500,6 +500,18 @@ uint8_t CPU::ReadCPU(uint32_t address) {
 		else if (reg == 0x1B) {	// JOY2H
 			return 0;
 		}
+		else if (reg == 0x1C) {	// JOY3L
+			return 0;
+		}
+		else if (reg == 0x1D) {	// JOY3H
+			return 0;
+		}
+		else if (reg == 0x1E) {	// JOY4L
+			return 0;
+		}
+		else if (reg == 0x1F) {	// JOY4H
+			return 0;
+		}
 		else {
 			printf("\033[0;36mReading CPU: %06x\033[0m\n", address);
 		}
