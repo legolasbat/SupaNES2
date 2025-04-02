@@ -69,17 +69,17 @@ PPU::PPU(SupaNES* supaNes) {
 void PPU::Clock() {
 	HCounter++;
 
-	// Draw next scanline
+	// Check HDMA
 	if (HCounter == 256) {
+		memory->cpu->StartHDMA();
+	}
+	// Draw next scanline
+	else if (HCounter == 274) {
 		if (VCounter + 1 < height) {
 			for (int i = 0; i < width; i++) {
 				SetPixel(i, VCounter + 1);
 			}
 		}
-	}
-	// Check HDMA
-	else if (HCounter == 0x112) {
-		memory->cpu->StartHDMA();
 	}
 	else if (HCounter == 339) {
 		HCounter = 0;
@@ -1193,8 +1193,8 @@ void PPU::CalculateMode7Coor(int& X, int& Y) const {
 	int originX = (M7A * CLIP(M7HOFS - M7X) & ~0x3F) + (M7B * CLIP(M7VOFS - M7Y) & ~0x3F) + (M7B * Y & ~0x3F) + (M7X << 8);
 	int originY = (M7C * CLIP(M7HOFS - M7X) & ~0x3F) + (M7D * CLIP(M7VOFS - M7Y) & ~0x3F) + (M7D * Y & ~0x3F) + (M7Y << 8);
 
-	Y = originY + M7C * X >> 8;
-	X = originX + M7A * X >> 8;
+	Y = (originY + M7C * X) >> 8;
+	X = (originX + M7A * X) >> 8;
 }
 
 uint8_t PPU::GetColorBPPForBG(uint8_t BGIndex) const {
@@ -1637,7 +1637,7 @@ void PPU::SetFrame(void* texturePixels, int pitch) {
 	}
 }
 
-void PPU::GetMode7BG(void* texturePixels, int pitch) {
+void PPU::GetMode7BG(void* texturePixels, int pitch) const {
 	uint16_t* outPixels = (uint16_t*)texturePixels;
 	for (int y = 0; y < 1024; y++) {
 		for (int x = 0; x < 1024; x++) {
