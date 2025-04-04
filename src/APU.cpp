@@ -24,6 +24,16 @@ APU::APU(SupaNES* supaNes) {
 	SP = 0xEF;
 	PSW = ZFlag;
 
+	APUPorts[0] = 0;
+	APUPorts[1] = 0;
+	APUPorts[2] = 0;
+	APUPorts[3] = 0;
+
+	CPUPorts[0] = 0;
+	CPUPorts[1] = 0;
+	CPUPorts[2] = 0;
+	CPUPorts[3] = 0;
+
 	uint8_t bootROM[64] = {
 		0xCD, 0xEF, 0xBD, 0xE8, 0x00, 0xC6, 0x1D, 0xD0,
 		0xFC, 0x8F, 0xAA, 0xF4, 0x8F, 0xBB, 0xF5, 0x78,
