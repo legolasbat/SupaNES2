@@ -315,6 +315,17 @@ CPU::CPU(SupaNES* supaNes) {
 
 int CPU::Clock() {
 	opcycles = 0;
+
+	// WRAM Refresh at each scanline when HCounter is at clock 538 or more
+	if (!wramRefreshed && memory->ppu->HCounter * 4 + memory->ppu->masterClockCounter >= 538) {
+		cycles += 40;
+		opcycles += 40;
+		wramRefreshed = true;
+	}
+	else if (wramRefreshed && memory->ppu->HCounter * 4 + memory->ppu->masterClockCounter < 538) {
+		wramRefreshed = false;
+	}
+
 	if (cycles <= 0) {
 		if (!waiting) {
 			opcode = ReadMemory((regs.PB << 16) | regs.PC);

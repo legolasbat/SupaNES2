@@ -68,6 +68,8 @@ class CPU {
 	private:
 		int cycles = 0;
 		int opcycles = 0;
+
+		bool wramRefreshed = false;
 		
 		bool emulationMode;
 

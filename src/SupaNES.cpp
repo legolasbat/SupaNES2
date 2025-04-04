@@ -21,16 +21,16 @@ SupaNES::SupaNES() {
 
 int64_t scheduler_CPU_SPC700 = 0;
 const uint32_t CPU_MASTER_CLOCK = 21477270;
-const uint32_t SPC700_MASTER_CLOCK = 24567000;
+const uint32_t SPC700_MASTER_CLOCK = 24576000;
 
 int SupaNES::Clock() {
 	int cycles = 0;
 	if (scheduler_CPU_SPC700 >= 0) {
 		cycles = cpu->Clock();
-		for (int i = 0; i < cycles * 2; i++) {
+		for (int i = 0; i < cycles; i++) {
 			ppu->Clock();
 		}
-		scheduler_CPU_SPC700 -= cycles * 6 * SPC700_MASTER_CLOCK;
+		scheduler_CPU_SPC700 -= cycles * SPC700_MASTER_CLOCK;
 	}
 	else {
 		cycles = apu->Clock();
