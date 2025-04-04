@@ -73,15 +73,7 @@ void PPU::Clock() {
 	if (HCounter == 256) {
 		memory->cpu->StartHDMA();
 	}
-	// Draw next scanline
-	else if (HCounter == 274) {
-		if (VCounter + 1 < height) {
-			for (int i = 0; i < width; i++) {
-				SetPixel(i, VCounter + 1);
-			}
-		}
-	}
-	else if (HCounter == 339) {
+	else if (HCounter == 341) {
 		HCounter = 0;
 		VCounter++;
 		if (VCounter == 225) {
@@ -100,6 +92,9 @@ void PPU::Clock() {
 			memory->cpu->EndNMI();
 			OBJReloadSize();
 			GetOBJsToDisplay();
+		}
+		// Draw next scanline
+		if (VCounter < height) {
 			for (int i = 0; i < width; i++) {
 				SetPixel(i, VCounter);
 			}
