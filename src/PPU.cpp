@@ -1195,8 +1195,8 @@ void PPU::CalculateMode7Coor(int& X, int& Y) const {
 
 	#define CLIP(a) (((a) & 0x2000) ? ((a) | ~0x3FF) : ((a) & 0x3FF))
 
-	int originX = (M7A * CLIP(M7HOFS - M7X) & ~0x3F) + (M7B * CLIP(M7VOFS - M7Y) & ~0x3F) + (M7B * Y & ~0x3F) + (M7X << 8);
-	int originY = (M7C * CLIP(M7HOFS - M7X) & ~0x3F) + (M7D * CLIP(M7VOFS - M7Y) & ~0x3F) + (M7D * Y & ~0x3F) + (M7Y << 8);
+	int originX = (M7A * CLIP(M7HOFS - M7X) & ~0x3F) + (M7B * CLIP(M7VOFS + 1 - M7Y) & ~0x3F) + (M7B * Y & ~0x3F) + (M7X << 8);
+	int originY = (M7C * CLIP(M7HOFS - M7X) & ~0x3F) + (M7D * CLIP(M7VOFS + 1 - M7Y) & ~0x3F) + (M7D * Y & ~0x3F) + (M7Y << 8);
 
 	Y = (originY + M7C * X) >> 8;
 	X = (originX + M7A * X) >> 8;
