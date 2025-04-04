@@ -21,7 +21,7 @@ SupaNES::SupaNES() {
 }
 
 int64_t scheduler_CPU_SPC700 = 0;
-const uint32_t CPU_MASTER_CLOCK = 21477270;
+const uint32_t CPU_MASTER_CLOCK = 21477272;
 const uint32_t SPC700_MASTER_CLOCK = 24576000;
 
 int SupaNES::Clock() {
