@@ -314,7 +314,7 @@ CPU::CPU(SupaNES* supaNes) {
 }
 
 int CPU::Clock() {
-	int opcycles = 0;
+	opcycles = 0;
 	if (cycles <= 0) {
 		if (!waiting) {
 			opcode = ReadMemory((regs.PB << 16) | regs.PC);
@@ -331,12 +331,12 @@ int CPU::Clock() {
 	
 			regs.PC++;
 	
-			opcycles = opTable[opcode].cycles;
-			opcycles += (this->*opTable[opcode].execute)();
+			opcycles += opTable[opcode].cycles * 6;
+			opcycles += (this->*opTable[opcode].execute)() * 6;
 			cycles = opcycles;
 		}
 		else {
-			opcycles = 3;
+			opcycles = 3 * 6;
 			cycles = opcycles;
 		}
 	}
@@ -344,11 +344,97 @@ int CPU::Clock() {
 	return opcycles;
 }
 
-uint8_t CPU::ReadMemory(uint32_t address) {
+uint8_t CPU::ReadMemory(uint32_t address, bool debug) {
+	if (!debug) {
+		uint8_t bank = address >> 16;
+		uint16_t page = address & 0xFFFF;
+		if (bank < 0x40) {
+			if (page < 0x2000) {
+				opcycles += 2;
+			}
+			else if (page >= 0x4000 && page < 0x4200) {
+				opcycles += 6;
+			}
+			else if (page >= 0x6000 && page < 0x8000) {
+				opcycles += 2;
+			}
+			else if (page >= 0x8000) {
+				opcycles += 2;
+			}
+		}
+		else if (bank < 0x80) {
+			opcycles += 2;
+		}
+		else if (bank < 0xC0) {
+			if (page < 0x2000) {
+				opcycles += 2;
+			}
+			else if (page >= 0x4000 && page < 0x4200) {
+				opcycles += 6;
+			}
+			else if (page >= 0x6000 && page < 0x8000) {
+				opcycles += 2;
+			}
+			else if (page >= 0x8000) {
+				if (!fastROM) {
+					opcycles += 2;
+				}
+			}
+		}
+		else {
+			if (!fastROM) {
+				opcycles += 2;
+			}
+		}
+	}
+
 	return memory->ReadMemory(address);
 }
 
-void CPU::WriteMemory(uint32_t address, uint8_t value) {
+void CPU::WriteMemory(uint32_t address, uint8_t value, bool debug) {
+	if (!debug) {
+		uint8_t bank = address >> 16;
+		uint16_t page = address & 0xFFFF;
+		if (bank < 0x40) {
+			if (page < 0x2000) {
+				opcycles += 2;
+			}
+			else if (page >= 0x4000 && page < 0x4200) {
+				opcycles += 6;
+			}
+			else if (page >= 0x6000 && page < 0x8000) {
+				opcycles += 2;
+			}
+			else if (page >= 0x8000) {
+				opcycles += 2;
+			}
+		}
+		else if (bank < 0x80) {
+			opcycles += 2;
+		}
+		else if (bank < 0xC0) {
+			if (page < 0x2000) {
+				opcycles += 2;
+			}
+			else if (page >= 0x4000 && page < 0x4200) {
+				opcycles += 6;
+			}
+			else if (page >= 0x6000 && page < 0x8000) {
+				opcycles += 2;
+			}
+			else if (page >= 0x8000) {
+				if (!fastROM) {
+					opcycles += 2;
+				}
+			}
+		}
+		else {
+			if (!fastROM) {
+				opcycles += 2;
+			}
+		}
+	}
+
 	memory->WriteMemory(address, value);
 }
 
@@ -637,13 +723,7 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
 			enabledHDMA = value;
 		}
 		else if (reg == 0x0D) {	// MEMSEL
-			if (value & 0x1) {
-				printf("Fast ROM\n");
-				return;
-			} else {
-				printf("Slow ROM\n");
-				return;
-			}
+			fastROM = value & 0x1;
 		}
 		else {
 			printf("\033[0;36mWritting CPU: %06x = %02x\033[0m\n", address, value);
@@ -941,7 +1021,7 @@ int logfileLineCount = 0;
 void CPU::Debug() {
 	if (logfile == nullptr && enableLog) logfile = fopen("/home/legolasbat/Descargas/SMW_log.txt", "w");
 	if (logfile) {
-		fprintf(logfile, "%02x%04x %s %s A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s V:%3d H:%3d F:%2d\n",
+		fprintf(logfile, "%02x%04x %s %s A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s V:%3d H:%4d F:%2d\n",
 				regs.PB, regs.PC, opTable[opcode].name, DebugAddress(),
 				regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
 				(regs.P & NFlag) ? "N" : "n",
@@ -952,7 +1032,7 @@ void CPU::Debug() {
 				(regs.P & IFlag) ? "I" : "i",
 				(regs.P & ZFlag) ? "Z" : "z",
 				(regs.P & CFlag) ? "C" : "c",
-				memory->ppu->VCounter, memory->ppu->HCounter, memory->ppu->frameCounter);
+				memory->ppu->VCounter, memory->ppu->HCounter * 4 + memory->ppu->masterClockCounter, memory->ppu->frameCounter);
 		fflush(logfile);
 		//logfileLineCount++;
 		if (!enableLog) {
@@ -960,7 +1040,7 @@ void CPU::Debug() {
 			assert(false);
 		}
 	} else {
-		printf("%02x%04x %s %s A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s V:%3d H:%3d F:%2d\n",
+		printf("%02x%04x %s %s A:%04x X:%04x Y:%04x S:%04x D:%04x DB:%02x %s%s%s%s%s%s%s%s V:%3d H:%4d F:%2d\n",
 			regs.PB, regs.PC, opTable[opcode].name, DebugAddress(),
 			regs.A.HL, regs.X.HL, regs.Y.HL, regs.SP, regs.DP, regs.DB,
 			(regs.P & NFlag) ? "N" : "n",
@@ -971,7 +1051,7 @@ void CPU::Debug() {
 			(regs.P & IFlag) ? "I" : "i",
 			(regs.P & ZFlag) ? "Z" : "z",
 			(regs.P & CFlag) ? "C" : "c",
-			memory->ppu->VCounter, memory->ppu->HCounter, memory->ppu->frameCounter);
+			memory->ppu->VCounter, memory->ppu->HCounter * 4 + memory->ppu->masterClockCounter, memory->ppu->frameCounter);
 	}
 }
 
@@ -984,9 +1064,9 @@ char* CPU::DebugAddress() {
 
 	case AddMode::Immediate:
 	{
-		uint16_t value = ReadMemory((regs.PB << 16) | (regs.PC + 1));
+		uint16_t value = ReadMemory((regs.PB << 16) | (regs.PC + 1), true);
 		if (!(regs.P & MFlag)) {
-			value |= ReadMemory((regs.PB << 16) | (regs.PC + 2)) << 8;
+			value |= ReadMemory((regs.PB << 16) | (regs.PC + 2), true) << 8;
 			sprintf(buffer, "#$%04x            ", value);
 			return buffer;
 		}
@@ -997,8 +1077,8 @@ char* CPU::DebugAddress() {
 
 	case AddMode::Absolute:
 	{
-		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
-		address |= ReadMemory((regs.PB << 16) | regs.PC + 2) << 8;
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1, true);
+		address |= ReadMemory((regs.PB << 16) | regs.PC + 2, true) << 8;
 		uint32_t fullAddress = (regs.DB << 16) | address;
 
 		sprintf(buffer, "$%04x     [%06x]", address, fullAddress);
@@ -1007,9 +1087,9 @@ char* CPU::DebugAddress() {
 
 	case AddMode::AbsoluteLong:
 	{
-		uint32_t address = ReadMemory((regs.PB << 16) | (regs.PC + 1));
-		address |= ReadMemory((regs.PB << 16) | (regs.PC + 2)) << 8;
-		address |= ReadMemory((regs.PB << 16) | (regs.PC + 3)) << 16;
+		uint32_t address = ReadMemory((regs.PB << 16) | (regs.PC + 1), true);
+		address |= ReadMemory((regs.PB << 16) | (regs.PC + 2), true) << 8;
+		address |= ReadMemory((regs.PB << 16) | (regs.PC + 3), true) << 16;
 
 		sprintf(buffer, "$%06x           ", address);
 		return buffer;
@@ -1017,9 +1097,9 @@ char* CPU::DebugAddress() {
 
 	case AddMode::AbsoluteLongIndexedX:
 	{
-		uint32_t address = ReadMemory((regs.PB << 16) | (regs.PC + 1));
-		address |= ReadMemory((regs.PB << 16) | (regs.PC + 2)) << 8;
-		address |= ReadMemory((regs.PB << 16) | (regs.PC + 3)) << 16;
+		uint32_t address = ReadMemory((regs.PB << 16) | (regs.PC + 1), true);
+		address |= ReadMemory((regs.PB << 16) | (regs.PC + 2), true) << 8;
+		address |= ReadMemory((regs.PB << 16) | (regs.PC + 3), true) << 16;
 		uint16_t offset = (regs.P & XFlag) ? regs.X.L : regs.X.HL;
 		uint32_t fullAddress = address + offset;
 
@@ -1029,8 +1109,8 @@ char* CPU::DebugAddress() {
 
 	case AddMode::AbsoluteIndexedX:
 	{
-		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
-		address |= ReadMemory((regs.PB << 16) | regs.PC + 2) << 8;
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1, true);
+		address |= ReadMemory((regs.PB << 16) | regs.PC + 2, true) << 8;
 		uint16_t offset = (regs.P & XFlag) ? regs.X.L : regs.X.HL;
 		uint32_t fullAddress = address + offset;
 		fullAddress |= (regs.DB << 16);
@@ -1041,8 +1121,8 @@ char* CPU::DebugAddress() {
 
 	case AddMode::AbsoluteIndexedY:
 	{
-		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
-		address |= ReadMemory((regs.PB << 16) | regs.PC + 2) << 8;
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1, true);
+		address |= ReadMemory((regs.PB << 16) | regs.PC + 2, true) << 8;
 		uint16_t offset = (regs.P & XFlag) ? regs.Y.L : regs.Y.HL;
 		uint32_t fullAddress = address + offset;
 		fullAddress |= (regs.DB << 16);
@@ -1053,7 +1133,7 @@ char* CPU::DebugAddress() {
 
 	case AddMode::DirectPage:
 	{
-		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1, true);
 		uint32_t fullAddress = address + regs.DP;
 		
 		sprintf(buffer, "$%02x       [%06x]", address, fullAddress);
@@ -1062,7 +1142,7 @@ char* CPU::DebugAddress() {
 
 	case AddMode::DirectPageIndexedX:
 	{
-		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1, true);
 		uint16_t offset = (regs.P & XFlag) ? regs.X.L : regs.X.HL;
 		uint32_t fullAddress = address + regs.DP + offset;
 
@@ -1072,7 +1152,7 @@ char* CPU::DebugAddress() {
 
 	case AddMode::DirectPageIndexedY:
 	{
-		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1, true);
 		uint16_t offset = (regs.P & XFlag) ? regs.Y.L : regs.Y.HL;
 		uint32_t fullAddress = address + regs.DP + offset;
 
@@ -1082,11 +1162,11 @@ char* CPU::DebugAddress() {
 
 	case AddMode::DirectPageIndirect:
 	{
-		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1, true);
 		uint16_t indirectAddress = address + regs.DP;
 
-		uint32_t fullAddress = ReadMemory(indirectAddress);
-		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+		uint32_t fullAddress = ReadMemory(indirectAddress, true);
+		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF, true) << 8;
 
 		sprintf(buffer, "($%02x)     [%06x]", address, fullAddress);
 		return buffer;
@@ -1094,11 +1174,11 @@ char* CPU::DebugAddress() {
 
 	case AddMode::DirectPageIndirectX:
 	{
-		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1, true);
 		uint16_t indirectAddress = address + regs.DP + regs.X.HL;
 
-		uint32_t fullAddress = ReadMemory(indirectAddress);
-		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+		uint32_t fullAddress = ReadMemory(indirectAddress, true);
+		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF, true) << 8;
 
 		sprintf(buffer, "($%02x,x)   [%06x]", address, fullAddress);
 		return buffer;
@@ -1106,11 +1186,11 @@ char* CPU::DebugAddress() {
 
 	case AddMode::DirectPageIndirectIndexedY:
 	{
-		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1, true);
 		uint16_t indirectAddress = address + regs.DP;
 
-		uint32_t fullAddress = ReadMemory(indirectAddress);
-		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+		uint32_t fullAddress = ReadMemory(indirectAddress, true);
+		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF, true) << 8;
 		fullAddress += regs.Y.HL;
 
 		sprintf(buffer, "($%02x),y   [%06x]", address, fullAddress);
@@ -1119,12 +1199,12 @@ char* CPU::DebugAddress() {
 
 	case AddMode::DirectPageIndirectLong:
 	{
-		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1, true);
 		uint16_t indirectAddress = address + regs.DP;
 
-		uint32_t fullAddress = ReadMemory(indirectAddress);
-		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
-		fullAddress |= ReadMemory((indirectAddress + 2) & 0xFFFF) << 16;
+		uint32_t fullAddress = ReadMemory(indirectAddress, true);
+		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF, true) << 8;
+		fullAddress |= ReadMemory((indirectAddress + 2) & 0xFFFF, true) << 16;
 
 		sprintf(buffer, "[$%02x]     [%06x]", address, fullAddress);
 		return buffer;
@@ -1132,12 +1212,12 @@ char* CPU::DebugAddress() {
 
 	case AddMode::DirectPageIndirectLongIndexedY:
 	{
-		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1, true);
 		uint16_t indirectAddress = address + regs.DP;
 
-		uint32_t fullAddress = ReadMemory(indirectAddress);
-		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
-		fullAddress |= ReadMemory((indirectAddress + 2) & 0xFFFF) << 16;
+		uint32_t fullAddress = ReadMemory(indirectAddress, true);
+		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF, true) << 8;
+		fullAddress |= ReadMemory((indirectAddress + 2) & 0xFFFF, true) << 16;
 
 		fullAddress += regs.Y.HL;
 
@@ -1147,7 +1227,7 @@ char* CPU::DebugAddress() {
 
 	case AddMode::StackRelative:
 	{
-		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1, true);
 		uint16_t fullAddress = address + regs.SP;
 
 		sprintf(buffer, "$%02x,s     [%06x]", address, fullAddress);
@@ -1156,11 +1236,11 @@ char* CPU::DebugAddress() {
 
 	case AddMode::StackRelativeIndirectIndexedY:
 	{
-		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1);
+		uint16_t address = ReadMemory((regs.PB << 16) | regs.PC + 1, true);
 		uint16_t indirectAddress = address + regs.SP;
 
-		uint32_t fullAddress = ReadMemory(indirectAddress);
-		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
+		uint32_t fullAddress = ReadMemory(indirectAddress, true);
+		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF, true) << 8;
 		fullAddress |= regs.DB << 16;
 		fullAddress += regs.Y.HL;
 		fullAddress &= 0xFFFFFF;
@@ -1171,12 +1251,12 @@ char* CPU::DebugAddress() {
 
 	case AddMode::AbsoluteIndirectLong:
 	{
-		uint16_t indirectAddress = ReadMemory((regs.PB << 16) | (regs.PC + 1));
-		indirectAddress |= ReadMemory((regs.PB << 16) | (regs.PC + 2)) << 8;
+		uint16_t indirectAddress = ReadMemory((regs.PB << 16) | (regs.PC + 1), true);
+		indirectAddress |= ReadMemory((regs.PB << 16) | (regs.PC + 2), true) << 8;
 
-		uint32_t fullAddress = ReadMemory(indirectAddress);
-		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF) << 8;
-		fullAddress |= ReadMemory((indirectAddress + 2) & 0xFFFF) << 16;
+		uint32_t fullAddress = ReadMemory(indirectAddress, true);
+		fullAddress |= ReadMemory((indirectAddress + 1) & 0xFFFF, true) << 8;
+		fullAddress |= ReadMemory((indirectAddress + 2) & 0xFFFF, true) << 16;
 
 		sprintf(buffer, "$%04x     [%06x]", indirectAddress, fullAddress);
 		return buffer;
@@ -1184,11 +1264,11 @@ char* CPU::DebugAddress() {
 
 	case AddMode::AbsoluteIndexedIndirectX:
 	{
-		uint16_t indirectAddress = ReadMemory((regs.PB << 16) | (regs.PC + 1));
-		indirectAddress |= ReadMemory((regs.PB << 16) | (regs.PC + 2)) << 8;
+		uint16_t indirectAddress = ReadMemory((regs.PB << 16) | (regs.PC + 1), true);
+		indirectAddress |= ReadMemory((regs.PB << 16) | (regs.PC + 2), true) << 8;
 
-		uint32_t fullAddress = ReadMemory((regs.PB << 16) | ((indirectAddress + regs.X.HL) & 0xFFFF));
-		fullAddress |= ReadMemory((regs.PB << 16) | ((indirectAddress + regs.X.HL + 1) & 0xFFFF)) << 8;
+		uint32_t fullAddress = ReadMemory((regs.PB << 16) | ((indirectAddress + regs.X.HL) & 0xFFFF), true);
+		fullAddress |= ReadMemory((regs.PB << 16) | ((indirectAddress + regs.X.HL + 1) & 0xFFFF), true) << 8;
 
 		sprintf(buffer, "$%04x     [%06x]", indirectAddress, fullAddress);
 		return buffer;
@@ -1196,7 +1276,7 @@ char* CPU::DebugAddress() {
 
 	case AddMode::Branch:
 	{
-		int8_t offset = ReadMemory((regs.PB << 16) | (regs.PC + 1));
+		int8_t offset = ReadMemory((regs.PB << 16) | (regs.PC + 1), true);
 
 		uint16_t address = regs.PC + offset + 2;
 

@@ -67,6 +67,7 @@ class CPU {
 
 	private:
 		int cycles = 0;
+		int opcycles = 0;
 		
 		bool emulationMode;
 
@@ -83,6 +84,8 @@ class CPU {
 
 		uint16_t HTIME;				// 0x4207/8
 		uint16_t VTIME;				// 0x4209/A
+
+		bool fastROM = false;		// 0x420D
 
 		bool TIMEUP;				// 0x4211
 
@@ -125,8 +128,8 @@ class CPU {
 			uint16_t ResetVector;
 		} excVectors;
 
-		uint8_t ReadMemory(uint32_t address);
-		void WriteMemory(uint32_t address, uint8_t value);
+		uint8_t ReadMemory(uint32_t address, bool debug = false);
+		void WriteMemory(uint32_t address, uint8_t value, bool debug = false);
 		
 		enum class AddMode {
 			Implied,

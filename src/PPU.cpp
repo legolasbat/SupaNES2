@@ -67,6 +67,13 @@ PPU::PPU(SupaNES* supaNes) {
 }
 
 void PPU::Clock() {
+	masterClockCounter++;
+
+	if (masterClockCounter % 4 != 0) {
+		return;
+	}
+	masterClockCounter = 0;
+
 	HCounter++;
 
 	// Check HDMA

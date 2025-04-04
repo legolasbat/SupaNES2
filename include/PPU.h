@@ -37,6 +37,7 @@ class PPU {
 		int HCounter;
 		int VCounter;
 		int frameCounter;
+		uint8_t masterClockCounter = 2;
 
 		// Layer Display Settings
 		bool BG1Display = true;
