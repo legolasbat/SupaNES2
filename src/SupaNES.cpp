@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <random>
 
 SupaNES::SupaNES() {
 	cpu = new CPU(this);
@@ -15,7 +16,7 @@ SupaNES::SupaNES() {
 	memoryPage = 0;
 
 	for (int i = 0; i < 0x20000; i++) {
-		WRAM[i] = 0;
+		WRAM[i] = rand() & 0xFF;
 	}
 }
 
