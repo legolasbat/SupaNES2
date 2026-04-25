@@ -69,7 +69,8 @@ PPU::PPU(SupaNES* supaNes) {
 void PPU::Clock() {
 	masterClockCounter++;
 
-	if (masterClockCounter % 4 != 0) {
+	// Only do PPU clock every four CPU clocks
+	if (masterClockCounter != 4) {
 		return;
 	}
 	masterClockCounter = 0;
@@ -965,7 +966,6 @@ void PPU::SetOBJPixel(int X, int Y) {
 		}
 	}
 	int index = 0;
-	PPU::OBJECT obj;
 	for (int i = objIndex; i >= 0; i--) {
 		index = objsToDisplay[i];
 		if (index == -1) {
@@ -974,7 +974,7 @@ void PPU::SetOBJPixel(int X, int Y) {
 		if (index == -2) {
 			continue;
 		}
-		obj = objs[index];
+		PPU::OBJECT& obj = objs[index];
 		if (IsOBJOnScreen(X, Y, obj, objPixel.priority, objsToDisplay[i])) {
 			uint8_t objX = X - obj.posX;
 			uint8_t objY = Y - obj.posY;
