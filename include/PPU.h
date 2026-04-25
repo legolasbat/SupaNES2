@@ -7,8 +7,11 @@ class SupaNES;
 class PPU {
 	public:
 		SupaNES* memory;
-		
-		PPU(SupaNES* supaNes);
+
+		// Screen Width
+		static constexpr int width = 256;
+		// Screen Height
+		static constexpr int height = 224;
 
 		void Clock();
 
@@ -46,42 +49,59 @@ class PPU {
 		bool BG4Display = true;
 		bool ObjDisplay = true;
 
-		uint16_t VRAM[0x8000];
-		uint16_t CGRAM[0x100];
+		bool latchCounter;
+		int HCounter;		// Horizontal Scanline
+		int VCounter;		// Vertical Scanline
+		int frameCounter;	// Number of current frame
+
+		struct Pixel {
+			uint16_t color = 0;
+			uint8_t priority : 1;
+			uint8_t id : 3;
+			uint8_t palette : 4;
+		};
+		// Pixel Info for layers
+		Pixel mainPixelPipeline[6];
+		// Pixel Info for sublayers
+		Pixel subPixelPipeline[6];
+		
+		PPU(SupaNES* supaNes);
+
+		void Clock();
+
+		uint8_t ReadPPU(uint32_t address);
+		void WritePPU(uint32_t address, uint8_t value);
+
+		void SetFrame(void* texturePixels, int pitch);
+
+		void GetMode7BG(void* texturePixels, int pitch) const;
+
+		const uint16_t* GetVRAM() const { return VRAM; }
+		const uint16_t* GetCGRAM() const { return CGRAM; }
 
 	private:
-
-		bool isEven = false;
-
-		void SetPixel(int X, int Y);
-		void SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t bpp,
-						uint8_t XSize, uint8_t YSize,
-						uint16_t HScroll, uint16_t VScroll);
-		void SetOBJPixel(int X, int Y);
-
-		void SetBG1PixelMode7(int X, int Y);
-		void CalculateMode7Coor(int& X, int& Y) const;
-
-		uint8_t GetColorBPPForBG(uint8_t BGIndex) const;
-		uint16_t GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift, uint8_t BGIndex) const;
-		uint16_t GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift) const;
-		uint16_t GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift) const;
-
-		uint8_t ObjSizes[2][8];
 
 		struct OBJECT {
 			uint16_t posX = 0xFF;
 			uint16_t maxX = 0xFF;
 			uint8_t posY = 0xE0;
 			uint8_t maxY = 0xE0;
-			uint16_t tileID = 0;
-			bool flipX = false;
-			bool flipY = false;
-			uint8_t priority = 0;
-			uint8_t palette = 0;
-			bool size = false;
-			uint8_t clipping = 0;
+			uint16_t tileID : 9;
+			uint16_t priority : 2;
+			uint16_t palette : 3;
+			uint16_t flipX : 1;
+			uint16_t flipY : 1;
+			uint8_t clipping : 2;
+			uint8_t size : 1;
+
+			OBJECT() {};
+
+			OBJECT(const OBJECT&) = delete;
+			OBJECT& operator=(const OBJECT&) = delete;
 		};
+
+		uint8_t ObjSizes[2][8];
+
 		OBJECT objs[128];
 		int objsToDisplay[128];
 		int lastObjDrawn = -1;
@@ -181,4 +201,35 @@ class PPU {
 		// Flipflops for 0x213C/D
 		bool OPHCTFlipflop = false;
 		bool OPVCTFlipflop = false;
+
+		uint16_t VRAM[0x8000];
+		uint16_t CGRAM[0x100];
+
+		// Colors of Screen
+		uint16_t pixels[width * height];
+
+		void SetPixel(int X, int Y);
+		void SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t bpp,
+			uint8_t XSize, uint8_t YSize,
+			uint16_t HScroll, uint16_t VScroll);
+		void SetOBJPixel(int X, int Y);
+
+		void SetBG1PixelMode7(int X, int Y);
+		void CalculateMode7Coor(int& X, int& Y) const;
+
+		uint8_t GetColorBPPForBG(uint8_t BGIndex) const;
+		uint16_t GetColor2BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift, uint8_t BGIndex) const;
+		uint16_t GetColor4BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift) const;
+		uint16_t GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift) const;
+
+		void OBJReloadSize();
+		void GetOBJsToDisplay();
+
+		bool IsOBJOnScreen(int X, int Y, PPU::OBJECT& obj, uint8_t currentPriority, int& index);
+
+		uint16_t ColorMathPixel(uint16_t palette, Pixel subpixel) const;
+
+		bool IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) const;
+
+		Pixel GetPixelByPriority(Pixel* pixels) const;
 };

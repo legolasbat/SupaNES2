@@ -406,10 +406,10 @@ void ShowVRAMWindow(AppState* appstate) {
 		ImGui::SameLine();
 		for (int i = row; i < row + 16; i++) {
 			if (i % 2) {
-				ImGui::Text("%02x ", supaNES->ppu->VRAM[i / 2] >> 8);
+				ImGui::Text("%02x ", supaNES->ppu->GetVRAM()[i / 2] >> 8);
 			}
 			else {
-				ImGui::Text("%02x ", supaNES->ppu->VRAM[i / 2] & 0xFF);
+				ImGui::Text("%02x ", supaNES->ppu->GetVRAM()[i / 2] & 0xFF);
 			}
 			ImGui::SameLine();
 		}
@@ -427,7 +427,7 @@ void ShowPaletteWindow(AppState* appstate) {
 		ImGui::Text("%04x:", row);
 		ImGui::SameLine();
 		for (int i = row; i < row + 16; i++) {
-			uint16_t colorBit = supaNES->ppu->CGRAM[i];
+			uint16_t colorBit = supaNES->ppu->GetCGRAM()[i];
 			float color[] = {(float)(colorBit & 0x1F) / 31.0f, (float)((colorBit >> 5) & 0x1F) / 31.0f, (float)((colorBit >> 10) & 0x1F) / 31.0f };
 			ImGui::PushID(i);
 			ImGui::ColorEdit3("", color, ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoPicker);

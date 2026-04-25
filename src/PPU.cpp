@@ -90,7 +90,6 @@ void PPU::Clock() {
 		}
 		else if (VCounter == 262) {
 			frameCounter++;
-			isEven = !isEven;
 			if (frameCounter == 60) {
 				frameCounter = 0;
 			}
@@ -273,7 +272,8 @@ uint8_t PPU::ReadPPU(uint32_t address) {
 		value = 0x01;			// 3-0 PPU1 Version
 	}
 	else if (reg == 0x3F) {		// STAT78
-		value = isEven ? 0x80 : 0x00;
+		// Check if it is an even or odd frame
+		value = (frameCounter & 0x1) ? 0x00 : 0x80;
 		// BIT 4 is 0 if NTSC or 1 if PAL
 		value |= 0x01;			// 3-0 PPU2 Version
 		if (memory->cpu->wrio & 0x80) {
