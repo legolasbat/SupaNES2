@@ -4,14 +4,14 @@
 #include <cassert>
 #include <stdio.h>
 
-#define NFlag 0x80	// Negative flag
-#define VFlag 0x40	// Overflow flag
-#define MFlag 0x20	// Accumulator size flag (0=16bit, 1=8bit)
-#define XFlag 0x10	// Index size flag. Break flag in emulation mode only
-#define DFlag 0x08	// Unused. Decimal flag
-#define IFlag 0x04	// IRQ Disable flag
-#define ZFlag 0x02	// Zero flag
-#define CFlag 0x01	// Carry flag
+constexpr uint8_t NFlag = 0x80;	// Negative flag
+constexpr uint8_t VFlag = 0x40;	// Overflow flag
+constexpr uint8_t MFlag = 0x20;	// Accumulator size flag (0=16bit, 1=8bit)
+constexpr uint8_t XFlag = 0x10;	// Index size flag. Break flag in emulation mode only
+constexpr uint8_t DFlag = 0x08;	// Unused. Decimal flag
+constexpr uint8_t IFlag = 0x04;	// IRQ Disable flag
+constexpr uint8_t ZFlag = 0x02;	// Zero flag
+constexpr uint8_t CFlag = 0x01;	// Carry flag
 
 CPU::CPU(SupaNES* supaNes) {
 	memory = supaNes;

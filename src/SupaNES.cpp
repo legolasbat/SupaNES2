@@ -32,10 +32,10 @@ int SupaNES::Clock() {
     for (int i = 0; i < cycles; i++) {
       ppu->Clock();
     }
-    scheduler_CPU_SPC700 -= cycles * SPC700_MASTER_CLOCK;
+    scheduler_CPU_SPC700 -= static_cast<uint64_t>(cycles) * SPC700_MASTER_CLOCK;
   } else {
     cycles = apu->Clock();
-    scheduler_CPU_SPC700 += cycles * 24 * CPU_MASTER_CLOCK;
+    scheduler_CPU_SPC700 += static_cast<uint64_t>(cycles) * 24 * CPU_MASTER_CLOCK;
   }
   return cycles;
 }
