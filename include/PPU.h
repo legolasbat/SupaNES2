@@ -13,33 +13,7 @@ class PPU {
 		// Screen Height
 		static constexpr int height = 224;
 
-		void Clock();
-
-		uint8_t ReadPPU(uint32_t address);
-		void WritePPU(uint32_t address, uint8_t value);
-
-		int width = 256;
-		int height = 224;
-		uint16_t pixels[256 * 224];
-
-		struct Pixel {
-			uint16_t color = 0;
-			uint8_t priority = 0;
-			uint8_t id = 0;
-			uint8_t palette = 0;
-		};
-		Pixel mainPixelPipeline[6];
-		Pixel subPixelPipeline[6];
-
 		bool frameCompleted;
-		void SetFrame(void* texturePixels, int pitch);
-
-		void GetMode7BG(void* texturePixels, int pitch) const;
-
-		bool latchCounter;
-		int HCounter;
-		int VCounter;
-		int frameCounter;
 		uint8_t masterClockCounter = 2;
 
 		// Layer Display Settings
@@ -107,17 +81,6 @@ class PPU {
 		int lastObjDrawn = -1;
 		uint16_t firstObj[2] = { 0xFFFF, 0xFFFF };
 		uint16_t lastObj[2] = { 0, 0 };
-
-		void OBJReloadSize();
-		void GetOBJsToDisplay();
-
-		bool IsOBJOnScreen(int X, int Y, PPU::OBJECT& obj, uint8_t currentPriority, int& index);
-
-		uint16_t ColorMathPixel(uint16_t palette, Pixel subpixel) const;
-
-		bool IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) const;
-
-		Pixel GetPixelByPriority(Pixel* pixels) const;
 
 		uint8_t inidisp;		// INIDISP							0x2100
 
