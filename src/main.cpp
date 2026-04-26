@@ -337,6 +337,7 @@ void MenuBar(AppState* appstate) {
 					{"SNES Cartridges (*.sfc)", "sfc"}
 				};
 				SDL_ShowOpenFileDialog(&openFileCallback, appstate, appstate->window, filters, 1, NULL, false);
+				pause = true;
 			}
 			if (ImGui::MenuItem("Exit")) {
 				done = true;
@@ -458,4 +459,5 @@ void SDLCALL openFileCallback(void* userdata, const char* const* filelist, int f
 	}
 
 	SDL_Log("Cartridge loaded.\n");
+	pause = false;
 }
