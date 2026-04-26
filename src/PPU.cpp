@@ -1362,7 +1362,7 @@ bool PPU::IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) const {
 	bool isInsideWindow1 = window1Enable &&
 		(window1Left <= window1Right) &&
 		(X >= window1Left && X <= window1Right);
-	if (isInsideWindow1 && (SEL & (0x1 << offset))) {
+	if (window1Enable && (SEL & (0x1 << offset))) {
 		isInsideWindow1 = !isInsideWindow1;
 	}
 
@@ -1371,7 +1371,7 @@ bool PPU::IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) const {
 	bool isInsideWindow2 = window2Enable &&
 		(window2Left <= window2Right) &&
 		(X >= window2Left && X <= window2Right);
-	if (isInsideWindow2 && (SEL & (0x4 << offset))) {
+	if (window2Enable && (SEL & (0x4 << offset))) {
 		isInsideWindow2 = !isInsideWindow2;
 	}
 	
