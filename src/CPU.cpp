@@ -558,7 +558,7 @@ uint8_t CPU::ReadCPU(uint32_t address) {
 
 	if (page == 0x42) {
 		if (reg == 0x10) {
-			nmi |= 0x02;
+			nmi |= 0x42;
 			value = nmi;
 			nmi &= ~0x80;
 			return value;
