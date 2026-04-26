@@ -332,8 +332,8 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
 			}
 			else {
 				objs[InternalOAMAddress / 4].tileID = OAM_Lsb;
-				objs[InternalOAMAddress / 4].flipY = value & 0x80;
-				objs[InternalOAMAddress / 4].flipX = value & 0x40;
+				objs[InternalOAMAddress / 4].flipY = (value & 0x80) ? 1 : 0;
+				objs[InternalOAMAddress / 4].flipX = (value & 0x40) ? 1 : 0;
 				objs[InternalOAMAddress / 4].priority = (value & 0x30) >> 4;
 				objs[InternalOAMAddress / 4].palette = (value & 0x0E) >> 1;
 				objs[InternalOAMAddress / 4].tileID |= (value & 0x01) << 8;
@@ -954,9 +954,6 @@ void PPU::SetOBJPixel(int X, int Y) {
 		return;
 	}
 	PPU::Pixel objPixel;
-	objPixel.color = 0;
-	objPixel.priority = 0;
-	objPixel.palette = 0;
 
 	int objIndex = 127;
 	if (lastObjDrawn != -1) {

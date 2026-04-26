@@ -30,9 +30,15 @@ class PPU {
 
 		struct Pixel {
 			uint16_t color = 0;
-			uint8_t priority : 1;
-			uint8_t id : 3;
-			uint8_t palette : 4;
+			uint16_t priority : 2;
+			uint16_t id : 3;
+			uint16_t palette : 4;
+
+			Pixel() {
+				priority = 0;
+				id = 0;
+				palette = 0;
+			}
 		};
 		// Pixel Info for layers
 		Pixel mainPixelPipeline[6];
