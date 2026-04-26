@@ -3,14 +3,14 @@
 #include <cassert>
 #include <cstdio>
 
-#define NFlag 0x80	// Negative flag
-#define VFlag 0x40	// Overflow flag
-#define PFlag 0x20	// Zero Page Location (0=00xx, 1=01xx)
-#define BFlag 0x10	// (0=Reset, 1=BRK opcode; set after BRK opcode)
-#define HFlag 0x08	// Half-carry
-#define IFlag 0x04	// Interrupt Enable flag (no function in SNES APU)
-#define ZFlag 0x02	// Zero flag
-#define CFlag 0x01	// Carry flag
+constexpr uint8_t NFlag = 0x80;	// Negative flag
+constexpr uint8_t VFlag = 0x40;	// Overflow flag
+constexpr uint8_t PFlag = 0x20;	// Zero Page Location (0=00xx, 1=01xx)
+constexpr uint8_t BFlag = 0x10;	// (0=Reset, 1=BRK opcode; set after BRK opcode)
+constexpr uint8_t HFlag = 0x08;	// Half-carry
+constexpr uint8_t IFlag = 0x04;	// Interrupt Enable flag (no function in SNES APU)
+constexpr uint8_t ZFlag = 0x02;	// Zero flag
+constexpr uint8_t CFlag = 0x01;	// Carry flag
 
 APU::APU(SupaNES* supaNes) {
 	memory = supaNes;
