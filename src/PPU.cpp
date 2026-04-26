@@ -1340,96 +1340,45 @@ uint16_t PPU::ColorMathPixel(uint16_t palette, PPU::Pixel subpixel) const {
 }
 
 bool PPU::IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) const {
-	bool window1Enable = false;
-	bool isInsideWindow1 = false;
-	bool window2Enable = false;
-	bool isInsideWindow2 = false;
-	if (BGIndex == 0 || BGIndex == 1) {
-		uint8_t offset = (BGIndex == 0) ? 0 : 4;
-		if (W12SEL & (0x2 << offset)) {
-			window1Enable = true;
-			if (window1Left > window1Right) {
-				isInsideWindow1 = false;
-			}
-			else if (X >= window1Left && X <= window1Right) {
-				isInsideWindow1 = true;
-			}
-			if (W12SEL & (0x1 << offset)) {
-				isInsideWindow1 = !isInsideWindow1;
-			}
-		}
-		if (W12SEL & (0x8 << offset)) {
-			window2Enable = true;
-			if (window2Left > window2Right) {
-				isInsideWindow2 = false;
-			}
-			else if (X >= window2Left && X <= window2Right) {
-				isInsideWindow2 = true;
-			}
-			if (W12SEL & (0x4 << offset)) {
-				isInsideWindow2 = !isInsideWindow2;
-			}
-		}
-	}
-	else if (BGIndex == 2 || BGIndex == 3) {
-		uint8_t offset = (BGIndex == 2) ? 0 : 4;
-		if (W34SEL & (0x2 << offset)) {
-			window1Enable = true;
-			if (window1Left > window1Right) {
-				isInsideWindow1 = false;
-			}
-			else if (X >= window1Left && X <= window1Right) {
-				isInsideWindow1 = true;
-			}
-			if (W34SEL & (0x1 << offset)) {
-				isInsideWindow1 = !isInsideWindow1;
-			}
-		}
-		if (W34SEL & (0x8 << offset)) {
-			window2Enable = true;
-			if (window2Left > window2Right) {
-				isInsideWindow2 = false;
-			}
-			else if (X >= window2Left && X <= window2Right) {
-				isInsideWindow2 = true;
-			}
-			if (W34SEL & (0x4 << offset)) {
-				isInsideWindow2 = !isInsideWindow2;
-			}
-		}
-	}
-	else if (BGIndex == 4 || BGIndex == 5) {
-		uint8_t offset = (BGIndex == 4) ? 0 : 4;
-		if (WOBJSEL & (0x2 << offset)) {
-			window1Enable = true;
-			if (window1Left > window1Right) {
-				isInsideWindow1 = false;
-			}
-			else if (X >= window1Left && X <= window1Right) {
-				isInsideWindow1 = true;
-			}
-			if (WOBJSEL & (0x1 << offset)) {
-				isInsideWindow1 = !isInsideWindow1;
-			}
-		}
-		if (WOBJSEL & (0x8 << offset)) {
-			window2Enable = true;
-			if (window2Left > window2Right) {
-				isInsideWindow2 = false;
-			}
-			else if (X >= window2Left && X <= window2Right) {
-				isInsideWindow2 = true;
-			}
-			if (WOBJSEL & (0x4 << offset)) {
-				isInsideWindow2 = !isInsideWindow2;
-			}
-		}
-	}
-	if (!window1Enable && !window2Enable) {
+	// If layer is disable, return
+	if ((enableReg & (1 << BGIndex)) == 0) {
 		return false;
 	}
 
-	if ((enableReg & (1 << BGIndex)) == 0) {
+	// Window Mask
+	uint8_t SEL = 0;
+	uint8_t offset = (BGIndex & 1) ? 4 : 0;
+
+	if (BGIndex < 2) {
+		SEL = W12SEL;
+	}
+	else if (BGIndex < 4) {
+		SEL = W34SEL;
+	}
+	else {
+		SEL = WOBJSEL;
+	}
+
+	bool window1Enable = SEL & (0x2 << offset);
+
+	// Check if is inside window
+	bool isInsideWindow1 = window1Enable &&
+		(window1Left <= window1Right) &&
+		(X >= window1Left && X <= window1Right);
+	if (isInsideWindow1 && (SEL & (0x1 << offset))) {
+		isInsideWindow1 = !isInsideWindow1;
+	}
+
+	bool window2Enable = SEL & (0x8 << offset);
+
+	bool isInsideWindow2 = window2Enable &&
+		(window2Left <= window2Right) &&
+		(X >= window2Left && X <= window2Right);
+	if (isInsideWindow2 && (SEL & (0x4 << offset))) {
+		isInsideWindow2 = !isInsideWindow2;
+	}
+	
+	if (!window1Enable && !window2Enable) {
 		return false;
 	}
 
@@ -1439,12 +1388,15 @@ bool PPU::IsInsideWindow(int X, uint8_t BGIndex, uint8_t enableReg) const {
 	if (!window1Enable) {
 		return isInsideWindow2;
 	}
+
+	// If both windows enabled, check operation
 	uint8_t operation = 0;
 	if (BGIndex < 4) {
-		operation = (WBGLOG & (0x3 << (2 * BGIndex))) >> (2 * BGIndex);
+		operation = (WBGLOG >> (2 * BGIndex)) & 0x3;
 	} else {
-		operation = (WOBJLOG & (0x3 << (2 * (BGIndex - 4)))) >> (2 * (BGIndex - 4));
+		operation = (WOBJLOG >> (2 * (BGIndex - 4))) & 0x3;
 	}
+
 	if (operation == 0x00) {
 		return isInsideWindow1 || isInsideWindow2;
 	}
