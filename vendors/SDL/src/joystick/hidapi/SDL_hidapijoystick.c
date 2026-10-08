@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -70,10 +70,16 @@ static SDL_HIDAPI_DeviceDriver *SDL_HIDAPI_drivers[] = {
 #ifdef SDL_JOYSTICK_HIDAPI_STEAMDECK
     &SDL_HIDAPI_DriverSteamDeck,
 #endif
+#ifdef SDL_JOYSTICK_HIDAPI_STEAMDECK
+    &SDL_HIDAPI_DriverSteamTriton,
+#endif 
 #ifdef SDL_JOYSTICK_HIDAPI_SWITCH
     &SDL_HIDAPI_DriverNintendoClassic,
     &SDL_HIDAPI_DriverJoyCons,
     &SDL_HIDAPI_DriverSwitch,
+#endif
+#ifdef SDL_JOYSTICK_HIDAPI_SWITCH2
+    &SDL_HIDAPI_DriverSwitch2,
 #endif
 #ifdef SDL_JOYSTICK_HIDAPI_WII
     &SDL_HIDAPI_DriverWii,
@@ -82,8 +88,26 @@ static SDL_HIDAPI_DeviceDriver *SDL_HIDAPI_drivers[] = {
     &SDL_HIDAPI_DriverXbox360,
     &SDL_HIDAPI_DriverXbox360W,
 #endif
+#ifdef SDL_JOYSTICK_HIDAPI_GIP
+    &SDL_HIDAPI_DriverGIP,
+#endif
 #ifdef SDL_JOYSTICK_HIDAPI_XBOXONE
     &SDL_HIDAPI_DriverXboxOne,
+#endif
+#ifdef SDL_JOYSTICK_HIDAPI_LG4FF
+    &SDL_HIDAPI_DriverLg4ff,
+#endif
+#ifdef SDL_JOYSTICK_HIDAPI_8BITDO
+    &SDL_HIDAPI_Driver8BitDo,
+#endif
+#ifdef SDL_JOYSTICK_HIDAPI_FLYDIGI
+    &SDL_HIDAPI_DriverFlydigi,
+#endif
+#ifdef SDL_JOYSTICK_HIDAPI_SINPUT
+    &SDL_HIDAPI_DriverSInput,
+#endif
+#ifdef SDL_JOYSTICK_HIDAPI_ZUIKI
+    &SDL_HIDAPI_DriverZUIKI,
 #endif
 };
 static int SDL_HIDAPI_numdrivers = 0;
@@ -133,7 +157,7 @@ void HIDAPI_DumpPacket(const char *prefix, const Uint8 *data, int size)
         current_len += SDL_snprintf(&buffer[current_len], length - current_len, " 0x%.2x", data[i]);
     }
     SDL_strlcat(buffer, "\n", length);
-    SDL_Log("%s", buffer);
+    SDL_LogDebug(SDL_LOG_CATEGORY_INPUT, "%s", buffer);
     SDL_free(buffer);
 }
 
@@ -147,7 +171,11 @@ bool HIDAPI_SupportsPlaystationDetection(Uint16 vendor, Uint16 product)
     }
 
     switch (vendor) {
+    case USB_VENDOR_CRKD:
+        return true;
     case USB_VENDOR_DRAGONRISE:
+        return true;
+    case USB_VENDOR_CORSAIR:
         return true;
     case USB_VENDOR_HORI:
         return true;
@@ -187,12 +215,20 @@ bool HIDAPI_SupportsPlaystationDetection(Uint16 vendor, Uint16 product)
          *            https://github.com/libsdl-org/SDL/issues/6799
          */
         return false;
+    case USB_VENDOR_RED_OCTANE_GAMES:
+        return true;
     case USB_VENDOR_SHANWAN:
         return true;
     case USB_VENDOR_SHANWAN_ALT:
         return true;
     case USB_VENDOR_THRUSTMASTER:
-        return true;
+        /* Most of these are wheels, don't have the full set of effects, and
+         * at least in the case of the T248 and T300 RS, the hid-tmff2 driver
+         * puts them in a non-standard report mode and they can't be read.
+         *
+         * If these should use the HIDAPI driver, add them to controller_list.h
+         */
+        return false;
     case USB_VENDOR_ZEROPLUS:
         return true;
     case 0x7545 /* SZ-MYPOWER */:
@@ -229,6 +265,7 @@ static SDL_GamepadType SDL_GetJoystickGameControllerProtocol(const char *name, U
 
         static const int SUPPORTED_VENDORS[] = {
             0x0079, // GPD Win 2
+            0x0351, // CRKD
             0x044f, // Thrustmaster
             0x045e, // Microsoft
             0x046d, // Logitech
@@ -239,7 +276,9 @@ static SDL_GamepadType SDL_GetJoystickGameControllerProtocol(const char *name, U
             0x0e6f, // PDP
             0x0f0d, // Hori
             0x1038, // SteelSeries
+            0x10f5, // Turtle Beach
             0x11c9, // Nacon
+            0x1209, // Generic
             0x12ab, // Unknown
             0x1430, // RedOctane
             0x146b, // BigBen
@@ -253,6 +292,10 @@ static SDL_GamepadType SDL_GetJoystickGameControllerProtocol(const char *name, U
             0x24c6, // PowerA
             0x2c22, // Qanba
             0x2dc8, // 8BitDo
+            0x3537, // GameSir
+            0x3651, // CRKD
+            0x37d7, // Flydigi
+            0x3958, // Red Octane Games
             0x9886, // ASTRO Gaming
         };
 
@@ -271,6 +314,7 @@ static SDL_GamepadType SDL_GetJoystickGameControllerProtocol(const char *name, U
         interface_protocol == XBONE_IFACE_PROTOCOL) {
 
         static const int SUPPORTED_VENDORS[] = {
+            0x0351, // CRKD
             0x03f0, // HP
             0x044f, // Thrustmaster
             0x045e, // Microsoft
@@ -279,12 +323,19 @@ static SDL_GamepadType SDL_GetJoystickGameControllerProtocol(const char *name, U
             0x0e6f, // PDP
             0x0f0d, // Hori
             0x10f5, // Turtle Beach
+            0x1209, // Generic
             0x1532, // Razer
             0x20d6, // PowerA
             0x24c6, // PowerA
+            0x294b, // Snakebyte
             0x2dc8, // 8BitDo
             0x2e24, // Hyperkin
+            0x2e95, // SCUF
+            0x3285, // Nacon
             0x3537, // GameSir
+            0x3651, // CRKD
+            0x366c, // ByoWave
+            0x3958, // Red Octane Games
         };
 
         int i;
@@ -332,7 +383,7 @@ static SDL_HIDAPI_DeviceDriver *HIDAPI_GetDeviceDriver(SDL_HIDAPI_Device *device
         return NULL;
     }
 
-    if (device->vendor_id != USB_VENDOR_VALVE) {
+    if (device->vendor_id != USB_VENDOR_VALVE && device->vendor_id != USB_VENDOR_FLYDIGI_V1 && device->vendor_id != USB_VENDOR_FLYDIGI_V2) {
         if (device->usage_page && device->usage_page != USAGE_PAGE_GENERIC_DESKTOP) {
             return NULL;
         }
@@ -357,7 +408,7 @@ static SDL_HIDAPI_Device *HIDAPI_GetDeviceByIndex(int device_index, SDL_Joystick
     SDL_AssertJoysticksLocked();
 
     for (device = SDL_HIDAPI_devices; device; device = device->next) {
-        if (device->parent) {
+        if (device->parent || device->broken) {
             continue;
         }
         if (device->driver) {
@@ -424,7 +475,9 @@ static void HIDAPI_SetupDeviceDriver(SDL_HIDAPI_Device *device, bool *removed) S
     if (device->driver) {
         bool enabled;
 
-        if (device->vendor_id == USB_VENDOR_NINTENDO && device->product_id == USB_PRODUCT_NINTENDO_SWITCH_JOYCON_PAIR) {
+        if (device->vendor_id == USB_VENDOR_NINTENDO &&
+            (device->product_id == USB_PRODUCT_NINTENDO_SWITCH_JOYCON_PAIR ||
+             device->product_id == USB_PRODUCT_NINTENDO_SWITCH2_JOYCON_PAIR)) {
             enabled = SDL_HIDAPI_combine_joycons;
         } else {
             enabled = device->driver->enabled;
@@ -526,24 +579,6 @@ static bool HIDAPI_JoystickInit(void)
     if (initialized) {
         return true;
     }
-
-#ifdef SDL_USE_LIBUDEV
-    if (linux_enumeration_method == ENUMERATION_UNSET) {
-        if (!SDL_GetHintBoolean(SDL_HINT_HIDAPI_UDEV, true)) {
-            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
-                         "udev disabled by SDL_HINT_HIDAPI_UDEV");
-            linux_enumeration_method = ENUMERATION_FALLBACK;
-        } else if (SDL_GetSandbox() != SDL_SANDBOX_NONE) {
-            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
-                         "Container detected, disabling HIDAPI udev integration");
-            linux_enumeration_method = ENUMERATION_FALLBACK;
-        } else {
-            SDL_LogDebug(SDL_LOG_CATEGORY_INPUT,
-                         "Using udev for HIDAPI joystick device discovery");
-            linux_enumeration_method = ENUMERATION_LIBUDEV;
-        }
-    }
-#endif
 
     if (SDL_hid_init() < 0) {
         return SDL_SetError("Couldn't initialize hidapi");
@@ -697,7 +732,7 @@ bool HIDAPI_HasConnectedUSBDevice(const char *serial)
     }
 
     for (device = SDL_HIDAPI_devices; device; device = device->next) {
-        if (!device->driver) {
+        if (!device->driver || device->broken) {
             continue;
         }
 
@@ -723,7 +758,7 @@ void HIDAPI_DisconnectBluetoothDevice(const char *serial)
     }
 
     for (device = SDL_HIDAPI_devices; device; device = device->next) {
-        if (!device->driver) {
+        if (!device->driver || device->broken) {
             continue;
         }
 
@@ -763,11 +798,12 @@ bool HIDAPI_JoystickConnected(SDL_HIDAPI_Device *device, SDL_JoystickID *pJoysti
 
     ++SDL_HIDAPI_numjoysticks;
 
-    SDL_PrivateJoystickAdded(joystickID);
-
     if (pJoystickID) {
         *pJoystickID = joystickID;
     }
+
+    SDL_PrivateJoystickAdded(joystickID);
+
     return true;
 }
 
@@ -875,16 +911,19 @@ static SDL_HIDAPI_Device *HIDAPI_AddDevice(const struct SDL_hid_device_info *inf
     for (curr = SDL_HIDAPI_devices, last = NULL; curr; last = curr, curr = curr->next) {
     }
 
+    char *path = SDL_strdup(info->path);
+    if (!path) {
+        SDL_OutOfMemory();
+        return NULL;
+    }
+
     device = (SDL_HIDAPI_Device *)SDL_calloc(1, sizeof(*device));
     if (!device) {
+        SDL_free(path);
         return NULL;
     }
     SDL_SetObjectValid(device, SDL_OBJECT_TYPE_HIDAPI_JOYSTICK, true);
-    device->path = SDL_strdup(info->path);
-    if (!device->path) {
-        SDL_free(device);
-        return NULL;
-    }
+    device->path = path;
     device->seen = true;
     device->vendor_id = info->vendor_id;
     device->product_id = info->product_id;
@@ -1028,6 +1067,10 @@ static bool HIDAPI_CreateCombinedJoyCons(void)
             // This device is already part of a combined device
             continue;
         }
+        if (device->broken) {
+            // This device can't be used
+            continue;
+        }
 
         SDL_GetJoystickGUIDInfo(device->guid, &vendor, &product, NULL, NULL);
 
@@ -1055,12 +1098,21 @@ static bool HIDAPI_CreateCombinedJoyCons(void)
             SDL_zero(info);
             info.path = "nintendo_joycons_combined";
             info.vendor_id = USB_VENDOR_NINTENDO;
-            info.product_id = USB_PRODUCT_NINTENDO_SWITCH_JOYCON_PAIR;
+            if (joycons[0]->product_id == USB_PRODUCT_NINTENDO_SWITCH_JOYCON_LEFT) {
+                info.product_id = USB_PRODUCT_NINTENDO_SWITCH_JOYCON_PAIR;
+            } else {
+                info.product_id = USB_PRODUCT_NINTENDO_SWITCH2_JOYCON_PAIR;
+            }
             info.interface_number = -1;
             info.usage_page = USB_USAGEPAGE_GENERIC_DESKTOP;
             info.usage = USB_USAGE_GENERIC_GAMEPAD;
             info.manufacturer_string = L"Nintendo";
             info.product_string = L"Switch Joy-Con (L/R)";
+            if (children[0]->is_bluetooth || children[1]->is_bluetooth) {
+                info.bus_type = SDL_HID_API_BUS_BLUETOOTH;
+            } else {
+                info.bus_type = SDL_HID_API_BUS_USB;
+            }
 
             combined = HIDAPI_AddDevice(&info, 2, children);
             if (combined && combined->driver) {
@@ -1103,6 +1155,11 @@ static void HIDAPI_UpdateDeviceList(void)
         devs = SDL_hid_enumerate(0, 0);
         if (devs) {
             for (info = devs; info; info = info->next) {
+                if (!info->path) {
+                    // We can't open this, ignore it
+                    continue;
+                }
+
                 device = HIDAPI_GetJoystickByInfo(info->path, info->vendor_id, info->product_id);
                 if (device) {
                     device->seen = true;
@@ -1143,10 +1200,17 @@ check_removed:
                 goto check_removed;
             } else {
                 HIDAPI_DelDevice(device);
+                device = NULL;
 
                 // Update the device list again in case this device comes back
                 SDL_HIDAPI_change_count = 0;
             }
+        }
+        if (device && device->broken && device->parent) {
+            HIDAPI_DelDevice(device->parent);
+
+            // We deleted a different device here, restart the loop
+            goto check_removed;
         }
         device = next;
     }
@@ -1271,6 +1335,16 @@ bool HIDAPI_IsDevicePresent(Uint16 vendor_id, Uint16 product_id, Uint16 version,
      */
     SDL_LockJoysticks();
     for (device = SDL_HIDAPI_devices; device; device = device->next) {
+        // The HIDAPI functionality will be available when the FlyDigi Space Station app has
+        // enabled third party controller mapping, so the driver needs to be active to watch
+        // for that change. Since this is dynamic and we don't have a way to re-trigger device
+        // changes when that happens, we'll pretend the driver isn't available so the XInput
+        // interface will always show up (but won't have any input when the controller is in
+        // enhanced mode)
+        if (device->vendor_id == USB_VENDOR_FLYDIGI_V2 && device->driver == &SDL_HIDAPI_DriverFlydigi) {
+            continue;
+        }
+
         if (device->driver &&
             HIDAPI_IsEquivalentToDevice(vendor_id, product_id, device)) {
             result = true;
@@ -1490,7 +1564,7 @@ static bool HIDAPI_JoystickOpen(SDL_Joystick *joystick, int device_index)
 
     SDL_AssertJoysticksLocked();
 
-    if (!device || !device->driver) {
+    if (!device || !device->driver || device->broken) {
         // This should never happen - validated before being called
         return SDL_SetError("Couldn't find HIDAPI device at index %d", device_index);
     }

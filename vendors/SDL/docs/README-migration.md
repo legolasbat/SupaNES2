@@ -411,7 +411,7 @@ The iscapture field of SDL_AudioDeviceEvent has been renamed recording.
 
 SDL_QUERY, SDL_IGNORE, SDL_ENABLE, and SDL_DISABLE have been removed. You can use the functions SDL_SetEventEnabled() and SDL_EventEnabled() to set and query event processing state.
 
-SDL_AddEventWatch() now returns SDL_FALSE_ if it fails because it ran out of memory and couldn't add the event watch callback.
+SDL_AddEventWatch() now returns false if it fails because it ran out of memory and couldn't add the event watch callback.
 
 SDL_RegisterEvents() now returns 0 if it couldn't allocate any user events.
 
@@ -610,6 +610,9 @@ The following enums have been renamed:
 
 The following structures have been renamed:
 * SDL_GameController => SDL_Gamepad
+
+The following structures have been removed:
+* SDL_GameControllerButtonBind - replaced with SDL_GamepadBinding
 
 The following functions have been renamed:
 * SDL_GameControllerAddMapping() => SDL_AddGamepadMapping()
@@ -1304,7 +1307,7 @@ The following platform preprocessor macros have been renamed:
 | `__RISCOS__`      | `SDL_PLATFORM_RISCOS`     |
 | `__SOLARIS__`     | `SDL_PLATFORM_SOLARIS`    |
 | `__TVOS__`        | `SDL_PLATFORM_TVOS`       |
-| `__unix__`        | `SDL_PLATFORM_UNI`        |
+| `__unix__`        | `SDL_PLATFORM_UNIX`       |
 | `__VITA__`        | `SDL_PLATFORM_VITA`       |
 | `__WIN32__`       | `SDL_PLATFORM_WIN32`      |
 | `__WINGDK__`      | `SDL_PLATFORM_WINGDK`     |
@@ -1444,7 +1447,7 @@ The following functions have been removed:
 * SDL_GetTextureUserData() - use SDL_GetTextureProperties() instead
 * SDL_RenderGetIntegerScale()
 * SDL_RenderSetIntegerScale() - this is now explicit with SDL_LOGICAL_PRESENTATION_INTEGER_SCALE
-* SDL_RenderTargetSupported() - render targets are always supported
+* SDL_RenderTargetSupported() - render targets are usually supported; just create a texture with SDL_TEXTUREACCESS_TARGET and see if it fails.
 * SDL_SetTextureUserData() - use SDL_GetTextureProperties() instead
 
 The following enums have been renamed:
@@ -1458,8 +1461,8 @@ The following symbols have been removed:
 * SDL_RENDERER_ACCELERATED - all renderers except `SDL_SOFTWARE_RENDERER` are accelerated
 * SDL_RENDERER_PRESENTVSYNC - replaced with SDL_PROP_RENDERER_CREATE_PRESENT_VSYNC_NUMBER during renderer creation and SDL_PROP_RENDERER_VSYNC_NUMBER after renderer creation
 * SDL_RENDERER_SOFTWARE - you can check whether the name of the renderer is `SDL_SOFTWARE_RENDERER`
-* SDL_RENDERER_TARGETTEXTURE - all renderers support target texture functionality
-* SDL_ScaleModeBest = use SDL_SCALEMODE_LINEAR instead
+* SDL_RENDERER_TARGETTEXTURE - most renderers support target texture functionality; just create a texture with SDL_TEXTUREACCESS_TARGET and see if it fails.
+* SDL_ScaleModeBest - use SDL_SCALEMODE_LINEAR instead
 
 ## SDL_rwops.h
 
@@ -1845,8 +1848,6 @@ SDL_BlitSurface() and SDL_BlitSurfaceScaled() now have a const `dstrect` paramet
 
 SDL_BlitSurfaceScaled() and SDL_BlitSurfaceUncheckedScaled() now take a scale parameter.
 
-SDL_SoftStretch() now takes a scale parameter.
-
 SDL_PixelFormat is used instead of Uint32 for API functions that refer to pixel format by enumerated value.
 
 SDL_SetSurfaceColorKey() takes an bool to enable and disable colorkey. RLE acceleration isn't controlled by the parameter, you should use SDL_SetSurfaceRLE() to change that separately.
@@ -1880,8 +1881,8 @@ The following functions have been removed:
 * SDL_GetYUVConversionMode()
 * SDL_GetYUVConversionModeForResolution()
 * SDL_SetYUVConversionMode() - use SDL_SetSurfaceColorspace() to set the surface colorspace and SDL_PROP_TEXTURE_CREATE_COLORSPACE_NUMBER with SDL_CreateTextureWithProperties() to set the texture colorspace. The default colorspace for YUV pixel formats is SDL_COLORSPACE_JPEG.
-* SDL_SoftStretch() - use SDL_BlitSurfaceScaled() with SDL_SCALEMODE_NEAREST
-* SDL_SoftStretchLinear() - use SDL_BlitSurfaceScaled() with SDL_SCALEMODE_LINEAR
+* SDL_SoftStretch() - use SDL_StretchSurface() with SDL_SCALEMODE_NEAREST
+* SDL_SoftStretchLinear() - use SDL_StretchSurface() with SDL_SCALEMODE_LINEAR
 
 The following symbols have been renamed:
 * SDL_PREALLOC => SDL_SURFACE_PREALLOCATED

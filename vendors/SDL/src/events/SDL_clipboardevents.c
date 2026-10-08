@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -29,7 +29,6 @@
 void SDL_SendClipboardUpdate(bool owner, char **mime_types, size_t num_mime_types)
 {
     if (!owner) {
-        // Clear our internal clipboard contents when external clipboard is set
         SDL_CancelClipboardData(0);
         SDL_SaveClipboardMimeTypes((const char **)mime_types, num_mime_types);
     }

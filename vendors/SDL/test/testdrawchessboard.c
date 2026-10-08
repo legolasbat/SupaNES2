@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+   Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
    This software is provided 'as-is', without any express or implied
    warranty.  In no event will the authors be held liable for any damages
@@ -50,8 +50,8 @@ static void DrawChessBoard(void)
 
             rect.w = (float)(darea.w / 8);
             rect.h = (float)(darea.h / 8);
-            rect.x = (float)(x * rect.w);
-            rect.y = (float)(row * rect.h);
+            rect.x = x * rect.w;
+            rect.y = row * rect.h;
             x = x + 2;
             SDL_RenderFillRect(renderer, &rect);
 

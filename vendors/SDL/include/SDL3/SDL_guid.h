@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -71,6 +71,8 @@ typedef struct SDL_GUID {
  * \param pszGUID buffer in which to write the ASCII string.
  * \param cbGUID the size of pszGUID, should be at least 33 bytes.
  *
+ * \threadsafety It is safe to call this function from any thread.
+ *
  * \since This function is available since SDL 3.2.0.
  *
  * \sa SDL_StringToGUID
@@ -86,6 +88,8 @@ extern SDL_DECLSPEC void SDLCALL SDL_GUIDToString(SDL_GUID guid, char *pszGUID, 
  *
  * \param pchGUID string containing an ASCII representation of a GUID.
  * \returns a SDL_GUID structure.
+ *
+ * \threadsafety It is safe to call this function from any thread.
  *
  * \since This function is available since SDL 3.2.0.
  *

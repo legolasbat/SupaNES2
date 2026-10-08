@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -144,7 +144,7 @@ Sint32 SDLTest_RandomIntegerInRange(Sint32 min, Sint32 max)
 
     Uint64 range = (Sint64)max - (Sint64)min;
     if (range < SDL_MAX_SINT32) {
-        return min + (Sint32) SDL_rand_r(&rndContext, (Sint32) range + 1);
+        return min + SDL_rand_r(&rndContext, (Sint32) range + 1);
     } else {
         Uint64 add = SDL_rand_bits_r(&rndContext) | ((Uint64) SDL_rand_bits_r(&rndContext) << 32);
         return (Sint32) (min + (Sint64) (add % (range + 1)));

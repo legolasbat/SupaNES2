@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -30,8 +30,11 @@
 
 #include <Carbon/Carbon.h>
 
-// #define DEBUG_IME NSLog
+#if 0
+#define DEBUG_IME NSLog
+#else
 #define DEBUG_IME(...)
+#endif
 
 @interface SDL3TranslatorResponder : NSView <NSTextInputClient>
 {
@@ -133,8 +136,12 @@
     // This key event was consumed by the IME
     [self clearPendingKey];
 
+    NSUInteger utf32SelectedRangeLocation = [[aString substringToIndex:selectedRange.location] lengthOfBytesUsingEncoding:NSUTF32StringEncoding] / 4;
+    NSUInteger utf32SelectionRangeEnd = [[aString substringToIndex:(selectedRange.location + selectedRange.length)] lengthOfBytesUsingEncoding:NSUTF32StringEncoding] / 4;
+    NSUInteger utf32SelectionRangeLength = utf32SelectionRangeEnd - utf32SelectedRangeLocation;
+
     SDL_SendEditingText([aString UTF8String],
-                        (int)selectedRange.location, (int)selectedRange.length);
+                        (int)utf32SelectedRangeLocation, (int)utf32SelectionRangeLength);
 
     DEBUG_IME(@"setMarkedText: %@, (%d, %d) replacement range (%d, %d)", _markedText,
               (int)selectedRange.location, (int)selectedRange.length,
@@ -320,7 +327,7 @@ static void UpdateKeymap(SDL_CocoaVideoData *data, bool send_event)
 
     UInt32 keyboard_type = LMGetKbdType();
 
-    SDL_Keymap *keymap = SDL_CreateKeymap();
+    SDL_Keymap *keymap = SDL_CreateKeymap(true);
     for (int m = 0; m < SDL_arraysize(mods); ++m) {
         for (int i = 0; i < SDL_arraysize(darwin_scancode_table); i++) {
             OSStatus err;
