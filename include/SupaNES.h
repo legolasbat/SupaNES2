@@ -1,48 +1,48 @@
 #pragma once
 
 #include "CPU.h"
-#include "PPU.h"
-#include "APU.h"
 #include "Cartridge.h"
+#include "PPU.h"
+#include "audio/APU.h"
 #include <cstdint>
 
 class SupaNES {
-	public:
-		CPU* cpu;
-		PPU* ppu;
-		APU* apu;
-		Cartridge* cart;
-		
-		bool RomLoaded;
+public:
+  CPU *cpu;
+  PPU *ppu;
+  APU *apu;
+  Cartridge *cart;
 
-		SupaNES();
+  bool RomLoaded;
 
-		int Clock();
+  SupaNES();
 
-		uint8_t ReadMemory(uint32_t address);
-		void WriteMemory(uint32_t address, uint8_t value);
+  int Clock();
 
-		bool InsertROM(const char* filepath);
+  uint8_t ReadMemory(uint32_t address);
+  void WriteMemory(uint32_t address, uint8_t value);
 
-	private:
-		uint8_t WRAM[0x20000];
+  bool InsertROM(const char *filepath);
 
-		uint32_t WRAMAddress;
+private:
+  uint8_t WRAM[0x20000];
 
-		uint8_t memoryBank;
-		uint8_t memoryPage;
+  uint32_t WRAMAddress;
 
-		bool latchController = false;
-		uint16_t joypad1Latch = 0;
-		uint16_t joypad2Latch = 0;
+  uint8_t memoryBank;
+  uint8_t memoryPage;
 
-		uint8_t ReadMemoryQ1(uint32_t address);
-		uint8_t ReadMemoryQ2(uint32_t address);
-		uint8_t ReadMemoryQ3(uint32_t address);
-		uint8_t ReadMemoryQ4(uint32_t address);
+  bool latchController = false;
+  uint16_t joypad1Latch = 0;
+  uint16_t joypad2Latch = 0;
 
-		void WriteMemoryQ1(uint32_t address, uint8_t value);
-		void WriteMemoryQ2(uint32_t address, uint8_t value);
-		void WriteMemoryQ3(uint32_t address, uint8_t value);
-		void WriteMemoryQ4(uint32_t address, uint8_t value);
+  uint8_t ReadMemoryQ1(uint32_t address);
+  uint8_t ReadMemoryQ2(uint32_t address);
+  uint8_t ReadMemoryQ3(uint32_t address);
+  uint8_t ReadMemoryQ4(uint32_t address);
+
+  void WriteMemoryQ1(uint32_t address, uint8_t value);
+  void WriteMemoryQ2(uint32_t address, uint8_t value);
+  void WriteMemoryQ3(uint32_t address, uint8_t value);
+  void WriteMemoryQ4(uint32_t address, uint8_t value);
 };

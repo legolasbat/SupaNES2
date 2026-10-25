@@ -12,7 +12,7 @@ add_subdirectory(vendors/SDL EXCLUDE_FROM_ALL)
 
 include_directories(${CMAKE_SOURCE_DIR}/vendors/imgui)
 
-file(GLOB SOURCES "src/*.cpp")
+file(GLOB_RECURSE SOURCES "src/*.cpp")
 
 file(GLOB IMGUI_SOURCES
 	vendors/imgui/imgui.cpp
