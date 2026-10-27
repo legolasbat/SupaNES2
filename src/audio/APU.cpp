@@ -16,6 +16,8 @@ constexpr uint8_t CFlag = 0x01; // Carry flag
 APU::APU(SupaNES *supaNes) {
   memory = supaNes;
 
+  dsp.SetMemory(this);
+
   PC = 0xFFC0; // Point to boot ROM
 
   A = 0;

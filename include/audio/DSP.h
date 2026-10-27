@@ -4,10 +4,14 @@
 
 #include <SDL3/SDL_audio.h>
 
+class APU;
+
 class DSP {
 public:
   DSP();
   ~DSP();
+
+  void SetMemory(APU *apu) { memory = apu; }
 
   void Tick();
 
@@ -15,12 +19,18 @@ public:
   void Write(uint8_t addr, uint8_t value);
 
 private:
+  APU *memory;
+
   SDL_AudioStream *audioStream = nullptr;
   static const unsigned int maxSamples = 4800;
   int16_t samples[maxSamples];
   unsigned int sampleIndex = 0;
 
-  struct channelRegisters {
+  uint8_t step = 0;
+  bool evenSample = true;
+
+  struct voice {
+    // REGISTERS
     int8_t VOLL = 0;   // Left channel volume
     int8_t VOLR = 0;   // Right channel volume
     uint16_t P = 0;    // Pitch value (14 bits)
@@ -30,9 +40,26 @@ private:
     uint8_t GAIN = 0;  // Custom envelope with 5 modes
     uint8_t ENVX = 0;  // Contains the current ADSR/GAIN envelope value
     uint8_t OUTX = 0;  // Contains the present wave height multiplied by ENVX
+
+    // Internal
+    int16_t PCMBuffer[12];
+    uint16_t bufferPositionInterp = 0;
+    uint16_t brrAddress = 0;
+    uint8_t bufferPos = 0;
+    uint8_t brrOffset = 1;
+
+    uint8_t bufferOffset = 0;
+    uint8_t brrByte = 0;
+    uint8_t brrHeader = 0;
+
+    uint8_t keyOnDelay = 0;
   };
 
-  channelRegisters channels[8];
+  voice voices[8];
+
+  void ReadBRR(uint8_t channel);
+
+  void ProcessSample(uint8_t channel);
 
   int8_t MVOLL = 0; // Left main volume
   int8_t MVOLR = 0; // Right main volume
@@ -40,7 +67,9 @@ private:
   int8_t EVOLR = 0; // Right echo volume
 
   uint8_t KON = 0; // Start/Restart channels
-  uint8_t KOF = 0; // Fade out channels
+  uint8_t voicesKON = 0;
+  uint8_t internalKON = 0; // Pooled every 2 samples
+  uint8_t KOF = 0;         // Fade out channels
 
   uint8_t FLG = 0; // Bit 7: Reset. Bit 6: Mute. Bit 5: Echo enable (0 =
                    // Enable). Bit 4-0: Frequency for white noise

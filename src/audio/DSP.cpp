@@ -1,7 +1,8 @@
 #include "audio/DSP.h"
 
+#include "audio/APU.h"
+
 #include <cassert>
-#include <cmath>
 #include <stdio.h>
 
 static constexpr int16_t const gauss[512] = {
@@ -76,14 +77,98 @@ DSP::~DSP() {
   }
 }
 
-uint8_t step = 0;
+void DSP::ReadBRR(uint8_t channel) {
+  voice &v = voices[channel];
+  int bytes = (v.brrByte << 8) | memory->GetRAM(v.brrAddress + v.brrOffset + 1);
+
+  const uint8_t shift = (v.brrHeader >> 4) - 1;
+  const uint8_t filter = (v.brrHeader >> 2) & 0x3;
+  for (int i = 0; i < 4; i++) {
+    int s = (int16_t)bytes >> 12;
+    bytes <<= 4;
+
+    if (shift <= 12) {
+      s <<= shift;
+      s >>= 1;
+    } else {
+      s &= ~0x7FFF;
+    }
+
+    s = (int16_t)(s << 1);
+    v.PCMBuffer[v.bufferOffset] = s;
+    if (++v.bufferOffset >= 12)
+      v.bufferOffset = 0;
+  }
+}
+
+void DSP::ProcessSample(uint8_t channel) {
+  voice &v = voices[channel];
+  // Step 1
+  uint16_t brrAddress = (DIR << 8) + (voices[0].SRCN << 2);
+
+  // Step 2
+  if (!v.keyOnDelay)
+    brrAddress += 2;
+  uint16_t brrNextAddress = memory->GetRAM(brrAddress++);
+  brrNextAddress |= memory->GetRAM(brrAddress++) << 8;
+
+  // Step 3
+  v.brrByte = memory->GetRAM(brrAddress + v.brrOffset);
+  v.brrHeader = memory->GetRAM(brrAddress);
+
+  if (v.keyOnDelay) {
+    if (v.keyOnDelay == 5) {
+      brrAddress = brrNextAddress;
+      v.brrOffset = 1;
+      v.bufferOffset = 0;
+      v.brrHeader = 0;
+    }
+    v.keyOnDelay--;
+
+    v.bufferPositionInterp = 0;
+    if (v.keyOnDelay & 3)
+      v.bufferPositionInterp = 0x4000;
+  }
+
+  uint8_t offset = (v.bufferOffset + (v.bufferPositionInterp >> 12)) % 12;
+  int16_t sample = v.PCMBuffer[offset];
+  samples[sampleIndex++] = sample * voices[0].VOLL;
+  samples[sampleIndex++] = sample * voices[0].VOLR;
+
+  if (evenSample) {
+    if (voicesKON & 0x01) {
+      v.keyOnDelay = 5;
+    }
+  }
+
+  // Step 4
+  if (v.bufferPositionInterp >= 0x4000) {
+    ReadBRR(0);
+    v.brrOffset += 2;
+    if (v.brrOffset >= 9) {
+      brrAddress = brrAddress + 9;
+      if (v.brrHeader & 0x01) {
+        brrAddress = brrNextAddress;
+      }
+      v.brrOffset = 1;
+    }
+  }
+
+  v.bufferPositionInterp = (v.bufferPositionInterp & 0x3FFF) + voices[0].P;
+  if (v.bufferPositionInterp > 0x7FFF)
+    v.bufferPositionInterp = 0x7FFF;
+}
+
 void DSP::Tick() {
   if (step == 15) {
-    double t = sampleIndex / 48000.0;
-    double wave = std::sin(2.0 * 3.14159265358979323846 * 220.0 * t);
-    int16_t sample = static_cast<int16_t>(wave * 0.5 * 32767);
-    samples[sampleIndex++] = sample;
-    samples[sampleIndex++] = sample;
+    ProcessSample(0);
+  } else if (step == 20) {
+    // Read KON
+    evenSample = !evenSample;
+    if (evenSample) {
+      internalKON &= !voicesKON;
+      voicesKON = internalKON;
+    }
   } else if (step == 31) {
     if (sampleIndex >= maxSamples) {
       sampleIndex = 0;
@@ -106,25 +191,25 @@ uint8_t DSP::Read(uint8_t addr) {
     uint8_t channel = addr >> 4;
     switch (addr & 0x0F) {
     case 0:
-      return channels[channel].VOLL;
+      return voices[channel].VOLL;
     case 1:
-      return channels[channel].VOLR;
+      return voices[channel].VOLR;
     case 2:
-      return channels[channel].P & 0xFF;
+      return voices[channel].P & 0xFF;
     case 3:
-      return channels[channel].P >> 8;
+      return voices[channel].P >> 8;
     case 4:
-      return channels[channel].SRCN;
+      return voices[channel].SRCN;
     case 5:
-      return channels[channel].ADSR1;
+      return voices[channel].ADSR1;
     case 6:
-      return channels[channel].ADSR2;
+      return voices[channel].ADSR2;
     case 7:
-      return channels[channel].GAIN;
+      return voices[channel].GAIN;
     case 8:
-      return channels[channel].ENVX;
+      return voices[channel].ENVX;
     case 9:
-      return channels[channel].OUTX;
+      return voices[channel].OUTX;
     }
   }
   if (addr == 0x0C)
@@ -173,85 +258,87 @@ void DSP::Write(uint8_t addr, uint8_t value) {
     uint8_t channel = addr >> 4;
     switch (addr & 0x0F) {
     case 0:
-      channels[channel].VOLL = value;
+      voices[channel].VOLL = value;
       return;
     case 1:
-      channels[channel].VOLR = value;
+      voices[channel].VOLR = value;
       return;
     case 2:
-      channels[channel].P = (channels[channel].P & 0xFF00) | value;
+      voices[channel].P = (voices[channel].P & 0xFF00) | value;
       return;
     case 3:
-      channels[channel].P =
-          (channels[channel].P & 0x00FF) | ((uint16_t)(value & 0x3F) << 8);
+      voices[channel].P =
+          (voices[channel].P & 0x00FF) | ((uint16_t)(value & 0x3F) << 8);
       return;
     case 4:
-      channels[channel].SRCN = value;
+      voices[channel].SRCN = value;
       return;
     case 5:
-      channels[channel].ADSR1 = value;
+      voices[channel].ADSR1 = value;
       return;
     case 6:
-      channels[channel].ADSR2 = value;
+      voices[channel].ADSR2 = value;
       return;
     case 7:
-      channels[channel].GAIN = value;
+      voices[channel].GAIN = value;
       return;
     case 8:
-      channels[channel].ENVX = value;
+      voices[channel].ENVX = value;
       return;
     case 9:
-      channels[channel].OUTX = value;
+      voices[channel].OUTX = value;
       return;
     }
   }
   if (addr == 0x0C) {
-    MVOLL = 0;
+    MVOLL = (int8_t)value;
     return;
   } else if (addr == 0x1C) {
-    MVOLR = 0;
+    MVOLR = (int8_t)value;
     return;
   } else if (addr == 0x2C) {
-    EVOLL = 0;
+    EVOLL = (int8_t)value;
     return;
   } else if (addr == 0x3C) {
-    EVOLR = 0;
+    EVOLR = (int8_t)value;
     return;
   } else if (addr == 0x4C) {
-    KON = 0;
+    printf("Writting KON: %02x\n", value);
+    KON = value;
+    internalKON = value;
     return;
   } else if (addr == 0x5C) {
-    KOF = 0;
+    KOF = value;
     return;
   } else if (addr == 0x6C) {
-    FLG = 0;
+    FLG = value;
     return;
   } else if (addr == 0x7C) {
-    ENDX = 0;
+    ENDX = value;
     return;
   } else if (addr == 0x0D) {
-    EFB = 0;
+    EFB = (int8_t)value;
     return;
   } else if (addr == 0x2D) {
-    PMON = 0;
+    PMON = value;
     return;
   } else if (addr == 0x3D) {
-    NON = 0;
+    NON = value;
     return;
   } else if (addr == 0x4D) {
-    EON = 0;
+    EON = value;
     return;
   } else if (addr == 0x5D) {
-    DIR = 0;
+    DIR = value;
     return;
   } else if (addr == 0x6D) {
-    ESA = 0;
+    ESA = value;
     return;
   } else if (addr == 0x7D) {
-    EDL = 0;
+    EDL = value;
     return;
   } else if ((addr & 0xF0) < 0x80 && (addr & 0x0F) == 0x0F) {
-    COEF[addr >> 4] = 0;
+    COEF[addr >> 4] = value;
     return;
   }
 
