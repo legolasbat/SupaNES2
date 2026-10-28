@@ -49,7 +49,7 @@ APU::APU(SupaNES *supaNes) {
     RAM[PC - 0x200 + i] = bootROM[i];
   }
 
-  opTable[0x00] = {"", &APU::XXX, AddMode::Implied, 2};
+  opTable[0x00] = {"NOP", &APU::NOP, AddMode::Implied, 2};
   opTable[0x01] = {"", &APU::XXX, AddMode::Implied, 2};
   opTable[0x02] = {"SET", &APU::SET, AddMode::ZeroPage, 4};
   opTable[0x03] = {"BBS", &APU::BBS, AddMode::ZeroPage, 5};
@@ -1539,6 +1539,8 @@ uint8_t APU::MUL() {
 
   return 0;
 }
+
+uint8_t APU::NOP() { return 0; }
 
 uint8_t APU::NOT() {
   uint16_t address = ReadAPUMemory(PC++);

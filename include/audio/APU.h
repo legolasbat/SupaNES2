@@ -181,6 +181,7 @@ private:
   uint8_t LSR();
   uint8_t MOV();
   uint8_t MUL();
+  uint8_t NOP();
   uint8_t NOT();
   uint8_t NOTC();
   uint8_t ORA();
