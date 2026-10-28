@@ -48,7 +48,6 @@ private:
     uint16_t bufferPositionInterp = 0;
     uint16_t brrAddress = 0;
     uint16_t _brrAddress = 0;
-    uint8_t bufferPos = 0;
     uint8_t brrOffset = 1;
 
     uint8_t bufferOffset = 0;

@@ -111,8 +111,10 @@ const uint16_t CounterOffset[32] = {
 };
 
 DSP::DSP() {
+  FLG = 0xE0;
+
   SDL_AudioSpec specs;
-  specs.freq = 48000;
+  specs.freq = 32000;
   specs.format = SDL_AUDIO_S16;
   specs.channels = 2;
 
@@ -196,7 +198,7 @@ void DSP::ReadBRR(uint8_t channel) {
 int16_t DSP::GaussInterp(uint8_t channel) {
   voice &v = voices[channel];
 
-  uint8_t position = (v.bufferPositionInterp >> 12) + v.bufferPos;
+  uint8_t position = (v.bufferPositionInterp >> 12) + v.bufferOffset;
   uint8_t offset = (v.bufferPositionInterp >> 4) & 0xFF;
 
   int16_t olderOutput =
@@ -336,10 +338,10 @@ void DSP::ProcessSample(uint8_t channel) {
   }
 
   // TODO: Apply envelope
-  // v.sample = (v.sample * v.envelope) / 0x800;
+  v.sample = (v.sample * v.envelope) / 0x800;
   v.ENVX = v.envelope >> 4;
 
-  if ((FLG & 0x80) || (v.brrHeader & 0x01)) {
+  if ((FLG & 0x80) || (v.brrHeader & 0x3) == 1) {
     v.envelopeMode = env_release;
     v.envelope = 0;
   }
@@ -412,7 +414,7 @@ void DSP::Tick() {
 
     // Read KON
     if (evenSample) {
-      internalKON &= !voicesKON;
+      internalKON &= ~voicesKON;
       voicesKON = internalKON;
     }
 
@@ -424,23 +426,21 @@ void DSP::Tick() {
   }
   // Update samples
   else if (step == 21) {
-    samples[sampleIndex] = 0;
-    int32_t sample = 0;
-    for (int i = 0; i < 8; i++) {
-      sample += (voices[i].sample * voices[i].VOLL) >> 6;
-      sample = Clamp16(sample);
-    }
-    samples[sampleIndex] = (sample * MVOLL) >> 7;
-    sampleIndex++;
+    int32_t left = 0;
+    int32_t right = 0;
 
-    samples[sampleIndex] = 0;
-    sample = 0;
-    for (int i = 0; i < 8; i++) {
-      sample += (voices[i].sample * voices[i].VOLR) >> 6;
-      sample = Clamp16(sample);
+    if (!(FLG & 0xC0)) {
+      for (int i = 0; i < 8; i++) {
+        left += (voices[i].sample * voices[i].VOLL) >> 6;
+        left = Clamp16(left);
+        right += (voices[i].sample * voices[i].VOLR) >> 6;
+        right = Clamp16(right);
+      }
+      left = (left * MVOLL) >> 7;
+      right = (right * MVOLR) >> 7;
     }
-    samples[sampleIndex] = (sample * MVOLR) >> 7;
-    sampleIndex++;
+    samples[sampleIndex++] = Clamp16(left);
+    samples[sampleIndex++] = Clamp16(right);
   }
   // Output samples
   else if (step == 31) {
