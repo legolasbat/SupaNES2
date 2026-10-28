@@ -112,6 +112,7 @@ const uint16_t CounterOffset[32] = {
 
 DSP::DSP() {
   FLG = 0xE0;
+  noise = -0x4000;
 
   SDL_AudioSpec specs;
   specs.freq = 32000;
@@ -140,6 +141,7 @@ bool DSP::CounterPoll(unsigned int rate) {
 
 void DSP::ReadBRR(uint8_t channel) {
   voice &v = voices[channel];
+
   int bytes = (v.brrByte << 8) | memory->GetRAM(v.brrAddress + v.brrOffset + 1);
 
   const uint8_t shift = (v.brrHeader >> 4) - 1;
@@ -256,13 +258,18 @@ void DSP::ProcessEnvelope(uint8_t channel) {
       rate = envelopeData & 0x1F;
       if (mode == 4) { // Linear decrease
         envelope -= 0x20;
-      } else if (mode < 6) { // Exponential decrease
+        if (envelope < 0)
+          envelope = 0;
+      } else if (mode == 5) { // Exponential decrease
         envelope--;
-        envelope -= envelope >> 8;
-      } else { // Linear increase
+        envelope -= (envelope >> 8) + 1;
+      } else if (mode == 6) { // Linear increase
         envelope += 0x20;
-        if (mode > 6 && v.envelope >= 0x600) {
-          envelope += 0x8 - 0x20;
+      } else if (mode == 7) { // Bent Increase
+        if (v.envelope < 0x600) {
+          envelope += 0x20;
+        } else {
+          envelope += 0x8;
         }
       }
     }
@@ -309,7 +316,7 @@ void DSP::ProcessSample(uint8_t channel) {
 
   if (PMON & (0x01 << channel)) {
     assert(channel != 0 && "Pitch modulation channel 0");
-    pitch = (((voices[channel - 1].sample >> 4) + 0x400) * pitch) >> 10;
+    pitch = (((voices[channel - 1].sampleClean >> 4) + 0x400) * pitch) >> 10;
   }
 
   if (v.keyOnDelay) {
@@ -330,15 +337,15 @@ void DSP::ProcessSample(uint8_t channel) {
     pitch = 0;
   }
 
-  v.sample = GaussInterp(channel);
+  v.sampleClean = GaussInterp(channel);
 
+  // Apply noise
   if (NON & (0x01 << channel)) {
-    // TODO: Noise
-    v.sample = 0;
+    v.sampleClean = noise;
   }
 
-  // TODO: Apply envelope
-  v.sample = (v.sample * v.envelope) / 0x800;
+  // Apply envelope
+  v.sample = (v.sampleClean * v.envelope) / 0x800;
   v.ENVX = v.envelope >> 4;
 
   if ((FLG & 0x80) || (v.brrHeader & 0x3) == 1) {
@@ -393,21 +400,21 @@ void DSP::ProcessSample(uint8_t channel) {
 
 void DSP::Tick() {
   // Process Voices samples
-  if (step == 10) {
+  if (step == 10 && enableVoice0) {
     ProcessSample(0);
-  } else if (step == 11) {
+  } else if (step == 11 && enableVoice1) {
     ProcessSample(1);
-  } else if (step == 12) {
+  } else if (step == 12 && enableVoice2) {
     ProcessSample(2);
-  } else if (step == 13) {
+  } else if (step == 13 && enableVoice3) {
     ProcessSample(3);
-  } else if (step == 14) {
+  } else if (step == 14 && enableVoice4) {
     ProcessSample(4);
-  } else if (step == 15) {
+  } else if (step == 15 && enableVoice5) {
     ProcessSample(5);
-  } else if (step == 16) {
+  } else if (step == 16 && enableVoice6) {
     ProcessSample(6);
-  } else if (step == 17) {
+  } else if (step == 17 && enableVoice7) {
     ProcessSample(7);
   } else if (step == 20) {
     evenSample = !evenSample;
@@ -422,7 +429,11 @@ void DSP::Tick() {
     if (counter < 0)
       counter = CounterRange - 1;
 
-    // TODO: Noise
+    // Update noise
+    if (!CounterPoll(FLG & 0x1F)) {
+      noise = ((noise >> 1) & 0x3FFF) |
+              (((noise & 0x1) ^ ((noise >> 1) & 0x1)) << 14);
+    }
   }
   // Update samples
   else if (step == 21) {
@@ -520,6 +531,7 @@ uint8_t DSP::Read(uint8_t addr) {
   if ((addr & 0xF0) < 0x80 && (addr & 0x0F) == 0x0F) {
     return COEF[addr >> 4];
   }
+  return 0;
 
   printf("Reading address: %02x", addr);
   fflush(stdout);

@@ -32,6 +32,8 @@ public:
   // Program Status Word
   uint8_t PSW;
 
+  DSP dsp;
+
   // Read and Write IO CPU to APU
   uint8_t ReadAPUPorts(uint8_t address);
   void WriteCPUPorts(uint8_t address, uint8_t value);
@@ -39,7 +41,6 @@ public:
   uint8_t GetRAM(uint16_t address);
 
 private:
-  DSP dsp;
   uint8_t dspAddr = 0;
 
   int cycles = 0;

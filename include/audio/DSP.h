@@ -18,6 +18,15 @@ public:
   uint8_t Read(uint8_t addr);
   void Write(uint8_t addr, uint8_t value);
 
+  bool enableVoice0 = true;
+  bool enableVoice1 = true;
+  bool enableVoice2 = true;
+  bool enableVoice3 = true;
+  bool enableVoice4 = true;
+  bool enableVoice5 = true;
+  bool enableVoice6 = true;
+  bool enableVoice7 = true;
+
 private:
   APU *memory;
 
@@ -60,6 +69,7 @@ private:
     int16_t envelope = 0;
 
     int16_t sample = 0;
+    int16_t sampleClean = 0;
   };
 
   voice voices[8];
@@ -94,6 +104,7 @@ private:
   uint8_t PMON = 0; // Pitch modulation
 
   uint8_t NON = 0; // Noise enable
+  int16_t noise = 0;
   uint8_t EON = 0; // Echo enable
 
   uint8_t DIR = 0; // Source directory offset

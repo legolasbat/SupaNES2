@@ -36,8 +36,19 @@ bool BG3Selected = true;
 bool BG4Selected = true;
 bool OBJSelected = true;
 
+// Voice Settings
+bool voice0Active = true;
+bool voice1Active = true;
+bool voice2Active = true;
+bool voice3Active = true;
+bool voice4Active = true;
+bool voice5Active = true;
+bool voice6Active = true;
+bool voice7Active = true;
+
 bool displayVRAM = false;
 bool displayDSPRAM = false;
+bool displayDSPRegisters = false;
 bool displayPalette = false;
 bool showMode7 = false;
 
@@ -53,6 +64,7 @@ void MenuBar(AppState *appstate);
 
 void ShowVRAMWindow(AppState *appstate);
 void ShowDSPRAMWindow(AppState *appstate);
+void ShowDSPRegistersWindow(AppState *appstate);
 void ShowPaletteWindow(AppState *appstate);
 
 int main(int argc, char *argv[]) {
@@ -151,6 +163,10 @@ void RenderFrame(AppState *appstate) {
 
   if (displayDSPRAM) {
     ShowDSPRAMWindow(appstate);
+  }
+
+  if (displayDSPRegisters) {
+    ShowDSPRegistersWindow(appstate);
   }
 
   if (displayPalette) {
@@ -399,11 +415,66 @@ void MenuBar(AppState *appstate) {
         if (ImGui::MenuItem("Display DSP RAM", 0, displayDSPRAM, true)) {
           displayDSPRAM = !displayDSPRAM;
         }
+        if (ImGui::MenuItem("Display DSP Registers", 0, displayDSPRegisters,
+                            true)) {
+          displayDSPRegisters = !displayDSPRegisters;
+        }
         if (ImGui::MenuItem("Display Palette", 0, displayPalette, true)) {
           displayPalette = !displayPalette;
         }
         if (ImGui::MenuItem("Display Mode7", 0, showMode7, true)) {
           showMode7 = !showMode7;
+        }
+        ImGui::EndMenu();
+      }
+      if (ImGui::BeginMenu("Voice control")) {
+        if (ImGui::MenuItem("Voice 0", 0, voice0Active, true)) {
+          voice0Active = !voice0Active;
+          if (appstate->supaNES->RomLoaded) {
+            appstate->supaNES->apu->dsp.enableVoice0 = voice0Active;
+          }
+        }
+        if (ImGui::MenuItem("Voice 1", 0, voice1Active, true)) {
+          voice1Active = !voice1Active;
+          if (appstate->supaNES->RomLoaded) {
+            appstate->supaNES->apu->dsp.enableVoice1 = voice1Active;
+          }
+        }
+        if (ImGui::MenuItem("Voice 2", 0, voice2Active, true)) {
+          voice2Active = !voice2Active;
+          if (appstate->supaNES->RomLoaded) {
+            appstate->supaNES->apu->dsp.enableVoice2 = voice2Active;
+          }
+        }
+        if (ImGui::MenuItem("Voice 3", 0, voice3Active, true)) {
+          voice3Active = !voice3Active;
+          if (appstate->supaNES->RomLoaded) {
+            appstate->supaNES->apu->dsp.enableVoice3 = voice3Active;
+          }
+        }
+        if (ImGui::MenuItem("Voice 4", 0, voice4Active, true)) {
+          voice4Active = !voice4Active;
+          if (appstate->supaNES->RomLoaded) {
+            appstate->supaNES->apu->dsp.enableVoice4 = voice4Active;
+          }
+        }
+        if (ImGui::MenuItem("Voice 5", 0, voice5Active, true)) {
+          voice5Active = !voice5Active;
+          if (appstate->supaNES->RomLoaded) {
+            appstate->supaNES->apu->dsp.enableVoice5 = voice5Active;
+          }
+        }
+        if (ImGui::MenuItem("Voice 6", 0, voice6Active, true)) {
+          voice6Active = !voice6Active;
+          if (appstate->supaNES->RomLoaded) {
+            appstate->supaNES->apu->dsp.enableVoice6 = voice6Active;
+          }
+        }
+        if (ImGui::MenuItem("Voice 7", 0, voice7Active, true)) {
+          voice7Active = !voice7Active;
+          if (appstate->supaNES->RomLoaded) {
+            appstate->supaNES->apu->dsp.enableVoice7 = voice7Active;
+          }
         }
         ImGui::EndMenu();
       }
@@ -444,7 +515,7 @@ void ShowDSPRAMWindow(AppState *appstate) {
     ImGui::Text("%04x:", row);
     ImGui::SameLine();
     for (int i = row; i < row + 16; i++) {
-      ImGui::Text("%02x ", supaNES->apu->GetRAM(row + i));
+      ImGui::Text("%02x ", supaNES->apu->GetRAM(i));
       ImGui::SameLine();
     }
     ImGui::NewLine();
@@ -452,6 +523,22 @@ void ShowDSPRAMWindow(AppState *appstate) {
   ImGui::End();
 }
 
+void ShowDSPRegistersWindow(AppState *appstate) {
+  ImGui::Begin("DSP Registers", &displayDSPRegisters);
+
+  SupaNES *supaNES = appstate->supaNES;
+
+  for (int row = 0; row < 0x80; row += 16) {
+    ImGui::Text("%04x:", row);
+    ImGui::SameLine();
+    for (int i = row; i < row + 16; i++) {
+      ImGui::Text("%02x ", supaNES->apu->dsp.Read(i));
+      ImGui::SameLine();
+    }
+    ImGui::NewLine();
+  }
+  ImGui::End();
+}
 void ShowPaletteWindow(AppState *appstate) {
   ImGui::Begin("Palette", &displayPalette);
   SupaNES *supaNES = appstate->supaNES;
