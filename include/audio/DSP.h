@@ -29,7 +29,7 @@ private:
   uint8_t step = 0;
   bool evenSample = true;
 
-  uint16_t counter = 0;
+  int counter = 0;
 
   struct voice {
     // REGISTERS
@@ -47,6 +47,7 @@ private:
     int16_t PCMBuffer[12];
     uint16_t bufferPositionInterp = 0;
     uint16_t brrAddress = 0;
+    uint16_t _brrAddress = 0;
     uint8_t bufferPos = 0;
     uint8_t brrOffset = 1;
 

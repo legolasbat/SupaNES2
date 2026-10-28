@@ -67,14 +67,45 @@ static constexpr int16_t const gauss[512] = {
     0x518, 0x518, 0x518, 0x518, 0x519, 0x519,
 };
 
+const int CounterRange = 2048 * 5 * 3;
+
 const uint16_t CounterRate[32] = {
-    0,   2048, 1536, 1280, 1024, 768, 640, 512, 384, 320, 256,
-    192, 160,  128,  96,   80,   64,  48,  40,  32,  24,  20,
-    16,  12,   10,   8,    6,    5,   4,   3,   2,   1,
+    CounterRange + 1,
+    2048,
+    1536,
+    1280,
+    1024,
+    768,
+    640,
+    512,
+    384,
+    320,
+    256,
+    192,
+    160,
+    128,
+    96,
+    80,
+    64,
+    48,
+    40,
+    32,
+    24,
+    20,
+    16,
+    12,
+    10,
+    8,
+    6,
+    5,
+    4,
+    3,
+    2,
+    1,
 };
 
 const uint16_t CounterOffset[32] = {
-    0,    0,    1040, 536,  0,    1040, 536,  0,    1040, 536,  0,
+    1,    0,    1040, 536,  0,    1040, 536,  0,    1040, 536,  0,
     1040, 536,  0,    1040, 536,  0,    1040, 536,  0,    1040, 536,
     0,    1040, 536,  0,    1040, 536,  0,    1040, 0,    0,
 };
@@ -102,9 +133,7 @@ DSP::~DSP() {
 }
 
 bool DSP::CounterPoll(unsigned int rate) {
-  if (rate == 0)
-    return false;
-  return (counter + CounterOffset[rate]) % CounterRate[rate] == 0;
+  return ((unsigned int)counter + CounterOffset[rate]) % CounterRate[rate];
 }
 
 void DSP::ReadBRR(uint8_t channel) {
@@ -188,6 +217,7 @@ void DSP::ProcessEnvelope(uint8_t channel) {
 
   int envelope = v.envelope;
 
+  // Release
   if (v.envelopeMode == env_release) {
     envelope -= 0x8;
     if (envelope < 0)
@@ -200,13 +230,15 @@ void DSP::ProcessEnvelope(uint8_t channel) {
   int envelopeData = v.ADSR2;
   if (v.ADSR1 & 0x80) {
     if (v.envelopeMode >= env_decay) {
-      envelope--;
-      envelope -= envelope >> 8;
+      envelope -= (envelope >> 8) + 1;
       rate = envelopeData & 0x1F;
+      // Decay
       if (v.envelopeMode == env_decay) {
-        rate = ((v.ADSR1 >> 3) & 0xE) + 0x10;
+        rate = (((v.ADSR1 >> 4) & 0x7) << 1) + 0x10;
       }
-    } else {
+    }
+    // Attack
+    else {
       rate = (v.ADSR1 & 0xF) * 2 + 1;
       envelope += rate < 31 ? 0x20 : 0x400;
     }
@@ -235,31 +267,37 @@ void DSP::ProcessEnvelope(uint8_t channel) {
   }
 
   // Sustain level
-  if ((envelope >> 8) == (envelopeData >> 5) && v.envelopeMode == env_decay) {
+  if (envelope <= ((envelopeData >> 5) + 1) * 0x100 &&
+      v.envelopeMode == env_decay) {
     v.envelopeMode = env_sustain;
   }
 
-  if ((uint16_t)envelope > 0x7FF) {
-    envelope = (envelope < 0 ? 0 : 0x7FF);
-    if (v.envelopeMode == env_attack)
+  if (envelope >= 0x7E0) {
+    if (v.envelopeMode == env_attack) {
       v.envelopeMode = env_decay;
+      if ((uint16_t)envelope > 0x7FF) {
+        envelope = (envelope < 0 ? 0 : 0x7FF);
+      }
+    }
   }
 
-  if (CounterPoll(rate)) {
+  if (!CounterPoll(rate)) {
     v.envelope = envelope;
   }
 }
 
 void DSP::ProcessSample(uint8_t channel) {
   voice &v = voices[channel];
+
   // Step 1
-  v.brrAddress = (DIR << 8) + (v.SRCN << 2);
+  v._brrAddress = (DIR << 8) + (v.SRCN << 2);
 
   // Step 2
+  uint16_t addr = v._brrAddress;
   if (!v.keyOnDelay)
-    v.brrAddress += 2;
-  uint16_t brrNextAddress = memory->GetRAM(v.brrAddress++);
-  brrNextAddress |= memory->GetRAM(v.brrAddress++) << 8;
+    addr += 2;
+  uint16_t brrNextAddress = memory->GetRAM(addr++);
+  brrNextAddress |= memory->GetRAM(addr++) << 8;
 
   // Step 3
   uint16_t pitch = v.P;
@@ -298,22 +336,22 @@ void DSP::ProcessSample(uint8_t channel) {
   }
 
   // TODO: Apply envelope
-  // v.sample = ((v.sample * v.envelope) >> 11) & ~1;
+  // v.sample = (v.sample * v.envelope) / 0x800;
   v.ENVX = v.envelope >> 4;
 
   if ((FLG & 0x80) || (v.brrHeader & 0x01)) {
-    v.envelopeMode = 0;
+    v.envelopeMode = env_release;
     v.envelope = 0;
   }
 
   if (evenSample) {
     if (KOF & (0x01 << channel)) {
-      v.envelopeMode = 0;
+      v.envelopeMode = env_release;
     }
 
     if (voicesKON & (0x01 << channel)) {
       v.keyOnDelay = 5;
-      v.envelopeMode = 1;
+      v.envelopeMode = env_attack;
     }
   }
 
@@ -325,16 +363,14 @@ void DSP::ProcessSample(uint8_t channel) {
   uint8_t looped = 0;
   if (v.bufferPositionInterp >= 0x4000) {
     ReadBRR(channel);
-    if (v.brrOffset >= 7) {
+    v.brrOffset += 2;
+    if (v.brrOffset >= 9) {
+      v.brrAddress += 9;
       if (v.brrHeader & 0x01) {
         v.brrAddress = brrNextAddress;
         looped = 1;
-      } else {
-        v.brrAddress += 9;
       }
       v.brrOffset = 1;
-    } else {
-      v.brrOffset += 2;
     }
   }
 
@@ -351,10 +387,6 @@ void DSP::ProcessSample(uint8_t channel) {
 
   // Step 6
   v.OUTX = v.sample >> 8;
-
-  // Step 7
-  // TODO: Envelope
-  v.ENVX = 0;
 }
 
 void DSP::Tick() {
@@ -384,9 +416,9 @@ void DSP::Tick() {
       voicesKON = internalKON;
     }
 
-    if (!counter)
-      counter = 2048 * 5 * 3;
     counter--;
+    if (counter < 0)
+      counter = CounterRange - 1;
 
     // TODO: Noise
   }
@@ -510,8 +542,9 @@ void DSP::Write(uint8_t addr, uint8_t value) {
       voices[channel].P = (voices[channel].P & 0xFF00) | value;
       return;
     case 3:
-      voices[channel].P =
-          (voices[channel].P & 0x00FF) | ((uint16_t)(value & 0x3F) << 8);
+      voices[channel].P &= 0x00FF;
+      voices[channel].P |= (value << 8);
+      voices[channel].P &= 0x3FFF;
       return;
     case 4:
       voices[channel].SRCN = value;
@@ -546,7 +579,6 @@ void DSP::Write(uint8_t addr, uint8_t value) {
     EVOLR = (int8_t)value;
     return;
   } else if (addr == 0x4C) {
-    printf("Writting KON: %02x\n", value);
     KON = value;
     internalKON = value;
     return;
