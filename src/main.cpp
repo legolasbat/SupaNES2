@@ -363,7 +363,7 @@ void MenuBar(AppState *appstate) {
     if (ImGui::BeginMenu("File")) {
       if (ImGui::MenuItem("Load ROM")) {
         const SDL_DialogFileFilter filters[] = {
-            {"SNES Cartridges (*.sfc)", "sfc"}};
+            {"SNES Cartridges (*.sfc, *.smc)", "sfc;smc"}};
         SDL_ShowOpenFileDialog(&openFileCallback, appstate, appstate->window,
                                filters, 1, NULL, false);
         pause = true;
