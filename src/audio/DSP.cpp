@@ -450,8 +450,8 @@ void DSP::Tick() {
       left = (left * MVOLL) >> 7;
       right = (right * MVOLR) >> 7;
     }
-    samples[sampleIndex++] = Clamp16(left);
-    samples[sampleIndex++] = Clamp16(right);
+    samples[sampleIndex++] = Clamp16(left) ^ 0xFFFF;
+    samples[sampleIndex++] = Clamp16(right) ^ 0xFFFF;
   }
   // Output samples
   else if (step == 31) {
