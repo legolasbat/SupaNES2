@@ -5,6 +5,18 @@
 #include <cassert>
 #include <stdio.h>
 
+const uint8_t env_release = 0;
+const uint8_t env_attack = 1;
+const uint8_t env_decay = 2;
+const uint8_t env_sustain = 3;
+
+int16_t Clamp16(int value) {
+  if ((int16_t)value != value) {
+    return (value >> 31) ^ 0x7FFF;
+  }
+  return value;
+}
+
 static constexpr int16_t const gauss[512] = {
     0x000, 0x000, 0x000, 0x000, 0x000, 0x000, 0x000, 0x000, 0x000, 0x000, 0x000,
     0x000, 0x000, 0x000, 0x000, 0x000, 0x001, 0x001, 0x001, 0x001, 0x001, 0x001,
@@ -55,6 +67,18 @@ static constexpr int16_t const gauss[512] = {
     0x518, 0x518, 0x518, 0x518, 0x519, 0x519,
 };
 
+const uint16_t CounterRate[32] = {
+    0,   2048, 1536, 1280, 1024, 768, 640, 512, 384, 320, 256,
+    192, 160,  128,  96,   80,   64,  48,  40,  32,  24,  20,
+    16,  12,   10,   8,    6,    5,   4,   3,   2,   1,
+};
+
+const uint16_t CounterOffset[32] = {
+    0,    0,    1040, 536,  0,    1040, 536,  0,    1040, 536,  0,
+    1040, 536,  0,    1040, 536,  0,    1040, 536,  0,    1040, 536,
+    0,    1040, 536,  0,    1040, 536,  0,    1040, 0,    0,
+};
+
 DSP::DSP() {
   SDL_AudioSpec specs;
   specs.freq = 48000;
@@ -77,16 +101,24 @@ DSP::~DSP() {
   }
 }
 
+bool DSP::CounterPoll(unsigned int rate) {
+  if (rate == 0)
+    return false;
+  return (counter + CounterOffset[rate]) % CounterRate[rate] == 0;
+}
+
 void DSP::ReadBRR(uint8_t channel) {
   voice &v = voices[channel];
   int bytes = (v.brrByte << 8) | memory->GetRAM(v.brrAddress + v.brrOffset + 1);
 
   const uint8_t shift = (v.brrHeader >> 4) - 1;
   const uint8_t filter = (v.brrHeader >> 2) & 0x3;
+
   for (int i = 0; i < 4; i++) {
     int s = (int16_t)bytes >> 12;
     bytes <<= 4;
 
+    // Apply shift
     if (shift <= 12) {
       s <<= shift;
       s >>= 1;
@@ -94,82 +126,292 @@ void DSP::ReadBRR(uint8_t channel) {
       s &= ~0x7FFF;
     }
 
-    s = (int16_t)(s << 1);
+    // Apply filter
+    int offset = v.bufferOffset;
+    if (--offset < 0)
+      offset = 11;
+    const int p1 = v.PCMBuffer[offset];
+    if (--offset < 0)
+      offset = 11;
+    const int p2 = v.PCMBuffer[offset] >> 1;
+
+    switch (filter) {
+    case 0:
+      break;
+    case 1:
+      s += p1 >> 0;
+      s += (-p1) >> 4;
+      break;
+    case 2:
+      s += p1;
+      s -= p2;
+      s += p2 >> 4;
+      s += (p1 * -3) >> 5;
+      break;
+    case 3:
+      s += p1;
+      s -= p2;
+      s += (p1 * -13) >> 6;
+      s += (p2 * 3) >> 4;
+      break;
+    }
+
+    // Clamp result
+    s = (int16_t)(Clamp16(s) << 1);
     v.PCMBuffer[v.bufferOffset] = s;
     if (++v.bufferOffset >= 12)
       v.bufferOffset = 0;
   }
 }
 
+int16_t DSP::GaussInterp(uint8_t channel) {
+  voice &v = voices[channel];
+
+  uint8_t position = (v.bufferPositionInterp >> 12) + v.bufferPos;
+  uint8_t offset = (v.bufferPositionInterp >> 4) & 0xFF;
+
+  int16_t olderOutput =
+      (gauss[0x0FF - offset] * v.PCMBuffer[position % 12]) >> 10;
+  olderOutput +=
+      (gauss[0x1FF - offset] * v.PCMBuffer[(position + 1) % 12]) >> 10;
+  olderOutput +=
+      (gauss[0x100 + offset] * v.PCMBuffer[(position + 2) % 12]) >> 10;
+  int32_t output =
+      olderOutput + ((gauss[offset] * v.PCMBuffer[(position + 3) % 12]) >> 10);
+
+  // Clamp output
+  return (int16_t)(Clamp16(output) >> 1);
+}
+
+void DSP::ProcessEnvelope(uint8_t channel) {
+  voice &v = voices[channel];
+
+  int envelope = v.envelope;
+
+  if (v.envelopeMode == env_release) {
+    envelope -= 0x8;
+    if (envelope < 0)
+      envelope = 0;
+    v.envelope = envelope;
+    return;
+  }
+
+  int rate;
+  int envelopeData = v.ADSR2;
+  if (v.ADSR1 & 0x80) {
+    if (v.envelopeMode >= env_decay) {
+      envelope--;
+      envelope -= envelope >> 8;
+      rate = envelopeData & 0x1F;
+      if (v.envelopeMode == env_decay) {
+        rate = ((v.ADSR1 >> 3) & 0xE) + 0x10;
+      }
+    } else {
+      rate = (v.ADSR1 & 0xF) * 2 + 1;
+      envelope += rate < 31 ? 0x20 : 0x400;
+    }
+  }
+  // GAIN
+  else {
+    envelopeData = v.GAIN;
+    int mode = envelopeData >> 5;
+    if (mode < 4) { // Direct
+      envelope = envelopeData * 0x10;
+      rate = 31;
+    } else {
+      rate = envelopeData & 0x1F;
+      if (mode == 4) { // Linear decrease
+        envelope -= 0x20;
+      } else if (mode < 6) { // Exponential decrease
+        envelope--;
+        envelope -= envelope >> 8;
+      } else { // Linear increase
+        envelope += 0x20;
+        if (mode > 6 && v.envelope >= 0x600) {
+          envelope += 0x8 - 0x20;
+        }
+      }
+    }
+  }
+
+  // Sustain level
+  if ((envelope >> 8) == (envelopeData >> 5) && v.envelopeMode == env_decay) {
+    v.envelopeMode = env_sustain;
+  }
+
+  if ((uint16_t)envelope > 0x7FF) {
+    envelope = (envelope < 0 ? 0 : 0x7FF);
+    if (v.envelopeMode == env_attack)
+      v.envelopeMode = env_decay;
+  }
+
+  if (CounterPoll(rate)) {
+    v.envelope = envelope;
+  }
+}
+
 void DSP::ProcessSample(uint8_t channel) {
   voice &v = voices[channel];
   // Step 1
-  uint16_t brrAddress = (DIR << 8) + (voices[0].SRCN << 2);
+  v.brrAddress = (DIR << 8) + (v.SRCN << 2);
 
   // Step 2
   if (!v.keyOnDelay)
-    brrAddress += 2;
-  uint16_t brrNextAddress = memory->GetRAM(brrAddress++);
-  brrNextAddress |= memory->GetRAM(brrAddress++) << 8;
+    v.brrAddress += 2;
+  uint16_t brrNextAddress = memory->GetRAM(v.brrAddress++);
+  brrNextAddress |= memory->GetRAM(v.brrAddress++) << 8;
 
   // Step 3
-  v.brrByte = memory->GetRAM(brrAddress + v.brrOffset);
-  v.brrHeader = memory->GetRAM(brrAddress);
+  uint16_t pitch = v.P;
+
+  v.brrByte = memory->GetRAM(v.brrAddress + v.brrOffset);
+  v.brrHeader = memory->GetRAM(v.brrAddress);
+
+  if (PMON & (0x01 << channel)) {
+    assert(channel != 0 && "Pitch modulation channel 0");
+    pitch = (((voices[channel - 1].sample >> 4) + 0x400) * pitch) >> 10;
+  }
 
   if (v.keyOnDelay) {
     if (v.keyOnDelay == 5) {
-      brrAddress = brrNextAddress;
+      v.brrAddress = brrNextAddress;
       v.brrOffset = 1;
       v.bufferOffset = 0;
       v.brrHeader = 0;
     }
+    v.envelope = 0;
+
     v.keyOnDelay--;
 
     v.bufferPositionInterp = 0;
     if (v.keyOnDelay & 3)
       v.bufferPositionInterp = 0x4000;
+
+    pitch = 0;
   }
 
-  uint8_t offset = (v.bufferOffset + (v.bufferPositionInterp >> 12)) % 12;
-  int16_t sample = v.PCMBuffer[offset];
-  samples[sampleIndex++] = sample * voices[0].VOLL;
-  samples[sampleIndex++] = sample * voices[0].VOLR;
+  v.sample = GaussInterp(channel);
+
+  if (NON & (0x01 << channel)) {
+    // TODO: Noise
+    v.sample = 0;
+  }
+
+  // TODO: Apply envelope
+  // v.sample = ((v.sample * v.envelope) >> 11) & ~1;
+  v.ENVX = v.envelope >> 4;
+
+  if ((FLG & 0x80) || (v.brrHeader & 0x01)) {
+    v.envelopeMode = 0;
+    v.envelope = 0;
+  }
 
   if (evenSample) {
-    if (voicesKON & 0x01) {
-      v.keyOnDelay = 5;
+    if (KOF & (0x01 << channel)) {
+      v.envelopeMode = 0;
     }
+
+    if (voicesKON & (0x01 << channel)) {
+      v.keyOnDelay = 5;
+      v.envelopeMode = 1;
+    }
+  }
+
+  if (!v.keyOnDelay) {
+    ProcessEnvelope(channel);
   }
 
   // Step 4
+  uint8_t looped = 0;
   if (v.bufferPositionInterp >= 0x4000) {
-    ReadBRR(0);
-    v.brrOffset += 2;
-    if (v.brrOffset >= 9) {
-      brrAddress = brrAddress + 9;
+    ReadBRR(channel);
+    if (v.brrOffset >= 7) {
       if (v.brrHeader & 0x01) {
-        brrAddress = brrNextAddress;
+        v.brrAddress = brrNextAddress;
+        looped = 1;
+      } else {
+        v.brrAddress += 9;
       }
       v.brrOffset = 1;
+    } else {
+      v.brrOffset += 2;
     }
   }
 
-  v.bufferPositionInterp = (v.bufferPositionInterp & 0x3FFF) + voices[0].P;
+  pitch &= 0x3FFF;
+  v.bufferPositionInterp = (v.bufferPositionInterp & 0x3FFF) + pitch;
   if (v.bufferPositionInterp > 0x7FFF)
     v.bufferPositionInterp = 0x7FFF;
+
+  // Step 5
+  ENDX |= (looped << channel);
+  if (v.keyOnDelay == 5) {
+    ENDX &= ~(0x01 << channel);
+  }
+
+  // Step 6
+  v.OUTX = v.sample >> 8;
+
+  // Step 7
+  // TODO: Envelope
+  v.ENVX = 0;
 }
 
 void DSP::Tick() {
-  if (step == 15) {
+  // Process Voices samples
+  if (step == 10) {
     ProcessSample(0);
+  } else if (step == 11) {
+    ProcessSample(1);
+  } else if (step == 12) {
+    ProcessSample(2);
+  } else if (step == 13) {
+    ProcessSample(3);
+  } else if (step == 14) {
+    ProcessSample(4);
+  } else if (step == 15) {
+    ProcessSample(5);
+  } else if (step == 16) {
+    ProcessSample(6);
+  } else if (step == 17) {
+    ProcessSample(7);
   } else if (step == 20) {
-    // Read KON
     evenSample = !evenSample;
+
+    // Read KON
     if (evenSample) {
       internalKON &= !voicesKON;
       voicesKON = internalKON;
     }
-  } else if (step == 31) {
+
+    if (!counter)
+      counter = 2048 * 5 * 3;
+    counter--;
+
+    // TODO: Noise
+  }
+  // Update samples
+  else if (step == 21) {
+    samples[sampleIndex] = 0;
+    int32_t sample = 0;
+    for (int i = 0; i < 8; i++) {
+      sample += (voices[i].sample * voices[i].VOLL) >> 6;
+      sample = Clamp16(sample);
+    }
+    samples[sampleIndex] = (sample * MVOLL) >> 7;
+    sampleIndex++;
+
+    samples[sampleIndex] = 0;
+    sample = 0;
+    for (int i = 0; i < 8; i++) {
+      sample += (voices[i].sample * voices[i].VOLR) >> 6;
+      sample = Clamp16(sample);
+    }
+    samples[sampleIndex] = (sample * MVOLR) >> 7;
+    sampleIndex++;
+  }
+  // Output samples
+  else if (step == 31) {
     if (sampleIndex >= maxSamples) {
       sampleIndex = 0;
       while (SDL_GetAudioStreamQueued(audioStream) >
@@ -182,6 +424,7 @@ void DSP::Tick() {
       }
     }
   }
+
   step = (step + 1) % 32;
 }
 

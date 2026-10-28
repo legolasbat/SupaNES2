@@ -29,6 +29,8 @@ private:
   uint8_t step = 0;
   bool evenSample = true;
 
+  uint16_t counter = 0;
+
   struct voice {
     // REGISTERS
     int8_t VOLL = 0;   // Left channel volume
@@ -53,6 +55,11 @@ private:
     uint8_t brrHeader = 0;
 
     uint8_t keyOnDelay = 0;
+
+    uint8_t envelopeMode = 0; // 0: Release | 1: Attack | 2: Decay | 3: Sustain
+    int16_t envelope = 0;
+
+    int16_t sample = 0;
   };
 
   voice voices[8];
@@ -60,6 +67,12 @@ private:
   void ReadBRR(uint8_t channel);
 
   void ProcessSample(uint8_t channel);
+
+  int16_t GaussInterp(uint8_t channel);
+
+  void ProcessEnvelope(uint8_t channel);
+
+  bool CounterPoll(unsigned int rate);
 
   int8_t MVOLL = 0; // Left main volume
   int8_t MVOLR = 0; // Right main volume
