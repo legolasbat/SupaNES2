@@ -1022,7 +1022,7 @@ int CPU::TransferDMA(uint16_t &AAddress, uint8_t Bank, uint16_t BAddress,
   return count;
 }
 
-bool enableLog = true;
+bool enableLog = false;
 FILE *logfile = nullptr;
 int logfileMaxSize = 7277;
 int logfileLineCount = 0;
@@ -2573,19 +2573,34 @@ uint8_t CPU::MVN() {
     regs.PC -= 2;
     movActive = true;
   }
-  assert(!(regs.P & XFlag) && "MVN XFlag");
-  uint8_t value = ReadMemory((srcBank << 16) | regs.X.HL);
-  WriteMemory((regs.DB << 16) | regs.Y.HL, value);
+  if ((regs.P & XFlag) == 0) {
+    uint8_t value = ReadMemory((srcBank << 16) | regs.X.HL);
+    WriteMemory((regs.DB << 16) | regs.Y.HL, value);
 
-  regs.A.HL--;
-  regs.X.HL++;
-  regs.Y.HL++;
+    regs.A.HL--;
+    regs.X.HL++;
+    regs.Y.HL++;
 
-  if (regs.A.HL == 0xFFFF) {
-    movActive = false;
-    regs.PC += 2;
+    if (regs.A.HL == 0xFFFF) {
+      movActive = false;
+      regs.PC += 2;
+    } else {
+      regs.PC--;
+    }
   } else {
-    regs.PC--;
+    uint8_t value = ReadMemory((srcBank << 16) | regs.X.L);
+    WriteMemory((regs.DB << 16) | regs.Y.L, value);
+
+    regs.A.HL--;
+    regs.X.L++;
+    regs.Y.L++;
+
+    if (regs.A.HL == 0xFFFF) {
+      movActive = false;
+      regs.PC += 2;
+    } else {
+      regs.PC--;
+    }
   }
 
   return 7;
@@ -2598,21 +2613,35 @@ uint8_t CPU::MVP() {
     regs.PC -= 2;
     movActive = true;
   }
-  assert(!(regs.P & XFlag) && "MVP XFlag");
-  uint8_t value = ReadMemory((srcBank << 16) | regs.X.HL);
-  WriteMemory((regs.DB << 16) | regs.Y.HL, value);
+  if ((regs.P & XFlag) == 0) {
+    uint8_t value = ReadMemory((srcBank << 16) | regs.X.HL);
+    WriteMemory((regs.DB << 16) | regs.Y.HL, value);
 
-  regs.A.HL--;
-  regs.X.HL--;
-  regs.Y.HL--;
+    regs.A.HL--;
+    regs.X.HL--;
+    regs.Y.HL--;
 
-  if (regs.A.HL == 0xFFFF) {
-    movActive = false;
-    regs.PC += 2;
+    if (regs.A.HL == 0xFFFF) {
+      movActive = false;
+      regs.PC += 2;
+    } else {
+      regs.PC--;
+    }
   } else {
-    regs.PC--;
-  }
+    uint8_t value = ReadMemory((srcBank << 16) | regs.X.L);
+    WriteMemory((regs.DB << 16) | regs.Y.L, value);
 
+    regs.A.HL--;
+    regs.X.L--;
+    regs.Y.L--;
+
+    if (regs.A.HL == 0xFFFF) {
+      movActive = false;
+      regs.PC += 2;
+    } else {
+      regs.PC--;
+    }
+  }
   return 7;
 }
 
