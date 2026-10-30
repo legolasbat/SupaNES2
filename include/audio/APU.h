@@ -147,6 +147,9 @@ private:
   uint8_t BNE();
   uint8_t BPL();
   uint8_t BRA();
+  uint8_t BRK();
+  uint8_t BVC();
+  uint8_t BVS();
   uint8_t CBNE();
   uint8_t CLC();
   uint8_t CLP();
@@ -187,6 +190,7 @@ private:
   uint8_t ORA();
   uint8_t OR();
   uint8_t ORC();
+  uint8_t PCALL();
   uint8_t PHA();
   uint8_t PHP();
   uint8_t PHX();
@@ -213,6 +217,7 @@ private:
   uint8_t STY();
   uint8_t TAX();
   uint8_t TAY();
+  uint8_t TCALL();
   uint8_t TXA();
   uint8_t TXS();
   uint8_t TYA();
