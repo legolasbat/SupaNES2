@@ -468,6 +468,9 @@ void CPU::SetExcVectors(uint16_t vectors[16]) {
 }
 
 void CPU::NMI() {
+  if (startedDMA)
+    return;
+
   nmi |= 0x80;
 
   if (NMITIMEN & 0x80) {
@@ -496,6 +499,9 @@ void CPU::NMI() {
 void CPU::EndNMI() { nmi &= ~0x80; }
 
 void CPU::IRQ() {
+  if (startedDMA)
+    return;
+
   bool doIRQ = false;
   // IRQ Interrupts enable
   if (NMITIMEN & 0x30) {
