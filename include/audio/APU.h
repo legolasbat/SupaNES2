@@ -160,6 +160,7 @@ private:
   uint8_t BVS();
   uint8_t CBNE();
   uint8_t CLC();
+  uint8_t CLI();
   uint8_t CLP();
   uint8_t CLR();
   uint8_t TCLR();
@@ -169,6 +170,8 @@ private:
   uint8_t CPW();
   uint8_t CPX();
   uint8_t CPY();
+  uint8_t DAA();
+  uint8_t DAS();
   uint8_t DBNZ();
   uint8_t DEC();
   uint8_t DEW();
@@ -207,6 +210,7 @@ private:
   uint8_t PLP();
   uint8_t PLX();
   uint8_t PLY();
+  uint8_t RETI();
   uint8_t ROL();
   uint8_t ROR();
   uint8_t RTS();

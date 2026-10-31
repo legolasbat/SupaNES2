@@ -72,7 +72,7 @@ APU::APU(SupaNES *supaNes) {
   opTable[0x1B] = {"ASL", &APU::ASL, AddMode::ZeroPageIndexX, 5};
   opTable[0x1C] = {"ASL", &APU::ASL, AddMode::Implied, 2};
   opTable[0x1D] = {"DEX", &APU::DEX, AddMode::Implied, 2};
-  opTable[0x1E] = {"", &APU::XXX, AddMode::Implied, 2};
+  opTable[0x1E] = {"CPX", &APU::CPX, AddMode::Absolute, 4};
   opTable[0x1F] = {"JMP", &APU::JMP, AddMode::Implied, 6};
 
   opTable[0x20] = {"CLP", &APU::CLP, AddMode::Implied, 2};
@@ -175,7 +175,7 @@ APU::APU(SupaNES *supaNes) {
   opTable[0x7C] = {"ROR", &APU::ROR, AddMode::Implied, 2};
   opTable[0x7D] = {"TXA", &APU::TXA, AddMode::Implied, 2};
   opTable[0x7E] = {"CPY", &APU::CPY, AddMode::ZeroPage, 3};
-  opTable[0x7F] = {"", &APU::XXX, AddMode::Implied, 2};
+  opTable[0x7F] = {"RETI", &APU::RETI, AddMode::Implied, 6};
 
   opTable[0x80] = {"SEC", &APU::SEC, AddMode::Implied, 2};
   opTable[0x81] = {"CALL", &APU::TCALL, AddMode::Implied, 8};
@@ -211,7 +211,7 @@ APU::APU(SupaNES *supaNes) {
   opTable[0x9E] = {"DIV", &APU::DIV, AddMode::Implied, 12};
   opTable[0x9F] = {"XCN", &APU::XCN, AddMode::Implied, 5};
 
-  opTable[0xA0] = {"", &APU::XXX, AddMode::Implied, 2};
+  opTable[0xA0] = {"SEI", &APU::SEI, AddMode::Implied, 3};
   opTable[0xA1] = {"CALL", &APU::TCALL, AddMode::Implied, 8};
   opTable[0xA2] = {"SET", &APU::SET, AddMode::ZeroPage, 4};
   opTable[0xA3] = {"BBS", &APU::BBS, AddMode::ZeroPage, 5};
@@ -242,10 +242,10 @@ APU::APU(SupaNES *supaNes) {
   opTable[0xBB] = {"INC", &APU::INC, AddMode::ZeroPageIndexX, 5};
   opTable[0xBC] = {"INC", &APU::INC, AddMode::Implied, 2};
   opTable[0xBD] = {"TXS", &APU::TXS, AddMode::Implied, 2};
-  opTable[0xBE] = {"", &APU::XXX, AddMode::Implied, 2};
-  opTable[0xBF] = {"", &APU::XXX, AddMode::Implied, 2};
+  opTable[0xBE] = {"DAS", &APU::DAS, AddMode::Implied, 3};
+  opTable[0xBF] = {"LDA", &APU::LDA, AddMode::ZeroPageIncX, 4};
 
-  opTable[0xC0] = {"SEI", &APU::SEI, AddMode::Implied, 3};
+  opTable[0xC0] = {"CLI", &APU::CLI, AddMode::Implied, 3};
   opTable[0xC1] = {"CALL", &APU::TCALL, AddMode::Implied, 8};
   opTable[0xC2] = {"SET", &APU::SET, AddMode::ZeroPage, 4};
   opTable[0xC3] = {"BBS", &APU::BBS, AddMode::ZeroPage, 5};
@@ -277,7 +277,7 @@ APU::APU(SupaNES *supaNes) {
   opTable[0xDC] = {"DEY", &APU::DEY, AddMode::Implied, 2};
   opTable[0xDD] = {"TYA", &APU::TYA, AddMode::Implied, 2};
   opTable[0xDE] = {"CBNE", &APU::CBNE, AddMode::ZeroPageIndexX, 6};
-  opTable[0xDF] = {"", &APU::XXX, AddMode::Implied, 2};
+  opTable[0xDF] = {"DAA", &APU::DAA, AddMode::Implied, 3};
 
   opTable[0xE0] = {"CLV", &APU::CLV, AddMode::Implied, 2};
   opTable[0xE1] = {"CALL", &APU::TCALL, AddMode::Implied, 8};
@@ -336,7 +336,7 @@ int APU::Clock() {
   return opcycles;
 }
 
-bool apuEnableLog = true;
+bool apuEnableLog = false;
 FILE *apuLogfile = nullptr;
 int apuLogfileMaxSize = 948638;
 int apuLogfileLineCount = 0;
@@ -594,6 +594,12 @@ void APU::FetchValue(AddMode addMode) {
 
   case AddMode::ZeroPageX:
     ZeroPageX();
+
+    fetched = ReadAPUMemory(fetchAddress);
+    break;
+
+  case AddMode::ZeroPageIncX:
+    ZeroPageIncX();
 
     fetched = ReadAPUMemory(fetchAddress);
     break;
@@ -1112,6 +1118,12 @@ uint8_t APU::CLC() {
   return 0;
 }
 
+uint8_t APU::CLI() {
+  SetFlag(IFlag, false);
+
+  return 0;
+}
+
 uint8_t APU::CLP() {
   SetFlag(PFlag, false);
 
@@ -1199,7 +1211,7 @@ uint8_t APU::CPW() {
   }
 
   uint16_t value = ReadAPUMemory(address + offset);
-  value |= ReadAPUMemory((address + 1) + offset) << 8;
+  value |= ReadAPUMemory(((address + 1) & 0xFF) + offset) << 8;
 
   uint16_t YA = A + (Y << 8);
   uint16_t result = YA - value;
@@ -1250,6 +1262,38 @@ uint8_t APU::CPY() {
   return 0;
 }
 
+uint8_t APU::DAA() {
+  if ((PSW & CFlag) || (A > 0x99)) {
+    A += 0x60;
+    SetFlag(CFlag, true);
+  }
+
+  if ((PSW & HFlag) || ((A & 0x0F) > 0x09)) {
+    A += 0x06;
+  }
+
+  SetFlag(ZFlag, A == 0);
+  SetFlag(NFlag, A & 0x80);
+
+  return 0;
+}
+
+uint8_t APU::DAS() {
+  if (!(PSW & CFlag) || (A > 0x99)) {
+    A -= 0x60;
+    SetFlag(CFlag, false);
+  }
+
+  if (!(PSW & HFlag) || ((A & 0x0F) >= 0x0A)) {
+    A -= 0x06;
+  }
+
+  SetFlag(ZFlag, A == 0);
+  SetFlag(NFlag, A & 0x80);
+
+  return 0;
+}
+
 uint8_t APU::DBNZ() {
   if (opcode == 0x6E) {
     FetchValue(opTable[opcode].addMode);
@@ -1295,7 +1339,7 @@ uint8_t APU::DEW() {
   }
 
   uint16_t value = ReadAPUMemory(address + offset);
-  value |= ReadAPUMemory((address + 1) + offset) << 8;
+  value |= ReadAPUMemory(((address + 1) & 0xFF) + offset) << 8;
 
   value--;
 
@@ -1303,7 +1347,7 @@ uint8_t APU::DEW() {
   SetFlag(ZFlag, value == 0);
 
   WriteAPUMemory(address + offset, value & 0xFF);
-  WriteAPUMemory((address + 1) + offset, value >> 8);
+  WriteAPUMemory(((address + 1) & 0xFF) + offset, value >> 8);
 
   return 0;
 }
@@ -1327,13 +1371,30 @@ uint8_t APU::DEY() {
 }
 
 uint8_t APU::DIV() {
-  uint16_t YA = A | (Y << 8);
+  uint32_t YA = A | (Y << 8);
+  uint32_t sub = X << 9;
+
+  for (int i = 0; i < 9; i++) {
+    if (YA & 0x10000) {
+      YA = ((YA << 1) | 0x01) & 0x1FFFF;
+    } else {
+      YA = (YA << 1) & 0x1FFFF;
+    }
+
+    if (YA >= sub) {
+      YA ^= 0x01;
+    }
+
+    if (YA & 0x01) {
+      YA = (YA - sub) & 0x1FFFF;
+    }
+  }
 
   SetFlag(HFlag, (Y & 0x0F) >= (X & 0x0F));
-  SetFlag(VFlag, Y >= X);
+  SetFlag(VFlag, YA & 0x100);
 
-  A = YA / X;
-  Y = YA % X;
+  A = (uint8_t)YA;
+  Y = YA >> 9;
 
   CheckNFlag(A);
   CheckZFlag(A);
@@ -1414,7 +1475,7 @@ uint8_t APU::INW() {
   }
 
   uint16_t value = ReadAPUMemory(address + offset);
-  value |= ReadAPUMemory((address + 1) + offset) << 8;
+  value |= ReadAPUMemory(((address + 1) & 0xFF) + offset) << 8;
 
   value++;
 
@@ -1422,7 +1483,7 @@ uint8_t APU::INW() {
   SetFlag(ZFlag, value == 0);
 
   WriteAPUMemory(address + offset, value & 0xFF);
-  WriteAPUMemory((address + 1) + offset, value >> 8);
+  WriteAPUMemory(((address + 1) & 0xFF) + offset, value >> 8);
 
   return 0;
 }
@@ -1527,7 +1588,7 @@ uint8_t APU::LDW() {
   }
 
   A = ReadAPUMemory(address + fetched);
-  Y = ReadAPUMemory(address + (fetched + 1));
+  Y = ReadAPUMemory(address + ((fetched + 1) & 0xFF));
 
   CheckNFlag(Y);
   if (A == 0 && Y == 0) {
@@ -1543,6 +1604,9 @@ uint8_t APU::LSR() {
   FetchValue(opTable[opcode].addMode);
   SetFlag(CFlag, fetched & 0x01);
   fetched >>= 1;
+
+  SetFlag(ZFlag, fetched == 0);
+  SetFlag(NFlag, fetched & 0x80);
 
   WriteValue(opTable[opcode].addMode, fetched, true);
 
@@ -1724,6 +1788,15 @@ uint8_t APU::PLY() {
   return 0;
 }
 
+uint8_t APU::RETI() {
+  PSW = PullStack();
+
+  PC = PullStack();
+  PC |= PullStack() << 8;
+
+  return 0;
+}
+
 uint8_t APU::ROL() {
   FetchValue(opTable[opcode].addMode);
 
@@ -1780,7 +1853,9 @@ uint8_t APU::SBCA() {
   SetFlag(CFlag, result < A);
   SetFlag(HFlag, (A ^ ~fetched ^ result) & 0x10);
 
-  SetFlag(VFlag, (int8_t)result < -128 || result > 127);
+  SetFlag(VFlag,
+          ((result & 0x80) == 0 && (A & 0x80) && (fetched & 0x80) == 0) ||
+              ((result & 0x80) && (A & 0x80) == 0 && (fetched & 0x80)));
 
   A = result;
 
@@ -1795,7 +1870,7 @@ uint8_t APU::SBCW() {
   }
 
   uint16_t value = ReadAPUMemory(address + offset);
-  value |= ReadAPUMemory((address + 1) + offset) << 8;
+  value |= ReadAPUMemory(((address + 1) & 0xFF) + offset) << 8;
 
   uint16_t YA = A + (Y << 8);
   uint16_t result = YA - value;
@@ -1806,7 +1881,9 @@ uint8_t APU::SBCW() {
   SetFlag(CFlag, result < YA);
   SetFlag(HFlag, (YA ^ ~value ^ result) & 0x1000);
 
-  SetFlag(VFlag, (int16_t)result < -32768 || result > 32767);
+  SetFlag(VFlag,
+          ((result & 0x8000) == 0 && (YA & 0x8000) && (value & 0x8000) == 0) ||
+              ((result & 0x8000) && (YA & 0x8000) == 0 && (value & 0x8000)));
 
   A = result & 0xFF;
   Y = result >> 8;
@@ -1835,10 +1912,12 @@ uint8_t APU::SBC() {
   CheckNFlag(result);
   CheckZFlag(result);
 
-  SetFlag(CFlag, result < A);
-  SetFlag(HFlag, (A ^ ~fetched ^ result) & 0x10);
+  SetFlag(CFlag, result < fetched);
+  SetFlag(HFlag, (value ^ ~fetched ^ result) & 0x10);
 
-  SetFlag(VFlag, (int8_t)result < -128 || result > 127);
+  SetFlag(VFlag,
+          ((result & 0x80) == 0 && (fetched & 0x80) && (value & 0x80) == 0) ||
+              ((result & 0x80) && (fetched & 0x80) == 0 && (value & 0x80)));
 
   WriteValue(opTable[opcode].addMode, result, true);
 
@@ -1852,7 +1931,7 @@ uint8_t APU::SEC() {
 }
 
 uint8_t APU::SEI() {
-  SetFlag(IFlag, false);
+  SetFlag(IFlag, true);
 
   return 0;
 }
@@ -1919,7 +1998,7 @@ uint8_t APU::STW() {
   }
 
   WriteAPUMemory(address + fetched, A);
-  WriteAPUMemory(address + (fetched + 1), Y);
+  WriteAPUMemory(address + ((fetched + 1) & 0xFF), Y);
 
   return 0;
 }
