@@ -424,8 +424,11 @@ uint8_t APU::ReadAPUMemory(uint16_t address) {
     } else if (address <= 0xF7) {
       value = ReadCPUPorts(address);
     } else {
-      assert((address <= 0xF9 || address >= 0xFD) && "Reading APU: FA-FC");
-      value = registers1[address - 0xF8];
+      if (address <= 0xF9 || address >= 0xFD) {
+        value = registers1[address - 0xF8];
+      } else {
+        printf("Reading APU: FA-FC\n");
+      }
       if (address >= 0xFD) {
         registers1[address - 0xF8] = 0;
       }
@@ -481,8 +484,10 @@ void APU::WriteAPUMemory(uint16_t address, uint8_t value) {
     } else if (address <= 0xF7) {
       WriteAPUPorts(address, value);
     } else {
-      assert(address <= 0xFC && "Writting APU: FD-FF");
-      registers1[address - 0xF8] = value;
+      if (address <= 0xFC)
+        registers1[address - 0xF8] = value;
+      else
+        printf("Writting APU: FD-FF\n");
     }
   }
   // Page 1
@@ -1845,13 +1850,16 @@ uint8_t APU::SBCA() {
 
   uint8_t carry = (PSW & CFlag) ? 0 : 1;
 
-  uint8_t result = A - fetched - carry;
+  uint32_t result = A - fetched - carry;
+  SetFlag(CFlag, result <= 0xFF);
 
-  CheckNFlag(result);
-  CheckZFlag(result);
+  result = A + (~fetched) + (carry == 0 ? 1 : 0);
+  uint8_t subResult = (A & 0x0F) + (carry == 0 ? 1 : 0);
 
-  SetFlag(CFlag, result < A);
-  SetFlag(HFlag, (A ^ ~fetched ^ result) & 0x10);
+  CheckNFlag((uint8_t)result);
+  CheckZFlag((uint8_t)result);
+
+  SetFlag(HFlag, ((result & 0x0F) - subResult) & 0x10);
 
   SetFlag(VFlag,
           ((result & 0x80) == 0 && (A & 0x80) && (fetched & 0x80) == 0) ||
