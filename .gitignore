@@ -6,4 +6,5 @@ Tests/
 imgui.ini
 CMakeSettings.json
 Makefile
+compile_commands.json
 
