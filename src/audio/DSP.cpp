@@ -142,50 +142,50 @@ bool DSP::CounterPoll(unsigned int rate) {
 void DSP::ReadBRR(uint8_t channel) {
   voice &v = voices[channel];
 
-  int bytes = (v.brrByte << 8) | memory->GetRAM(v.brrAddress + v.brrOffset + 1);
+  uint8_t nextBrrData = memory->GetRAM(v.brrAddress + v.brrOffset + 1);
+
+  int16_t samples[4] = {(int16_t)((int16_t)((v.brrByte & 0xF0) << 8) >> 12),
+                        (int16_t)((int16_t)((v.brrByte & 0xF) << 12) >> 12),
+                        (int16_t)((int16_t)((nextBrrData & 0xF0) << 8) >> 12),
+                        (int16_t)((int16_t)((nextBrrData & 0xF) << 12) >> 12)};
 
   const uint8_t shift = (v.brrHeader >> 4) - 1;
   const uint8_t filter = (v.brrHeader >> 2) & 0x3;
 
   for (int i = 0; i < 4; i++) {
-    int s = (int16_t)bytes >> 12;
-    bytes <<= 4;
-
     // Apply shift
-    if (shift <= 12) {
-      s <<= shift;
-      s >>= 1;
-    } else {
-      s &= ~0x7FFF;
+    int32_t s = ((int32_t)samples[i] << shift) >> 1;
+    if (shift >= 0x0D) {
+      s = s < 0 ? -0x800 : 0;
     }
 
     // Apply filter
     int offset = v.bufferOffset;
     if (--offset < 0)
       offset = 11;
-    const int p1 = v.PCMBuffer[offset];
+    const int32_t p1 = v.PCMBuffer[offset] >> 1;
     if (--offset < 0)
       offset = 11;
-    const int p2 = v.PCMBuffer[offset] >> 1;
+    const int32_t p2 = v.PCMBuffer[offset] >> 1;
 
     switch (filter) {
     case 0:
       break;
     case 1:
-      s += p1 >> 0;
+      s += p1;
       s += (-p1) >> 4;
       break;
     case 2:
-      s += p1;
+      s += p1 << 1;
       s -= p2;
       s += p2 >> 4;
-      s += (p1 * -3) >> 5;
+      s += (-((p1 << 1) + p1)) >> 5;
       break;
     case 3:
-      s += p1;
+      s += p1 << 1;
       s -= p2;
-      s += (p1 * -13) >> 6;
-      s += (p2 * 3) >> 4;
+      s += ((-(p1 + (p1 << 2) + (p1 << 3))) >> 6);
+      s += (((p2 << 1) + p2) >> 4);
       break;
     }
 
@@ -299,7 +299,7 @@ void DSP::ProcessSample(uint8_t channel) {
   voice &v = voices[channel];
 
   // Step 1
-  v._brrAddress = (DIR << 8) + (v.SRCN << 2);
+  v._brrAddress = ((uint16_t)DIR << 8) + ((uint16_t)v.SRCN << 2);
 
   // Step 2
   uint16_t addr = v._brrAddress;
