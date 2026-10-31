@@ -149,7 +149,7 @@ void DSP::ReadBRR(uint8_t channel) {
                         (int16_t)((int16_t)((nextBrrData & 0xF0) << 8) >> 12),
                         (int16_t)((int16_t)((nextBrrData & 0xF) << 12) >> 12)};
 
-  const uint8_t shift = (v.brrHeader >> 4) - 1;
+  const uint8_t shift = (v.brrHeader >> 4);
   const uint8_t filter = (v.brrHeader >> 2) & 0x3;
 
   for (int i = 0; i < 4; i++) {
@@ -163,10 +163,10 @@ void DSP::ReadBRR(uint8_t channel) {
     int offset = v.bufferOffset;
     if (--offset < 0)
       offset = 11;
-    const int32_t p1 = v.PCMBuffer[offset] >> 1;
+    const int32_t p1 = v.PCMBuffer[offset];
     if (--offset < 0)
       offset = 11;
-    const int32_t p2 = v.PCMBuffer[offset] >> 1;
+    const int32_t p2 = v.PCMBuffer[offset];
 
     switch (filter) {
     case 0:
@@ -190,7 +190,7 @@ void DSP::ReadBRR(uint8_t channel) {
     }
 
     // Clamp result
-    s = (int16_t)(Clamp16(s) << 1);
+    s = Clamp16(s);
     v.PCMBuffer[v.bufferOffset] = s;
     if (++v.bufferOffset >= 12)
       v.bufferOffset = 0;
