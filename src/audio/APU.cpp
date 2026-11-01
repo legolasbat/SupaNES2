@@ -37,6 +37,8 @@ APU::APU(SupaNES *supaNes) {
   CPUPorts[2] = 0;
   CPUPorts[3] = 0;
 
+  registers0[1] = 0xB0;
+
   for (int i = 0; i < 64; i++) {
     RAM[PC - 0x200 + i] = bootROM[i];
   }
@@ -438,13 +440,13 @@ uint8_t APU::ReadAPUMemory(uint16_t address) {
   else if (address <= 0x01FF) {
     value = page1[address - 0x100];
   }
+  // ROM
+  else if ((registers0[1] & 0x80) && address >= 0xFFC0) {
+    value = bootROM[address - 0xFFC0];
+  }
   // Memory
   else {
-    if ((registers0[1] & 0x80) && address >= 0xFFC0) {
-      value = bootROM[address - 0xFFC0];
-    } else {
-      value = RAM[address - 0x200];
-    }
+    value = RAM[address - 0x200];
   }
 
   return value;
