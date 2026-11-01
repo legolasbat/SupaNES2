@@ -5,24 +5,28 @@
 class SupaNES;
 
 class Cartridge {
-	public:
-		SupaNES* memory;
+public:
+  SupaNES *memory;
 
-		uint8_t* ROM;
-		int ROMSize;
+  uint8_t *ROM;
+  int ROMSize;
 
-		uint8_t* RAM;
-		int RAMSize;
+  uint8_t *RAM;
+  int RAMSize;
 
-		Cartridge(SupaNES* supaNes);
-		~Cartridge();
+  enum Layout { LoROM, HiROM };
 
-		bool LoadROM(const char* filepath, uint16_t* excVectors);
+  Layout layout;
 
-		uint8_t ReadRom(uint32_t address);
-		void WriteRom(uint32_t address, uint8_t value);
+  Cartridge(SupaNES *supaNes);
+  ~Cartridge();
 
-	private:
-		bool CheckCartridgeType(const uint8_t* cartType);
-		bool CheckRegion(const uint8_t* region);
+  bool LoadROM(const char *filepath, uint16_t *excVectors);
+
+  uint8_t ReadRom(uint32_t address);
+  void WriteRom(uint32_t address, uint8_t value);
+
+private:
+  bool CheckCartridgeType(const uint8_t *cartType);
+  bool CheckRegion(const uint8_t *region);
 };

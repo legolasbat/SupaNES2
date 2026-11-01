@@ -230,7 +230,7 @@ uint8_t SupaNES::ReadMemoryQ3(uint32_t address) {
 uint8_t SupaNES::ReadMemoryQ4(uint32_t address) {
   uint8_t value = 0;
 
-  assert(!(memoryBank >= 0xF0 && memoryPage < 0x80));
+  // assert(!(memoryBank >= 0xF0 && memoryPage < 0x80));
   value = cart->ReadRom(address);
 
   return value;
