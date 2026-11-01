@@ -153,64 +153,18 @@ uint8_t PPU::ReadPPU(uint32_t address) {
     InternalOAMAddress++;
     InternalOAMAddress %= 0x220;
   } else if (reg == 0x39) { // VMDATALREAD
-    uint16_t remapAddress = VRAMAddress;
-    if ((VMain & 0xC) != 0) {
-      if ((VMain & 0xC) == 0x4) {
-        uint8_t lower = VRAMAddress & 0xFF;
-        remapAddress &= 0xFF00;
-        remapAddress |= (lower >> 5) | (lower << 3 & 0x00F8);
-      } else if ((VMain & 0xC) == 0x8) {
-        uint16_t lower = VRAMAddress & 0x1FF;
-        remapAddress &= 0xFE00;
-        remapAddress |= (lower >> 6) | (lower << 3 & 0x01F8);
-      } else if ((VMain & 0xC) == 0xC) {
-        uint16_t lower = VRAMAddress & 0x3FF;
-        remapAddress &= 0xFC00;
-        remapAddress |= (lower >> 7) | (lower << 3 & 0x03F8);
-      }
-    }
-    remapAddress %= 0x8000;
-    value = VRAM[remapAddress] & 0x00FF;
-    if (VRAMAddressReset) {
-      VRAMAddressReset = false;
-    } else if (!(VMain & 0x80)) {
-      if ((VMain & 0x3) == 0) {
-        VRAMAddress++;
-      } else if ((VMain & 0x3) == 1) {
-        VRAMAddress += 32;
-      } else {
-        VRAMAddress += 128;
-      }
+    value = fetchedVRAM & 0x00FF;
+    if (!(VMain & 0x80)) {
+      FetchVRAM();
+      static const uint8_t increment[4] = {1, 32, 128, 128};
+      VRAMAddress += increment[VMain & 0x3];
     }
   } else if (reg == 0x3A) { // VMDATAHREAD
-    uint16_t remapAddress = VRAMAddress;
-    if ((VMain & 0xC) != 0) {
-      if ((VMain & 0xC) == 0x4) {
-        uint8_t lower = VRAMAddress & 0xFF;
-        remapAddress &= 0xFF00;
-        remapAddress |= (lower >> 5) | (lower << 3 & 0x00F8);
-      } else if ((VMain & 0xC) == 0x8) {
-        uint16_t lower = VRAMAddress & 0x1FF;
-        remapAddress &= 0xFE00;
-        remapAddress |= (lower >> 6) | (lower << 3 & 0x01F8);
-      } else if ((VMain & 0xC) == 0xC) {
-        uint16_t lower = VRAMAddress & 0x3FF;
-        remapAddress &= 0xFC00;
-        remapAddress |= (lower >> 7) | (lower << 3 & 0x03F8);
-      }
-    }
-    remapAddress %= 0x8000;
-    value = VRAM[remapAddress] >> 8;
-    if (VRAMAddressReset) {
-      VRAMAddressReset = false;
-    } else if (VMain & 0x80) {
-      if ((VMain & 0x3) == 0) {
-        VRAMAddress++;
-      } else if ((VMain & 0x3) == 1) {
-        VRAMAddress += 32;
-      } else {
-        VRAMAddress += 128;
-      }
+    value = fetchedVRAM >> 8;
+    if (VMain & 0x80) {
+      FetchVRAM();
+      static const uint8_t increment[4] = {1, 32, 128, 128};
+      VRAMAddress += increment[VMain & 0x3];
     }
   } else if (reg == 0x3B) { // CGDATA
     if (!CGRAMFlipflop) {
@@ -382,68 +336,22 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
   } else if (reg == 0x16) { // VMAADDL
     VRAMAddress &= 0xFF00;
     VRAMAddress |= value;
-    VRAMAddressReset = true;
+    FetchVRAM();
   } else if (reg == 0x17) { // VMADDH
     VRAMAddress &= 0x00FF;
-    VRAMAddress |= value << 8;
-    VRAMAddressReset = true;
+    VRAMAddress |= (uint16_t)value << 8;
+    FetchVRAM();
   } else if (reg == 0x18) { // VMDATAL
-    uint16_t remapAddress = VRAMAddress;
-    if ((VMain & 0xC) != 0) {
-      if ((VMain & 0xC) == 0x4) {
-        uint8_t lower = VRAMAddress & 0xFF;
-        remapAddress &= 0xFF00;
-        remapAddress |= (lower >> 5) | (lower << 3 & 0x00F8);
-      } else if ((VMain & 0xC) == 0x8) {
-        uint16_t lower = VRAMAddress & 0x1FF;
-        remapAddress &= 0xFE00;
-        remapAddress |= (lower >> 6) | (lower << 3 & 0x01F8);
-      } else if ((VMain & 0xC) == 0xC) {
-        uint16_t lower = VRAMAddress & 0x3FF;
-        remapAddress &= 0xFC00;
-        remapAddress |= (lower >> 7) | (lower << 3 & 0x03F8);
-      }
-    }
-    remapAddress %= 0x8000;
-    VRAM[remapAddress] &= 0xFF00;
-    VRAM[remapAddress] |= value;
+    WriteVRAM(value, true);
     if (!(VMain & 0x80)) {
-      if ((VMain & 0x3) == 0) {
-        VRAMAddress++;
-      } else if ((VMain & 0x3) == 1) {
-        VRAMAddress += 32;
-      } else {
-        VRAMAddress += 128;
-      }
+      static const uint8_t increment[4] = {1, 32, 128, 128};
+      VRAMAddress += increment[VMain & 0x3];
     }
   } else if (reg == 0x19) { // VMDATAH
-    uint16_t remapAddress = VRAMAddress;
-    if ((VMain & 0xC) != 0) {
-      if ((VMain & 0xC) == 0x4) {
-        uint8_t lower = VRAMAddress & 0xFF;
-        remapAddress &= 0xFF00;
-        remapAddress |= (lower >> 5) | (lower << 3 & 0x00F8);
-      } else if ((VMain & 0xC) == 0x8) {
-        uint16_t lower = VRAMAddress & 0x1FF;
-        remapAddress &= 0xFE00;
-        remapAddress |= (lower >> 6) | (lower << 3 & 0x01F8);
-      } else if ((VMain & 0xC) == 0xC) {
-        uint16_t lower = VRAMAddress & 0x3FF;
-        remapAddress &= 0xFC00;
-        remapAddress |= (lower >> 7) | (lower << 3 & 0x03F8);
-      }
-    }
-    remapAddress %= 0x8000;
-    VRAM[remapAddress] &= 0x00FF;
-    VRAM[remapAddress] |= value << 8;
+    WriteVRAM(value, false);
     if (VMain & 0x80) {
-      if ((VMain & 0x3) == 0) {
-        VRAMAddress++;
-      } else if ((VMain & 0x3) == 1) {
-        VRAMAddress += 32;
-      } else {
-        VRAMAddress += 128;
-      }
+      static const uint8_t increment[4] = {1, 32, 128, 128};
+      VRAMAddress += increment[VMain & 0x3];
     }
   } else if (reg == 0x1A) { // M7SEL
     M7SEL = value;
@@ -545,6 +453,58 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
   } else {
     printf("%06x: %02x\n", address, value);
     assert(false && "Writting PPU");
+  }
+}
+
+void PPU::FetchVRAM() {
+  uint16_t address = VRAMAddress;
+  switch ((VMain >> 2) & 0x3) {
+  case 0:
+    break;
+  case 1:
+    address =
+        (address & 0xFF00) | ((address & 0x1F) << 3) | ((address & 0x0E0) >> 5);
+    break;
+  case 2:
+    address =
+        (address & 0xFE00) | ((address & 0x3F) << 3) | ((address & 0x1C0) >> 5);
+    break;
+  case 3:
+    address =
+        (address & 0xFC00) | ((address & 0x7F) << 3) | ((address & 0x380) >> 5);
+    break;
+  }
+  address &= 0x7FFF;
+
+  fetchedVRAM = VRAM[address];
+}
+
+void PPU::WriteVRAM(uint8_t value, bool isLow) {
+  uint16_t address = VRAMAddress;
+  switch ((VMain >> 2) & 0x3) {
+  case 0:
+    break;
+  case 1:
+    address =
+        (address & 0xFF00) | ((address & 0x1F) << 3) | ((address & 0x0E0) >> 5);
+    break;
+  case 2:
+    address =
+        (address & 0xFE00) | ((address & 0x3F) << 3) | ((address & 0x1C0) >> 5);
+    break;
+  case 3:
+    address =
+        (address & 0xFC00) | ((address & 0x7F) << 3) | ((address & 0x380) >> 5);
+    break;
+  }
+  address &= 0x7FFF;
+
+  if (isLow) {
+    VRAM[address] &= 0xFF00;
+    VRAM[address] |= value;
+  } else {
+    VRAM[address] &= 0x00FF;
+    VRAM[address] |= ((uint16_t)value << 8);
   }
 }
 
