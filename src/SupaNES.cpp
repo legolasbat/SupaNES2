@@ -35,7 +35,8 @@ int SupaNES::Clock() {
     scheduler_CPU_SPC700 -= static_cast<uint64_t>(cycles) * SPC700_MASTER_CLOCK;
   } else {
     cycles = apu->Clock();
-    scheduler_CPU_SPC700 += static_cast<uint64_t>(cycles) * 24 * CPU_MASTER_CLOCK;
+    scheduler_CPU_SPC700 +=
+        static_cast<uint64_t>(cycles) * 24 * CPU_MASTER_CLOCK;
   }
   return cycles;
 }
@@ -53,7 +54,7 @@ uint8_t SupaNES::ReadMemory(uint32_t address) {
   } else if (memoryBank < 0xC0) {
     value = ReadMemoryQ3(address);
   } else {
-    value = ReadMemoryQ3(address);
+    value = ReadMemoryQ4(address);
   }
 
   return value;
