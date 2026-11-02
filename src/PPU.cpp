@@ -78,7 +78,9 @@ void PPU::Clock() {
   HCounter++;
 
   // Check HDMA
-  if (HCounter == 278) {
+  if (HCounter == 6 && VCounter == 0) {
+    memory->cpu->ResetHDMA();
+  } else if (HCounter == 278 && VCounter <= 224) {
     memory->cpu->StartHDMA();
   } else if (HCounter == 341 ||
              (HCounter == 340 && VCounter == 240 && frameCounter % 2)) {
@@ -93,17 +95,15 @@ void PPU::Clock() {
         frameCounter = 0;
       }
       VCounter = 0;
-      memory->cpu->ResetHDMA();
-      memory->cpu->StartHDMA();
       memory->cpu->EndNMI();
       OBJReloadSize();
       GetOBJsToDisplay();
     }
-    // Draw next scanline
-    if (VCounter < height) {
-      for (int i = 0; i < width; i++) {
-        SetPixel(i, VCounter);
-      }
+  }
+  // Draw Pixel
+  if (VCounter <= height && VCounter > 0) {
+    if (HCounter >= 0 && HCounter < width) {
+      SetPixel(HCounter, VCounter - 1);
     }
   }
   memory->cpu->IRQ();
