@@ -251,102 +251,102 @@ void HandleEvents(AppState *appstate) {
         appstate->supaNES->cpu->debug = !appstate->supaNES->cpu->debug;
         break;
 
-      case SDL_SCANCODE_H: // B bottom
+      case SDL_SCANCODE_H: // B button
         appstate->supaNES->cpu->joypad1High |= 0x80;
         break;
-      case SDL_SCANCODE_Y: // Y bottom
+      case SDL_SCANCODE_Y: // Y button
         appstate->supaNES->cpu->joypad1High |= 0x40;
         break;
       case SDL_SCANCODE_RSHIFT:
-      case SDL_SCANCODE_LSHIFT: // Select bottom
+      case SDL_SCANCODE_LSHIFT: // Select button
         appstate->supaNES->cpu->joypad1High |= 0x20;
         break;
-      case SDL_SCANCODE_RETURN: // Start bottom
+      case SDL_SCANCODE_RETURN: // Start button
         appstate->supaNES->cpu->joypad1High |= 0x10;
         break;
       case SDL_SCANCODE_UP:
-      case SDL_SCANCODE_W: // Up bottom (reset down bottom, hardware
+      case SDL_SCANCODE_W: // Up button (reset down button, hardware
                            // limitations)
         appstate->supaNES->cpu->joypad1High |= 0x08;
         if (appstate->supaNES->cpu->joypad1High & 0x04)
           appstate->supaNES->cpu->joypad1High &= ~0x04;
         break;
       case SDL_SCANCODE_DOWN:
-      case SDL_SCANCODE_S: // Down bottom (reset up bottom, hardware
+      case SDL_SCANCODE_S: // Down button (reset up button, hardware
                            // limitations)
         appstate->supaNES->cpu->joypad1High |= 0x04;
         if (appstate->supaNES->cpu->joypad1High & 0x08)
           appstate->supaNES->cpu->joypad1High &= ~0x08;
         break;
       case SDL_SCANCODE_LEFT:
-      case SDL_SCANCODE_A: // Left bottom (reset right bottom, hardware
+      case SDL_SCANCODE_A: // Left button (reset right button, hardware
                            // limitations)
         appstate->supaNES->cpu->joypad1High |= 0x02;
         if (appstate->supaNES->cpu->joypad1High & 0x01)
           appstate->supaNES->cpu->joypad1High &= ~0x01;
         break;
       case SDL_SCANCODE_RIGHT:
-      case SDL_SCANCODE_D: // Right bottom (reset left bottom, hardware
+      case SDL_SCANCODE_D: // Right button (reset left button, hardware
                            // limitations)
         appstate->supaNES->cpu->joypad1High |= 0x01;
         if (appstate->supaNES->cpu->joypad1High & 0x02)
           appstate->supaNES->cpu->joypad1High &= ~0x02;
         break;
-      case SDL_SCANCODE_J: // A bottom
+      case SDL_SCANCODE_J: // A button
         appstate->supaNES->cpu->joypad1Low |= 0x80;
         break;
-      case SDL_SCANCODE_U: // X bottom
+      case SDL_SCANCODE_U: // X button
         appstate->supaNES->cpu->joypad1Low |= 0x40;
         break;
-      case SDL_SCANCODE_Q: // L bottom
+      case SDL_SCANCODE_Q: // L button
         appstate->supaNES->cpu->joypad1Low |= 0x20;
         break;
-      case SDL_SCANCODE_E: // R bottom
+      case SDL_SCANCODE_E: // R button
         appstate->supaNES->cpu->joypad1Low |= 0x10;
         break;
       }
     }
     if (event.type == SDL_EVENT_KEY_UP) {
       switch (event.key.scancode) {
-      case SDL_SCANCODE_H: // B bottom
+      case SDL_SCANCODE_H: // B button
         appstate->supaNES->cpu->joypad1High &= ~0x80;
         break;
-      case SDL_SCANCODE_Y: // Y bottom
+      case SDL_SCANCODE_Y: // Y button
         appstate->supaNES->cpu->joypad1High &= ~0x40;
         break;
       case SDL_SCANCODE_RSHIFT:
-      case SDL_SCANCODE_LSHIFT: // Select bottom
+      case SDL_SCANCODE_LSHIFT: // Select button
         appstate->supaNES->cpu->joypad1High &= ~0x20;
         break;
-      case SDL_SCANCODE_RETURN: // Start bottom
+      case SDL_SCANCODE_RETURN: // Start button
         appstate->supaNES->cpu->joypad1High &= ~0x10;
         break;
       case SDL_SCANCODE_UP:
-      case SDL_SCANCODE_W: // Up bottom
+      case SDL_SCANCODE_W: // Up button
         appstate->supaNES->cpu->joypad1High &= ~0x08;
         break;
       case SDL_SCANCODE_DOWN:
-      case SDL_SCANCODE_S: // Down bottom
+      case SDL_SCANCODE_S: // Down button
         appstate->supaNES->cpu->joypad1High &= ~0x04;
         break;
       case SDL_SCANCODE_LEFT:
-      case SDL_SCANCODE_A: // Left bottom
+      case SDL_SCANCODE_A: // Left button
         appstate->supaNES->cpu->joypad1High &= ~0x02;
         break;
       case SDL_SCANCODE_RIGHT:
-      case SDL_SCANCODE_D: // Right bottom
+      case SDL_SCANCODE_D: // Right button
         appstate->supaNES->cpu->joypad1High &= ~0x01;
         break;
-      case SDL_SCANCODE_J: // A bottom
+      case SDL_SCANCODE_J: // A button
         appstate->supaNES->cpu->joypad1Low &= ~0x80;
         break;
-      case SDL_SCANCODE_U: // X bottom
+      case SDL_SCANCODE_U: // X button
         appstate->supaNES->cpu->joypad1Low &= ~0x40;
         break;
-      case SDL_SCANCODE_Q: // L bottom
+      case SDL_SCANCODE_Q: // L button
         appstate->supaNES->cpu->joypad1Low &= ~0x20;
         break;
-      case SDL_SCANCODE_E: // R bottom
+      case SDL_SCANCODE_E: // R button
         appstate->supaNES->cpu->joypad1Low &= ~0x10;
         break;
       }
@@ -378,7 +378,7 @@ void MenuBar(AppState *appstate) {
     }
     if (ImGui::BeginMenu("Debug")) {
       if (ImGui::BeginMenu("Display BG")) {
-        // TODO: Enable/Disable Backgrounds
+        // Enable/Disable Backgrounds
         if (ImGui::MenuItem("BG1", 0, BG1Selected, true)) {
           BG1Selected = !BG1Selected;
           if (appstate->supaNES->RomLoaded) {
