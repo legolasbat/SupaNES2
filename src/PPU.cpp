@@ -355,8 +355,6 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
     }
   } else if (reg == 0x1A) { // M7SEL
     M7SEL = value;
-    assert((value & 0x03) == 0);
-    assert((value & 0x40) == 0);
   } else if (reg == 0x1B) { // M7A
     M7A = (value << 8) | prevM;
     prevM = value;
@@ -702,9 +700,16 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex,
   if (BGMode & (0x10 << BGIndex)) {
     spriteSize = 16;
   }
+  uint8_t mode = BGMode & 0x07;
+  int Hoffset = X + HScroll;
+  int Voffset = Y + VScroll;
 
-  int XScrolled = (X + HScroll) % (spriteSize * XSize);
-  int YScrolled = (Y + VScroll + (overscan ? 8 : 0)) % (spriteSize * YSize);
+  if (mode == 2 || mode == 4 || mode == 6) {
+    // TODO: Offset per tile
+  }
+
+  int XScrolled = Hoffset % (spriteSize * XSize);
+  int YScrolled = (Voffset + (overscan ? 8 : 0)) % (spriteSize * YSize);
 
   // Mod 0x8000 because we use 16bits values instead of 8bits
   uint16_t baseAddress = ((BGAddress >> 2) << 10) % 0x8000;
@@ -1001,6 +1006,12 @@ void PPU::SetBG1PixelMode7(int X, int Y) {
   } else {
     if (M7SEL & 0x40) {
       // Fill with character 0
+      if (X < 0 || X > 0x3FF) {
+        X %= 8;
+      }
+      if (Y < 0 || Y > 0x3FF) {
+        Y %= 8;
+      }
     } else {
       if (X < 0 || X > 0x3FF) {
         outside = true;
@@ -1009,13 +1020,6 @@ void PPU::SetBG1PixelMode7(int X, int Y) {
         outside = true;
       }
     }
-  }
-
-  if (M7SEL & 0x1) {
-    X = 0x3FF - X;
-  }
-  if (M7SEL & 0x2) {
-    Y = 0x3FF - Y;
   }
 
   uint16_t tileID = ((Y >> 3) << 7) | (X >> 3);
@@ -1071,9 +1075,15 @@ void PPU::SetBG1PixelMode7(int X, int Y) {
 }
 
 void PPU::CalculateMode7Coor(int &X, int &Y) const {
-  // TODO: Check if flip
-
 #define CLIP(a) (((a) & 0x2000) ? ((a) | ~0x3FF) : ((a) & 0x3FF))
+
+  if (M7SEL & 0x1) {
+    printf("Mode 7 Flip X\n");
+    X = 0xFF - X;
+  }
+  if (M7SEL & 0x2) {
+    Y = 0xFF - Y - 2;
+  }
 
   int originX = (M7A * CLIP(M7HOFS - M7X) & ~0x3F) +
                 (M7B * CLIP(M7VOFS + 1 - M7Y) & ~0x3F) + (M7B * Y & ~0x3F) +
