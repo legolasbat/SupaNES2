@@ -368,6 +368,9 @@ void MenuBar(AppState *appstate) {
                                filters, 1, NULL, false);
         pause = true;
       }
+
+      ImGui::Separator();
+
       if (ImGui::MenuItem("Exit")) {
         done = true;
       }
