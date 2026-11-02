@@ -57,8 +57,7 @@ bool Cartridge::LoadROM(const char *filepath, uint16_t *excVectors) {
   uint16_t resetVec = 0;
   fread(&resetVec, sizeof(uint16_t), 1, file);
   printf("RESET: %04x\n", resetVec);
-  if ((checksumCom ^ checksum) == 0xFFFF || fileSize < 0xFFC0 ||
-      resetVec >= 0x8000) {
+  if ((checksumCom ^ checksum) == 0xFFFF || fileSize < 0xFFC0) {
     printf("Correct checksum. LoROM\n");
     layout = Layout::LoROM;
   } else {
@@ -261,7 +260,7 @@ bool Cartridge::CheckCartridgeType(const uint8_t *cartType) {
     printf("ROM + CO-CPU + BATTERY\n");
     break;
   default:
-    printf("CHIPSET UNKNOWN\n");
+    printf("CHIPSET UNKNOWN %02x\n", *cartType);
     return false;
     break;
   }
