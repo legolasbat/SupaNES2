@@ -201,8 +201,8 @@ private:
                         uint8_t BGIndex) const;
   uint16_t GetColor4BPP(uint16_t charAddress, uint8_t palette,
                         uint8_t HShift) const;
-  uint16_t GetColor8BPP(uint16_t charAddress, uint8_t palette,
-                        uint8_t HShift) const;
+  uint16_t GetColor8BPP(uint16_t charAddress, uint8_t palette, uint8_t HShift,
+                        bool isDirect) const;
 
   void OBJReloadSize();
   void GetOBJsToDisplay();

@@ -426,7 +426,6 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
     TSW = value;
   } else if (reg == 0x30) { // CGWSEL
     CGWSEL = value;
-    assert((CGWSEL & 0x01) == 0 && "CGWSEL Direct Color");
   } else if (reg == 0x31) { // CGADSUB
     CGADSUB = value;
   } else if (reg == 0x32) { // COLDATA
@@ -780,7 +779,12 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex,
   // BPP8
   else {
     tileAddress = tileOffset + tileID * 0x20 + VShift;
-    palette = GetColor8BPP(tileAddress, BGPaletteNumber, HShift);
+    if ((CGWSEL & 0x01) && BGIndex == 0 &&
+        ((BGMode & 0x07) == 3 || (BGMode & 0x07) == 4)) {
+      palette = GetColor8BPP(tileAddress, BGPaletteNumber, HShift, true);
+    } else {
+      palette = GetColor8BPP(tileAddress, BGPaletteNumber, HShift, false);
+    }
   }
 
   uint8_t mosaicSize = 0;
@@ -1007,13 +1011,26 @@ void PPU::SetBG1PixelMode7(int X, int Y) {
     }
   }
 
+  if (M7SEL & 0x1) {
+    X = 0x3FF - X;
+  }
+  if (M7SEL & 0x2) {
+    Y = 0x3FF - Y;
+  }
+
   uint16_t tileID = ((Y >> 3) << 7) | (X >> 3);
   tileID = VRAM[tileID] & 0xFF;
 
   uint16_t palette = (tileID << 6) | ((Y & 0x7) << 3) | (X & 0x7);
   palette = VRAM[palette] >> 8;
 
-  if (palette == 0 || outside) {
+  if (CGWSEL & 0x01) {
+    palette = (((palette & 0x07) << 1) << 1) | ((palette & 0x38) << 4) |
+              ((palette & 0xC0) << 7);
+    if (palette != 0) {
+      palette |= 0x8000;
+    }
+  } else if (palette == 0 || outside) {
     palette = CGRAM[0];
   } else {
     palette = CGRAM[palette] | 0x8000;
@@ -1134,7 +1151,7 @@ uint16_t PPU::GetColor4BPP(uint16_t charAddress, uint8_t palette,
 }
 
 uint16_t PPU::GetColor8BPP(uint16_t charAddress, uint8_t palette,
-                           uint8_t HShift) const {
+                           uint8_t HShift, bool isDirect) const {
   uint8_t BG1 = VRAM[charAddress] & 0xFF;
   uint8_t BG2 = VRAM[charAddress] >> 8;
   uint8_t BG3 = VRAM[charAddress + 8] & 0xFF;
@@ -1148,6 +1165,20 @@ uint16_t PPU::GetColor8BPP(uint16_t charAddress, uint8_t palette,
       (4 * ((BG3 >> HShift) & 1)) + (8 * ((BG4 >> HShift) & 1)) +
       (16 * ((BG5 >> HShift) & 1)) + (32 * ((BG6 >> HShift) & 1)) +
       (64 * ((BG7 >> HShift) & 1)) + (128 * ((BG8 >> HShift) & 1));
+
+  // For Direct Color, palette is the lower bgr values of palette and
+  // paletteIndex would be BBGGGRRR value for a final
+  // -BBb00GGGg0RRRr0 value
+  if (isDirect) {
+    uint16_t directColor =
+        ((((paletteIndex & 0x07) << 1) | (palette & 0x01)) << 1) |
+        (((paletteIndex & 0x38) | ((palette & 0x02) << 1)) << 4) |
+        (((paletteIndex & 0xC0) | ((palette & 0x04) << 3)) << 7);
+    if (directColor != 0) {
+      return directColor | 0x8000;
+    }
+    return 0;
+  }
 
   if (paletteIndex == 0) {
     return CGRAM[0];
