@@ -507,7 +507,12 @@ void PPU::WriteVRAM(uint8_t value, bool isLow) {
 
 void PPU::SetPixel(int X, int Y) {
   if (inidisp & 0x80) {
-    pixels[(Y * width) + X] = 0x0000;
+    int realX = X * 2;
+    int realY = Y * 2;
+    pixels[(realY * width) + realX] = 0x0000;
+    pixels[((realY + 1) * width) + realX] = 0x0000;
+    pixels[(realY * width) + (realX + 1)] = 0x0000;
+    pixels[((realY + 1) * width) + (realX + 1)] = 0x0000;
     return;
   }
   // Backdrop
@@ -690,7 +695,12 @@ void PPU::SetPixel(int X, int Y) {
     mainPixel.color |= ((uint8_t)(blue * brightness) & 0x1F) << 10;
   }
 
-  pixels[(Y * width) + X] = mainPixel.color;
+  int realX = X * 2;
+  int realY = Y * 2;
+  pixels[(realY * width * 2) + realX] = mainPixel.color;
+  pixels[((realY + 1) * width * 2) + realX] = mainPixel.color;
+  pixels[(realY * width * 2) + (realX + 1)] = mainPixel.color;
+  pixels[((realY + 1) * width * 2) + (realX + 1)] = mainPixel.color;
 }
 
 void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex,
@@ -1484,8 +1494,8 @@ PPU::Pixel PPU::GetPixelByPriority(PPU::Pixel *pixels) const {
 void PPU::SetFrame(void *texturePixels, int pitch) {
   frameCompleted = false;
   uint16_t *outPixels = (uint16_t *)texturePixels;
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
+  for (int y = 0; y < height * 2; y++) {
+    for (int x = 0; x < width * 2; x++) {
       outPixels[y * (pitch / 2) + x] = pixels[y * (pitch / 2) + x] | 0x8000;
     }
   }

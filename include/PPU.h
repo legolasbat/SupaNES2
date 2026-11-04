@@ -185,7 +185,7 @@ private:
   uint16_t CGRAM[0x100];
 
   // Colors of Screen
-  uint16_t pixels[width * height];
+  uint16_t pixels[width * 2 * height * 2];
 
   void SetPixel(int X, int Y);
   void SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex, uint8_t bpp,

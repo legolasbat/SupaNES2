@@ -15,9 +15,9 @@ typedef struct {
 
 SDL_Texture *mode7Texture;
 
-const int width = 256;
-const int height = 224;
-int windowSizeMultiplier = 3;
+const int width = 256 * 2;
+const int height = 224 * 2;
+int windowSizeMultiplier = 2;
 
 char windowTitle[128];
 uint64_t deltaTime = 0;
