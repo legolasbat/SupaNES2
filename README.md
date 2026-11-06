@@ -1,4 +1,4 @@
-🎮 SNES Emulator
+🎮 SupaNES
 ================
 
 A Super Nintendo Entertainment System (SNES) emulator built from scratch in C++.
