@@ -351,7 +351,7 @@ uint8_t Cartridge::ReadRom(uint32_t address) {
         // ROM
         uint32_t romAddress =
             ((uint32_t)(bank & 0x7F) * 0x8000) + (address & 0x7FFF);
-        value = ROM[romAddress];
+        value = ROM[romAddress % ROMSize];
       }
       // Check bottom half
       else if (page < 0x80) {
@@ -377,13 +377,13 @@ uint8_t Cartridge::ReadRom(uint32_t address) {
       if (bank >= 0xC0 || (bank >= 0x40 && bank < 0x80)) {
         uint32_t romAddress =
             ((uint32_t)(bank & 0x3F)) * 0x10000 + (address & 0xFFFF);
-        value = ROM[romAddress];
+        value = ROM[romAddress % ROMSize];
       }
       // Q1 and Q3
       else if (page >= 0x80) {
         uint32_t romAddress =
             ((uint32_t)(bank & 0x3F)) * 0x10000 + (address & 0xFFFF);
-        value = ROM[romAddress];
+        value = ROM[romAddress % ROMSize];
       } else {
         assert(false && "Reading HiROM SRAM");
       }
