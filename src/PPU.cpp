@@ -720,8 +720,18 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex,
   int Voffset = Y + VScroll;
 
   // Offset per tile
-  if (mode == 2 || mode == 4 || mode == 6) {
-    // TODO: Offset per tile
+  if ((mode == 2 || mode == 4 || mode == 6) && (BGIndex == 0 || BGIndex == 1)) {
+    assert(mode == 2);
+    uint16_t BG3OffsetH;
+    uint16_t BG3OffsetV;
+    GetPerTileOffset(X, Hoffset, BG3OffsetH, BG3OffsetV);
+    uint16_t validBit = (BGIndex == 0) ? 0x2000 : 0x4000;
+    if (validBit & BG3OffsetH) {
+      Hoffset = (Hoffset & 7) | ((X & ~7) + (BG3OffsetH & ~7));
+    }
+    if (validBit & BG3OffsetV) {
+      Voffset = Y + BG3OffsetV + 1;
+    }
   }
 
   // Set Horizontal and Vertical position inside BG size (32 or 64 tiles)
@@ -840,6 +850,84 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex,
     subPixelPipeline[BGIndex].priority = BGPriority ? 1 : 0;
     subPixelPipeline[BGIndex].id = BGIndex;
   }
+}
+
+void PPU::GetPerTileOffset(int X, int Hoffset, uint16_t &h, uint16_t &v) {
+  // Sprite Size
+  uint8_t spriteSize = 8;
+  if (BGMode & (0x10 << 2)) {
+    spriteSize = 16;
+  }
+
+  // Get mode
+  uint8_t mode = BGMode & 0x07;
+
+  uint8_t XSize = (BG3TileAddress & 0x1) ? 64 : 32;
+  uint8_t YSize = (BG3TileAddress & 0x2) ? 64 : 32;
+
+  int Hoff = (Hoffset & 7) | (((X - 8) & ~7) + (BG3HScroll & ~7));
+
+  // Set Horizontal and Vertical position inside BG size (32 or 64 tiles)
+  int XScrolled = Hoff % (spriteSize * XSize);
+  int YScrolled1 = (BG3VScroll + (overscan ? 8 : 0)) % (spriteSize * YSize);
+  int YScrolled2 =
+      ((BG3VScroll + 8) + (overscan ? 8 : 0)) % (spriteSize * YSize);
+
+  // Address of tilemap in VRAM
+  // Mod 0x8000 because we use 16bits values instead of 8bits
+  uint16_t baseAddress = ((BG3TileAddress >> 2) << 10) % 0x8000;
+
+  // Get tile position
+  uint8_t TileX = XScrolled / spriteSize;
+  uint8_t TileY = YScrolled1 / spriteSize;
+
+  // Get tile offset in memory
+  uint16_t rowSize = 0xFF + 0x100 * (spriteSize / 16);
+  uint16_t offset = (((YScrolled1 & rowSize) / spriteSize) << 5) +
+                    ((XScrolled & rowSize) / spriteSize);
+  // Right map
+  if (TileX >= 32) {
+    offset += (XSize == 64) ? 0x400 : 0;
+  }
+  // Down map
+  if (TileY >= 32) {
+    if (YSize == 64) {
+      if (XSize == 64) {
+        offset += 0x800;
+      } else {
+        offset += 0x400;
+      }
+    }
+  }
+
+  // Get tile word
+  h = VRAM[baseAddress + offset];
+
+  // Get tile position
+  TileX = XScrolled / spriteSize;
+  TileY = YScrolled2 / spriteSize;
+
+  // Get tile offset in memory
+  rowSize = 0xFF + 0x100 * (spriteSize / 16);
+  offset = (((YScrolled2 & rowSize) / spriteSize) << 5) +
+           ((XScrolled & rowSize) / spriteSize);
+  // Right map
+  if (TileX >= 32) {
+    offset += (XSize == 64) ? 0x400 : 0;
+  }
+  // Down map
+  if (TileY >= 32) {
+    if (YSize == 64) {
+      if (XSize == 64) {
+        offset += 0x800;
+      } else {
+        offset += 0x400;
+      }
+    }
+  }
+
+  // Get tile word
+  v = VRAM[baseAddress + offset];
 }
 
 void PPU::SetOBJPixel(int X, int Y) {

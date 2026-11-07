@@ -193,6 +193,8 @@ private:
                   uint16_t VScroll);
   void SetOBJPixel(int X, int Y);
 
+  void GetPerTileOffset(int X, int Hoffset, uint16_t &h, uint16_t &v);
+
   void SetBG1PixelMode7(int X, int Y);
   void CalculateMode7Coor(int &X, int &Y) const;
 
