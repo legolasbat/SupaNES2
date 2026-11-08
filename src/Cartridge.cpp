@@ -385,7 +385,12 @@ uint8_t Cartridge::ReadRom(uint32_t address) {
             ((uint32_t)(bank & 0x3F)) * 0x10000 + (address & 0xFFFF);
         value = ROM[romAddress % ROMSize];
       } else {
-        assert(false && "Reading HiROM SRAM");
+        if (address >= 0x800000)
+          address -= 0x800000;
+
+        address %= 0x100000;
+        address = ((address >> 16) - 0x06) * 0x2000 + (address & 0x1FFF);
+        value = RAM[address % RAMSize];
       }
     }
   }
@@ -403,20 +408,33 @@ void Cartridge::WriteRom(uint32_t address, uint8_t value) {
 
   // Check bank range
   if (bank != 0x7E && bank != 0x7F) {
-    // Check page range
-    if (page < 0x80) {
-      // SRAM 2Q
-      if (bank >= 0x40 && bank < 0x7E) {
-        RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize] = value;
-      }
-      // SRAM 4Q
-      else if (bank >= 0xF0) {
-        RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize] = value;
+    if (layout == Layout::LoROM) {
+      // Check page range
+      if (page < 0x80) {
+        // SRAM 2Q
+        if (bank >= 0x40 && bank < 0x7E) {
+          RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize] =
+              value;
+        }
+        // SRAM 4Q
+        else if (bank >= 0xF0) {
+          RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize] =
+              value;
+        } else {
+          printf("Writting SRAM at %06x: %04x\n", address, value);
+        }
       } else {
         printf("Writting SRAM at %06x: %04x\n", address, value);
       }
-    } else {
-      printf("Writting SRAM at %06x: %04x\n", address, value);
+    } else if (layout == Layout::HiROM) {
+      if (bank < 0x40 || (bank >= 0x80 && bank < 0xC0)) {
+        if (address >= 0x800000)
+          address -= 0x800000;
+
+        address %= 0x100000;
+        address = ((address >> 16) - 0x06) * 0x2000 + (address & 0x1FFF);
+        RAM[address % RAMSize] = value;
+      }
     }
   }
 }

@@ -106,41 +106,7 @@ uint8_t SupaNES::ReadMemoryQ1(uint32_t address) {
   } else if (memoryPage == 0x40) {
     // Reading Joypad register
     if ((address & 0xFF) == 0x16) {
-      if (joypad1Latch >= 16) {
-        return 1;
-      }
-      if (latchController) {
-        return cpu->joypad1High >> 7;
-      }
-
-      switch (joypad1Latch++) {
-      case 0:
-        return (cpu->joypad1High >> 7) & 1;
-      case 1:
-        return (cpu->joypad1High >> 6) & 1;
-      case 2:
-        return (cpu->joypad1High >> 5) & 1;
-      case 3:
-        return (cpu->joypad1High >> 4) & 1;
-      case 4:
-        return (cpu->joypad1High >> 3) & 1;
-      case 5:
-        return (cpu->joypad1High >> 2) & 1;
-      case 6:
-        return (cpu->joypad1High >> 1) & 1;
-      case 7:
-        return (cpu->joypad1High >> 0) & 1;
-      case 8:
-        return (cpu->joypad1Low >> 7) & 1;
-      case 9:
-        return (cpu->joypad1Low >> 6) & 1;
-      case 10:
-        return (cpu->joypad1Low >> 5) & 1;
-      case 11:
-        return (cpu->joypad1Low >> 4) & 1;
-      default:
-        return 0;
-      }
+      return ReadJoypad();
     } else if ((address & 0xFF) == 0x17) {
       if (joypad2Latch >= 16) {
         return 1;
@@ -172,6 +138,8 @@ uint8_t SupaNES::ReadMemoryQ1(uint32_t address) {
     }
   } else if (memoryPage == 0x42 || memoryPage == 0x43) {
     value = cpu->ReadCPU(address);
+  } else if (memoryPage >= 0x60 && memoryPage < 0x80) {
+    value = cart->ReadRom(address);
   } else if (memoryPage >= 0x80) {
     value = cart->ReadRom(address);
   }
@@ -197,7 +165,7 @@ uint8_t SupaNES::ReadMemoryQ3(uint32_t address) {
   if (memoryPage < 0x20) {
     value = WRAM[address % 0x2000];
   } else if (memoryPage == 0x21) {
-    // TODO: Make PPU, APU and WRAM
+    // PPU, APU and WRAM
     if ((address & 0xFF) <= 0x3F) {
       return ppu->ReadPPU(address);
     } else if ((address & 0xFF) == 0x40) {
@@ -217,10 +185,44 @@ uint8_t SupaNES::ReadMemoryQ3(uint32_t address) {
     assert(false && "Reading Q1 Page 21");
   } else if (memoryPage == 0x40) {
     // Reading Joypad register
-    // printf("Read %06X\n", address);
+    if ((address & 0xFF) == 0x16) {
+      return ReadJoypad();
+    } else if ((address & 0xFF) == 0x17) {
+      if (joypad2Latch >= 16) {
+        return 1;
+      }
+      if (latchController) {
+        return 0;
+        // return cpu->joypad2High >> 7;
+      }
+
+      switch (joypad2Latch++) {
+      // case  0: return (cpu->joypad2High >> 7) & 1;
+      // case  1: return (cpu->joypad2High >> 6) & 1;
+      // case  2: return (cpu->joypad2High >> 5) & 1;
+      // case  3: return (cpu->joypad2High >> 4) & 1;
+      // case  4: return (cpu->joypad2High >> 3) & 1;
+      // case  5: return (cpu->joypad2High >> 2) & 1;
+      // case  6: return (cpu->joypad2High >> 1) & 1;
+      // case  7: return (cpu->joypad2High >> 0) & 1;
+      // case  8: return (cpu->joypad2Low >> 7) & 1;
+      // case  9: return (cpu->joypad2Low >> 6) & 1;
+      // case 10: return (cpu->joypad2Low >> 5) & 1;
+      // case 11: return (cpu->joypad2Low >> 4) & 1;
+      default:
+        return 0;
+      }
+    } else {
+      // Open Bus
+      value = 0;
+    }
+
+    printf("Read %06X\n", address);
     // assert(false && "Reading Q1 Page 40");
   } else if (memoryPage == 0x42 || memoryPage == 0x43) {
     value = cpu->ReadCPU(address);
+  } else if (memoryPage >= 0x60 && memoryPage < 0x80) {
+    value = cart->ReadRom(address);
   } else if (memoryPage >= 0x80) {
     value = cart->ReadRom(address);
   }
@@ -286,6 +288,8 @@ void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
   // CPU
   else if (memoryPage == 0x42 || memoryPage == 0x43) {
     cpu->WriteCPU(address, value);
+  } else if (memoryPage >= 0x60 && memoryPage < 0x80) {
+    cart->WriteRom(address, value);
   } else if (memoryPage >= 0x80) {
     printf("Write %06X\n", address);
     assert(false && "Writting Q1 Cart");
@@ -342,11 +346,22 @@ void SupaNES::WriteMemoryQ3(uint32_t address, uint8_t value) {
     }
   } else if (memoryPage == 0x40) {
     // Writting Joypad register
-    printf("Write Page 40: %06X\n", address);
+    if ((address & 0xFF) == 0x16) { // JOYSER0
+      if (latchController != (value & 0x1)) {
+        latchController = (value & 0x1);
+        joypad1Latch = 0;
+        joypad2Latch = 0;
+      }
+    } else {
+      printf("Write Page 40: %06X Value %02x\n", address, value);
+      assert(false);
+    }
   }
   // CPU
   else if (memoryPage == 0x42 || memoryPage == 0x43) {
     cpu->WriteCPU(address, value);
+  } else if (memoryPage >= 0x60 && memoryPage < 0x80) {
+    cart->WriteRom(address, value);
   } else if (memoryPage >= 0x80) {
     printf("Write %06X\n", address);
     // assert(false && "Writting Q1 Cart");
@@ -357,6 +372,44 @@ void SupaNES::WriteMemoryQ4(uint32_t address, uint8_t value) {
   // SRAM
   if (memoryBank >= 0xF0 && memoryPage < 0x80) {
     cart->WriteRom(address, value);
+  }
+}
+
+uint8_t SupaNES::ReadJoypad() {
+  if (joypad1Latch >= 16) {
+    return 1;
+  }
+  if (latchController) {
+    return cpu->joypad1High >> 7;
+  }
+
+  switch (joypad1Latch++) {
+  case 0:
+    return (cpu->joypad1High >> 7) & 1;
+  case 1:
+    return (cpu->joypad1High >> 6) & 1;
+  case 2:
+    return (cpu->joypad1High >> 5) & 1;
+  case 3:
+    return (cpu->joypad1High >> 4) & 1;
+  case 4:
+    return (cpu->joypad1High >> 3) & 1;
+  case 5:
+    return (cpu->joypad1High >> 2) & 1;
+  case 6:
+    return (cpu->joypad1High >> 1) & 1;
+  case 7:
+    return (cpu->joypad1High >> 0) & 1;
+  case 8:
+    return (cpu->joypad1Low >> 7) & 1;
+  case 9:
+    return (cpu->joypad1Low >> 6) & 1;
+  case 10:
+    return (cpu->joypad1Low >> 5) & 1;
+  case 11:
+    return (cpu->joypad1Low >> 4) & 1;
+  default:
+    return 0;
   }
 }
 

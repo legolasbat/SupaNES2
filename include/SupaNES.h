@@ -45,4 +45,6 @@ private:
   void WriteMemoryQ2(uint32_t address, uint8_t value);
   void WriteMemoryQ3(uint32_t address, uint8_t value);
   void WriteMemoryQ4(uint32_t address, uint8_t value);
+
+  uint8_t ReadJoypad();
 };
