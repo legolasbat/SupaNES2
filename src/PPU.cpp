@@ -103,7 +103,13 @@ void PPU::Clock() {
   // Draw Pixel
   if (VCounter <= height && VCounter > 0) {
     if (HCounter >= 0 && HCounter < width) {
-      SetPixel(HCounter, VCounter - 1);
+      uint8_t mode = BGMode & 0x07;
+      if (mode == 5) {
+        SetPixel(HCounter * 2, VCounter - 1);
+        SetPixel(HCounter * 2 + 1, VCounter - 1);
+      } else {
+        SetPixel(HCounter, VCounter - 1);
+      }
     }
   }
   memory->cpu->IRQ();
@@ -510,8 +516,8 @@ void PPU::SetPixel(int X, int Y) {
     int realX = X * 2;
     int realY = Y * 2;
     pixels[(realY * width * 2) + realX] = 0x0000;
-    pixels[((realY + 1) * width * 2) + realX] = 0x0000;
     pixels[(realY * width * 2) + (realX + 1)] = 0x0000;
+    pixels[((realY + 1) * width * 2) + realX] = 0x0000;
     pixels[((realY + 1) * width * 2) + (realX + 1)] = 0x0000;
     return;
   }
@@ -695,12 +701,18 @@ void PPU::SetPixel(int X, int Y) {
     mainPixel.color |= ((uint8_t)(blue * brightness) & 0x1F) << 10;
   }
 
-  int realX = X * 2;
-  int realY = Y * 2;
-  pixels[(realY * width * 2) + realX] = mainPixel.color;
-  pixels[((realY + 1) * width * 2) + realX] = mainPixel.color;
-  pixels[(realY * width * 2) + (realX + 1)] = mainPixel.color;
-  pixels[((realY + 1) * width * 2) + (realX + 1)] = mainPixel.color;
+  uint8_t mode = BGMode & 0x07;
+  if (mode == 5) {
+    pixels[(Y * 2 * width * 2) + X] = mainPixel.color;
+    pixels[((Y * 2 + 1) * width * 2) + X] = mainPixel.color;
+  } else {
+    int realX = X * 2;
+    int realY = Y * 2;
+    pixels[(realY * width * 2) + realX] = mainPixel.color;
+    pixels[(realY * width * 2) + (realX + 1)] = mainPixel.color;
+    pixels[((realY + 1) * width * 2) + realX] = mainPixel.color;
+    pixels[((realY + 1) * width * 2) + (realX + 1)] = mainPixel.color;
+  }
 }
 
 void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex,
@@ -721,7 +733,7 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex,
 
   // Offset per tile
   if ((mode == 2 || mode == 4 || mode == 6) && (BGIndex == 0 || BGIndex == 1)) {
-    assert(mode == 2);
+    assert(mode == 2 && "Offset per tile");
     uint16_t BG3OffsetH;
     uint16_t BG3OffsetV;
     GetPerTileOffset(X, Hoffset, BG3OffsetH, BG3OffsetV);
@@ -735,7 +747,7 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex,
   }
 
   // Set Horizontal and Vertical position inside BG size (32 or 64 tiles)
-  int XScrolled = Hoffset % (spriteSize * XSize);
+  int XScrolled = Hoffset % (((mode == 5) ? 16 : spriteSize) * XSize);
   int YScrolled = (Voffset + (overscan ? 8 : 0)) % (spriteSize * YSize);
 
   // Address of tilemap in VRAM
@@ -743,13 +755,15 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex,
   uint16_t baseAddress = ((BGAddress >> 2) << 10) % 0x8000;
 
   // Get tile position
-  uint8_t TileX = XScrolled / spriteSize;
+  uint8_t TileX = XScrolled / ((mode == 5) ? 16 : spriteSize);
   uint8_t TileY = YScrolled / spriteSize;
 
   // Get tile offset in memory
   uint16_t rowSize = 0xFF + 0x100 * (spriteSize / 16);
+  if (mode == 5)
+    rowSize = 0x1FF;
   uint16_t offset = (((YScrolled & rowSize) / spriteSize) << 5) +
-                    ((XScrolled & rowSize) / spriteSize);
+                    ((XScrolled & rowSize) / ((mode == 5) ? 16 : spriteSize));
   // Right map
   if (TileX >= 32) {
     offset += (XSize == 64) ? 0x400 : 0;
@@ -782,14 +796,29 @@ void PPU::SetBGPixel(int X, int Y, uint8_t BGAddress, uint8_t BGIndex,
     if (YScrolled % 16 >= 8) {
       tileID += 16;
     }
+  } else if (mode == 5) {
+    if (BGFlipX) {
+      if (XScrolled % 16 < 8) {
+        tileID += 1;
+      }
+    } else if (XScrolled % 16 >= 8) {
+      tileID += 1;
+    }
   }
 
   // Pixel of sprite
-  uint8_t i = YScrolled % 8;
-  uint8_t j = XScrolled % 8;
-  uint8_t VShift = i + (-2 * i + 7) * BGFlipY;
-  uint8_t HShift = (7 - j) + (2 * j - 7) * BGFlipX;
-
+  uint8_t VShift, HShift;
+  if (mode == 8) {
+    uint8_t i = YScrolled % 8;
+    uint8_t j = XScrolled % 16;
+    VShift = i + (-2 * i + 7) * BGFlipY;
+    HShift = (15 - j) + (2 * j - 15) * BGFlipX;
+  } else {
+    uint8_t i = YScrolled % 8;
+    uint8_t j = XScrolled % 8;
+    VShift = i + (-2 * i + 7) * BGFlipY;
+    HShift = (7 - j) + (2 * j - 7) * BGFlipX;
+  }
   uint16_t tileOffset = 0;
   if (BGIndex == 0) {
     tileOffset = (BGAddress1_2 & 0x0F) << 12;
@@ -931,10 +960,16 @@ void PPU::GetPerTileOffset(int X, int Hoffset, uint16_t &h, uint16_t &v) {
 }
 
 void PPU::SetOBJPixel(int X, int Y) {
+  uint8_t mode = BGMode & 0x07;
+  if (mode == 5)
+    X /= 2;
+
+  // If OBJ has been draw return
   if (!(X >= firstObj[0] && Y >= firstObj[1] && X < lastObj[0] &&
         Y < lastObj[1])) {
     return;
   }
+
   PPU::Pixel objPixel;
 
   int objIndex = 127;
@@ -1228,6 +1263,12 @@ uint8_t PPU::GetColorBPPForBG(uint8_t BGIndex) const {
       return 8;
     }
     return 4;
+  }
+  if (mode == 5) {
+    if (BGIndex == 0) {
+      return 4;
+    }
+    return 2;
   }
   if (mode == 7) {
     if (BGIndex == 1) {
@@ -1537,7 +1578,8 @@ PPU::Pixel PPU::GetPixelByPriority(PPU::Pixel *pixels) const {
     break;
   }
 
-  case 3: {
+  case 3:
+  case 5: {
     // Sprites with priority 3
     if ((pixels[4].color & 0x8000) && pixels[4].priority == 3)
       return pixels[4];
