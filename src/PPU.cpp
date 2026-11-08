@@ -89,6 +89,13 @@ void PPU::Clock() {
     if (VCounter == 225) {
       memory->cpu->NMI();
       frameCompleted = true;
+      if ((inidisp & 0x80) == 0) {
+        if (OAMAddress & 0x100) {
+          InternalOAMAddress = 0x200 | (OAMAddress & 0xFF);
+        } else {
+          InternalOAMAddress = OAMAddress & 0xFF;
+        }
+      }
     } else if (VCounter == 262) {
       frameCounter++;
       if (frameCounter == 60) {
@@ -230,20 +237,21 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
   } else if (reg == 0x01) { // OBSEL
     OBSEL = value;
   } else if (reg == 0x02) { // OAMADDL
+    if (OAMAddress & 0x100) {
+      InternalOAMAddress = 0x200 | (OAMAddress & 0xFF);
+    } else {
+      InternalOAMAddress = OAMAddress & 0xFF;
+    }
     OAMAddress &= 0xFF00;
     OAMAddress |= value;
-    WrittenInternalOAMAddress = true;
   } else if (reg == 0x03) { // OAMADDH
+    if (OAMAddress & 0x100) {
+      InternalOAMAddress = 0x200 | (OAMAddress & 0xFF);
+    } else {
+      InternalOAMAddress = OAMAddress & 0xFF;
+    }
     OAMAddress &= 0x00FF;
     OAMAddress |= value << 8;
-    if (WrittenInternalOAMAddress) {
-      if (OAMAddress & 0x100) {
-        InternalOAMAddress = 0x200 | (OAMAddress & 0xFF);
-      } else {
-        InternalOAMAddress = OAMAddress & 0xFF;
-      }
-      WrittenInternalOAMAddress = false;
-    }
   } else if (reg == 0x04) { // OAMDATA
     if (InternalOAMAddress % 2 == 0) {
       OAM_Lsb = value;
