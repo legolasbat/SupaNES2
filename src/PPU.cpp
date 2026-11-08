@@ -509,10 +509,10 @@ void PPU::SetPixel(int X, int Y) {
   if (inidisp & 0x80) {
     int realX = X * 2;
     int realY = Y * 2;
-    pixels[(realY * width) + realX] = 0x0000;
-    pixels[((realY + 1) * width) + realX] = 0x0000;
-    pixels[(realY * width) + (realX + 1)] = 0x0000;
-    pixels[((realY + 1) * width) + (realX + 1)] = 0x0000;
+    pixels[(realY * width * 2) + realX] = 0x0000;
+    pixels[((realY + 1) * width * 2) + realX] = 0x0000;
+    pixels[(realY * width * 2) + (realX + 1)] = 0x0000;
+    pixels[((realY + 1) * width * 2) + (realX + 1)] = 0x0000;
     return;
   }
   // Backdrop
