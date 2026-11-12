@@ -540,7 +540,7 @@ uint8_t DSP::Read(uint8_t addr) {
 }
 
 void DSP::Write(uint8_t addr, uint8_t value) {
-  // Writting channels
+  // Writing channels
   if ((addr >> 4) < 0x08 && (addr & 0x0F) < 0x0A) {
     uint8_t channel = addr >> 4;
     switch (addr & 0x0F) {
@@ -629,7 +629,7 @@ void DSP::Write(uint8_t addr, uint8_t value) {
     return;
   }
 
-  printf("Writting address %02x with value %02x\n", addr, value);
+  printf("Writing address %02x with value %02x\n", addr, value);
   fflush(stdout);
-  assert(false && "Writting address not handled");
+  assert(false && "Writing address not handled");
 }

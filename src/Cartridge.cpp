@@ -421,10 +421,10 @@ void Cartridge::WriteRom(uint32_t address, uint8_t value) {
           RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize] =
               value;
         } else {
-          printf("Writting SRAM at %06x: %04x\n", address, value);
+          printf("Writing SRAM at %06x: %04x\n", address, value);
         }
       } else {
-        printf("Writting SRAM at %06x: %04x\n", address, value);
+        printf("Writing SRAM at %06x: %04x\n", address, value);
       }
     } else if (layout == Layout::HiROM) {
       if (bank < 0x40 || (bank >= 0x80 && bank < 0xC0)) {

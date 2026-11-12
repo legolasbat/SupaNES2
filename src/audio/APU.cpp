@@ -462,7 +462,7 @@ void APU::WriteAPUMemory(uint16_t address, uint8_t value) {
     if (address <= 0xF3) {
       registers0[address - 0xF0] = value;
       if (address == 0xF1) {
-        // Writting always reset
+        // Writing always reset
         timer0Ticks = 0;
         timer1Ticks = 0;
         timer2Ticks = 0;
@@ -489,7 +489,7 @@ void APU::WriteAPUMemory(uint16_t address, uint8_t value) {
       if (address <= 0xFC)
         registers1[address - 0xF8] = value;
       else
-        printf("Writting APU: FD-FF\n");
+        printf("Writing APU: FD-FF\n");
     }
   }
   // Page 1
@@ -552,7 +552,7 @@ void APU::WriteCPUPorts(uint8_t address, uint8_t value) {
 
   CPUPorts[index] = value;
 
-  // printf("Writting APU Port %02x: %02x\n", address, value);
+  // printf("Writing APU Port %02x: %02x\n", address, value);
 }
 
 void APU::SetFlag(uint8_t flag, bool state) {

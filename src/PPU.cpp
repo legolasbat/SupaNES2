@@ -454,16 +454,16 @@ void PPU::WritePPU(uint32_t address, uint8_t value) {
       fixedColor |= (value & 0x1F) << 10;
     }
   } else if (reg == 0x33) {
-    printf("\033[0;32mWritting SETINI: %02x\033[0m\n", value);
+    printf("\033[0;32mWriting SETINI: %02x\033[0m\n", value);
     overscan = value & 0x04;
     assert((value & ~0x04) == 0);
   } else if (reg == 0x34) {
-    printf("\033[0;32mWritting MPYL (read only): %02x\033[0m\n", value);
+    printf("\033[0;32mWriting MPYL (read only): %02x\033[0m\n", value);
   } else if (reg >= 0x35 && reg <= 0x3F) {
     // Read only
   } else {
     printf("%06x: %02x\n", address, value);
-    assert(false && "Writting PPU");
+    assert(false && "Writing PPU");
   }
 }
 

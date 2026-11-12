@@ -704,8 +704,8 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
     } else if (reg == 0x0D) { // MEMSEL
       fastROM = value & 0x1;
     } else {
-      printf("\033[0;36mWritting CPU: %06x = %02x\033[0m\n", address, value);
-      // TODO: CPU Writting
+      printf("\033[0;36mWriting CPU: %06x = %02x\033[0m\n", address, value);
+      // TODO: CPU Writing
     }
   } else if (page == 0x43) {
     uint8_t dmaChannel = (reg & 0xF0) >> 4;
@@ -746,8 +746,8 @@ void CPU::WriteCPU(uint32_t address, uint8_t value) {
         Dma[dmaChannel].lineCounter = value;
       }
     } else {
-      printf("\033[0;36mWritting CPU: %06x = %02x\033[0m\n", address, value);
-      // TODO: CPU Writting
+      printf("\033[0;36mWriting CPU: %06x = %02x\033[0m\n", address, value);
+      // TODO: CPU Writing
     }
   }
 }

@@ -243,8 +243,7 @@ void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
   if (memoryPage < 0x20) {
     WRAM[address % 0x2000] = value;
   } else if (memoryPage == 0x21) {
-    // TODO: Make PPU, APU and WRAM
-    //  PPU
+    // PPU
     if ((address & 0xFF) <= 0x3F) {
       ppu->WritePPU(address, value);
     }
@@ -273,7 +272,7 @@ void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
       printf("Write Page 21: %06X\n", address);
     }
   } else if (memoryPage == 0x40) {
-    // Writting Joypad register
+    // Writing Joypad register
     if ((address & 0xFF) == 0x16) { // JOYSER0
       if (latchController != (value & 0x1)) {
         latchController = (value & 0x1);
@@ -292,7 +291,7 @@ void SupaNES::WriteMemoryQ1(uint32_t address, uint8_t value) {
     cart->WriteRom(address, value);
   } else if (memoryPage >= 0x80) {
     printf("Write %06X\n", address);
-    assert(false && "Writting Q1 Cart");
+    assert(false && "Writing Q1 Cart");
   }
 }
 
@@ -305,7 +304,7 @@ void SupaNES::WriteMemoryQ2(uint32_t address, uint8_t value) {
       cart->WriteRom(address, value);
     } else {
       printf("%06x\n", address);
-      assert(false && "Writting ROM Q2");
+      assert(false && "Writing ROM Q2");
     }
   }
 }
@@ -315,8 +314,7 @@ void SupaNES::WriteMemoryQ3(uint32_t address, uint8_t value) {
   if (memoryPage < 0x20) {
     WRAM[address % 0x2000] = value;
   } else if (memoryPage == 0x21) {
-    // TODO: Make PPU, APU and WRAM
-    //  PPU
+    // PPU
     if ((address & 0xFF) <= 0x3F) {
       ppu->WritePPU(address, value);
     }
@@ -345,7 +343,7 @@ void SupaNES::WriteMemoryQ3(uint32_t address, uint8_t value) {
       printf("Write Page 21: %06X\n", address);
     }
   } else if (memoryPage == 0x40) {
-    // Writting Joypad register
+    // Writing Joypad register
     if ((address & 0xFF) == 0x16) { // JOYSER0
       if (latchController != (value & 0x1)) {
         latchController = (value & 0x1);
@@ -364,7 +362,7 @@ void SupaNES::WriteMemoryQ3(uint32_t address, uint8_t value) {
     cart->WriteRom(address, value);
   } else if (memoryPage >= 0x80) {
     printf("Write %06X\n", address);
-    // assert(false && "Writting Q1 Cart");
+    // assert(false && "Writing Q1 Cart");
   }
 }
 
