@@ -30,7 +30,7 @@ Audio: SDL3
 ## 📋 To-Do / Roadmap
 
 ### Graphics
-- [ ] Per-tile offset
+- [x] Per-tile offset
 
 ### Audio
 - [ ] Echo
@@ -41,5 +41,5 @@ Audio: SDL3
 
 ### Quality of Life
 - [ ] ROM browser
-- [ ] Save states
+- [x] Saves
 - [ ] Debugging tools
