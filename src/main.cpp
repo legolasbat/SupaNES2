@@ -141,6 +141,7 @@ int main(int argc, char *argv[]) {
     SDL_DestroyTexture(as->texture);
     SDL_DestroyRenderer(as->renderer);
     SDL_DestroyWindow(as->window);
+    delete as->supaNES;
     SDL_free(as);
   }
 

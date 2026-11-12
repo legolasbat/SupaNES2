@@ -16,6 +16,7 @@ public:
   bool RomLoaded;
 
   SupaNES();
+  ~SupaNES();
 
   int Clock();
 

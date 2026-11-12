@@ -2,7 +2,8 @@
 #include "SupaNES.h"
 
 #include <cassert>
-#include <stdio.h>
+#include <cstdlib>
+#include <filesystem>
 #include <stdlib.h>
 
 Cartridge::Cartridge(SupaNES *supaNes) {
@@ -218,16 +219,32 @@ bool Cartridge::LoadROM(const char *filepath, uint16_t *excVectors) {
     printf("Vector %d: 0x%04x\n", i, excVectors[i]);
   }
 
+  if (ROM != nullptr)
+    free(ROM);
   ROM = (uint8_t *)malloc(sizeof(uint8_t) * romSizeByte);
-  fseek(file, offset, SEEK_SET);
-  fread(ROM, sizeof(uint8_t), romSizeByte, file);
   ROMSize = romSizeByte;
+  fseek(file, offset, SEEK_SET);
+  fread(ROM, sizeof(uint8_t), ROMSize, file);
 
   if (ramSizeByte > 0) {
+    if (RAM != nullptr)
+      free(RAM);
     RAM = (uint8_t *)malloc(sizeof(uint8_t) * ramSizeByte);
     RAMSize = ramSizeByte;
-    for (int i = 0; i < RAMSize; i++) {
-      RAM[i] = 0xFF;
+    bool isCreated;
+    bool hasSRMFile = GetRAMFile(filepath, isCreated);
+    if (!hasSRMFile) {
+      fclose(file);
+      return false;
+    }
+    if (isCreated) {
+      for (int i = 0; i < RAMSize; i++) {
+        RAM[i] = 0xFF;
+      }
+      fwrite(RAM, sizeof(uint8_t), RAMSize, ramFile);
+      fflush(ramFile);
+    } else {
+      fread(RAM, sizeof(uint8_t), RAMSize, ramFile);
     }
   }
 
@@ -336,6 +353,26 @@ bool Cartridge::CheckRegion(const uint8_t *region) {
   return true;
 }
 
+bool Cartridge::GetRAMFile(const char *filepath, bool &isCreated) {
+  std::filesystem::path srmFile(filepath);
+  srmFile.replace_extension(".srm");
+
+  ramFile = fopen(srmFile.c_str(), "r+b");
+  if (ramFile) {
+    isCreated = false;
+    return true;
+  }
+
+  ramFile = fopen(srmFile.c_str(), "w+b");
+  if (ramFile) {
+    isCreated = true;
+    return true;
+  }
+  printf("Couldn't create .srm file.\n");
+  isCreated = false;
+  return false;
+}
+
 uint8_t Cartridge::ReadRom(uint32_t address) {
   uint8_t bank = (address & 0x00FF0000) >> 16;
   uint8_t page = (address & 0x0000FF00) >> 8;
@@ -413,13 +450,19 @@ void Cartridge::WriteRom(uint32_t address, uint8_t value) {
       if (page < 0x80) {
         // SRAM 2Q
         if (bank >= 0x40 && bank < 0x7E) {
-          RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize] =
-              value;
+          uint32_t ramAddress =
+              (((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize;
+          RAM[ramAddress] = value;
+          fseek(ramFile, ramAddress, SEEK_SET);
+          fwrite(&value, sizeof(uint8_t), 1, ramFile);
         }
         // SRAM 4Q
         else if (bank >= 0xF0) {
-          RAM[(((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize] =
-              value;
+          uint32_t ramAddress =
+              (((address & 0xF0000) / 2) + (address & 0xFFFF)) % RAMSize;
+          RAM[ramAddress] = value;
+          fseek(ramFile, ramAddress, SEEK_SET);
+          fwrite(&value, sizeof(uint8_t), 1, ramFile);
         } else {
           printf("Writing SRAM at %06x: %04x\n", address, value);
         }
@@ -433,13 +476,19 @@ void Cartridge::WriteRom(uint32_t address, uint8_t value) {
 
         address %= 0x100000;
         address = ((address >> 16) - 0x06) * 0x2000 + (address & 0x1FFF);
-        RAM[address % RAMSize] = value;
+        address %= RAMSize;
+        RAM[address] = value;
+        fseek(ramFile, address, SEEK_SET);
+        fwrite(&value, sizeof(uint8_t), 1, ramFile);
       }
     }
   }
 }
 
 Cartridge::~Cartridge() {
+  if (ramFile) {
+    fclose(ramFile);
+  }
   if (ROMSize > 0) {
     free(ROM);
     ROM = nullptr;
