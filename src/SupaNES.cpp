@@ -28,10 +28,6 @@ SupaNES::~SupaNES() {
   delete cpu;
 }
 
-int64_t scheduler_CPU_SPC700 = 0;
-const uint32_t CPU_MASTER_CLOCK = 21477272;
-const uint32_t SPC700_MASTER_CLOCK = 24576000;
-
 int SupaNES::Clock() {
   int cycles = 0;
   if (scheduler_CPU_SPC700 >= 0) {
@@ -420,15 +416,22 @@ uint8_t SupaNES::ReadJoypad() {
 
 bool SupaNES::InsertROM(const char *filepath) {
   if (RomLoaded) {
-    cpu->~CPU();
-    cpu = new CPU(this);
-    ppu->~PPU();
-    ppu = new PPU(this);
-    apu->~APU();
-    apu = new APU(this);
-    cart->~Cartridge();
-    cart = new Cartridge(this);
+    cpu->Reset();
+    ppu->Reset();
+    apu->Reset();
+    cart->Reset();
+
     RomLoaded = false;
+
+    memoryBank = 0;
+    memoryPage = 0;
+
+    WRAMAddress = 0;
+    for (int i = 0; i < 0x20000; i++) {
+      WRAM[i] = rand() & 0xFF;
+    }
+
+    scheduler_CPU_SPC700 = 0;
   }
 
   uint16_t excVectors[16];

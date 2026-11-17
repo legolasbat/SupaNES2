@@ -26,6 +26,10 @@ public:
   bool InsertROM(const char *filepath);
 
 private:
+  int64_t scheduler_CPU_SPC700 = 0;
+  const uint32_t CPU_MASTER_CLOCK = 21477272;
+  const uint32_t SPC700_MASTER_CLOCK = 24576000;
+
   uint8_t WRAM[0x20000];
 
   uint32_t WRAMAddress;

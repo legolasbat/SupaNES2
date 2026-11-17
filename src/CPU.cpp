@@ -17,29 +17,7 @@ constexpr uint8_t CFlag = 0x01; // Carry flag
 CPU::CPU(SupaNES *supaNes) {
   memory = supaNes;
 
-  emulationMode = true;
-
-  regs.PC = 0x8000;
-
-  regs.A.HL = 0;
-  regs.X.HL = 0;
-  regs.Y.HL = 0;
-
-  regs.SP = 0x01FF;
-
-  regs.DP = 0;
-
-  regs.PB = 0;
-
-  regs.DB = 0;
-
-  regs.P = 0x34;
-
-  nmi = 2;
-  NMITIMEN = 0;
-
-  joypad1Low = 0;
-  joypad1High = 0;
+  Reset();
 
   opTable[0x00] = {"brk", &CPU::BRK, AddMode::Implied, 7};
   opTable[0x01] = {"ora", &CPU::ORA, AddMode::DirectPageIndirectX, 6};
@@ -320,6 +298,32 @@ CPU::CPU(SupaNES *supaNes) {
   opTable[0xFD] = {"sbc", &CPU::SBC, AddMode::AbsoluteIndexedX, 4};
   opTable[0xFE] = {"inc", &CPU::INC, AddMode::AbsoluteIndexedX, 7};
   opTable[0xFF] = {"sbc", &CPU::SBC, AddMode::AbsoluteLongIndexedX, 5};
+}
+
+void CPU::Reset() {
+  emulationMode = true;
+
+  regs.PC = 0x8000;
+
+  regs.A.HL = 0;
+  regs.X.HL = 0;
+  regs.Y.HL = 0;
+
+  regs.SP = 0x01FF;
+
+  regs.DP = 0;
+
+  regs.PB = 0;
+
+  regs.DB = 0;
+
+  regs.P = 0x34;
+
+  nmi = 2;
+  NMITIMEN = 0;
+
+  joypad1Low = 0;
+  joypad1High = 0;
 }
 
 int CPU::Clock() {

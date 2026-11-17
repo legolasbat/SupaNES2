@@ -19,6 +19,8 @@ public:
 
   APU(SupaNES *supaNes);
 
+  void Reset();
+
   int Clock();
 
   void Debug();

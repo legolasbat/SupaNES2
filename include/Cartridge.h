@@ -22,6 +22,8 @@ public:
   Cartridge(SupaNES *supaNes);
   ~Cartridge();
 
+  void Reset();
+
   bool LoadROM(const char *filepath, uint16_t *excVectors);
 
   uint8_t ReadRom(uint32_t address);

@@ -17,6 +17,22 @@ Cartridge::Cartridge(SupaNES *supaNes) {
   RAMSize = 0;
 }
 
+void Cartridge::Reset() {
+  if (ramFile) {
+    fclose(ramFile);
+  }
+  if (ROMSize > 0) {
+    free(ROM);
+    ROM = nullptr;
+    ROMSize = 0;
+  }
+  if (RAMSize > 0) {
+    free(RAM);
+    ROM = nullptr;
+    RAMSize = 0;
+  }
+}
+
 bool Cartridge::LoadROM(const char *filepath, uint16_t *excVectors) {
   FILE *file = fopen(filepath, "rb");
 
@@ -219,16 +235,12 @@ bool Cartridge::LoadROM(const char *filepath, uint16_t *excVectors) {
     printf("Vector %d: 0x%04x\n", i, excVectors[i]);
   }
 
-  if (ROM != nullptr)
-    free(ROM);
   ROM = (uint8_t *)malloc(sizeof(uint8_t) * romSizeByte);
   ROMSize = romSizeByte;
   fseek(file, offset, SEEK_SET);
   fread(ROM, sizeof(uint8_t), ROMSize, file);
 
   if (ramSizeByte > 0) {
-    if (RAM != nullptr)
-      free(RAM);
     RAM = (uint8_t *)malloc(sizeof(uint8_t) * ramSizeByte);
     RAMSize = ramSizeByte;
     bool isCreated;

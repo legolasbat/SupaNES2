@@ -8,6 +8,10 @@
 PPU::PPU(SupaNES *supaNes) {
   memory = supaNes;
 
+  Reset();
+}
+
+void PPU::Reset() {
   HCounter = 46;
   VCounter = 0;
   frameCounter = 0;

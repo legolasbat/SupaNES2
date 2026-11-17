@@ -44,6 +44,8 @@ public:
 
   int Clock();
 
+  void Reset();
+
   void SetExcVectors(uint16_t vectors[16]);
 
   void NMI();

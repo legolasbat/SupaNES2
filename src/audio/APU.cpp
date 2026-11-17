@@ -18,30 +18,7 @@ APU::APU(SupaNES *supaNes) {
 
   dsp.SetMemory(this);
 
-  PC = 0xFFC0; // Point to boot ROM
-
-  A = 0;
-  X = 0;
-  Y = 0;
-
-  SP = 0xEF;
-  PSW = ZFlag;
-
-  APUPorts[0] = 0;
-  APUPorts[1] = 0;
-  APUPorts[2] = 0;
-  APUPorts[3] = 0;
-
-  CPUPorts[0] = 0;
-  CPUPorts[1] = 0;
-  CPUPorts[2] = 0;
-  CPUPorts[3] = 0;
-
-  registers0[1] = 0xB0;
-
-  for (int i = 0; i < 64; i++) {
-    RAM[PC - 0x200 + i] = bootROM[i];
-  }
+  Reset();
 
   opTable[0x00] = {"NOP", &APU::NOP, AddMode::Implied, 2};
   opTable[0x01] = {"CALL", &APU::TCALL, AddMode::Implied, 8};
@@ -314,6 +291,33 @@ APU::APU(SupaNES *supaNes) {
   opTable[0xFD] = {"TAY", &APU::TAY, AddMode::Implied, 2};
   opTable[0xFE] = {"DBNZ", &APU::DBNZ, AddMode::Implied, 4};
   opTable[0xFF] = {"", &APU::XXX, AddMode::Implied, 2};
+}
+
+void APU::Reset() {
+  PC = 0xFFC0; // Point to boot ROM
+
+  A = 0;
+  X = 0;
+  Y = 0;
+
+  SP = 0xEF;
+  PSW = ZFlag;
+
+  APUPorts[0] = 0;
+  APUPorts[1] = 0;
+  APUPorts[2] = 0;
+  APUPorts[3] = 0;
+
+  CPUPorts[0] = 0;
+  CPUPorts[1] = 0;
+  CPUPorts[2] = 0;
+  CPUPorts[3] = 0;
+
+  registers0[1] = 0xB0;
+
+  for (int i = 0; i < 64; i++) {
+    RAM[PC - 0x200 + i] = bootROM[i];
+  }
 }
 
 int APU::Clock() {

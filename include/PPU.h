@@ -47,6 +47,8 @@ public:
 
   PPU(SupaNES *supaNes);
 
+  void Reset();
+
   void Clock();
 
   uint8_t ReadPPU(uint32_t address);

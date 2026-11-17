@@ -226,12 +226,6 @@ void HandleEvents(AppState *appstate) {
         done = true;
         break;
 
-      case SDL_SCANCODE_T: {
-        const char *testFile = "/home/legolasbat/Documentos/C/SupaNES2/Tests/"
-                               "CPU/ADC-Passed/CPUADC.sfc";
-        appstate->supaNES->InsertROM(testFile);
-        break;
-      }
       case SDL_SCANCODE_P:
         if (waitingFrame) {
           waitingFrame = false;
