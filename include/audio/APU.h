@@ -47,6 +47,7 @@ public:
   void WriteCPUPorts(uint8_t address, uint8_t value);
 
   uint8_t GetRAM(uint16_t address);
+  void WriteAPUMemory(uint16_t address, uint8_t value);
 
 private:
   uint8_t dspAddr = 0;
@@ -82,7 +83,6 @@ private:
   void CheckTimers();
 
   uint8_t ReadAPUMemory(uint16_t address);
-  void WriteAPUMemory(uint16_t address, uint8_t value);
 
   // Read and Write IO APU to CPU
   uint8_t ReadCPUPorts(uint8_t address);

@@ -35,12 +35,16 @@ private:
   int16_t samples[maxSamples];
   unsigned int sampleIndex = 0;
 
+  int16_t masterOutput[2];
+  int32_t echoOutput[2];
+  int32_t echoInput[2];
+
   uint8_t step = 0;
   bool evenSample = true;
 
   int counter = 0;
 
-  struct voice {
+  struct Voice {
     // REGISTERS
     int8_t VOLL = 0;   // Left channel volume
     int8_t VOLR = 0;   // Right channel volume
@@ -72,11 +76,25 @@ private:
     int16_t sampleClean = 0;
   };
 
-  voice voices[8];
+  Voice voices[8];
+
+  struct Echo {
+    uint16_t address = 0;
+    uint16_t offset = 0;
+    uint16_t history[2][8];
+    uint16_t length = 0;
+    uint8_t historyOffset = 0;
+  };
+
+  Echo echo;
 
   void ReadBRR(uint8_t channel);
 
   void ProcessSample(uint8_t channel);
+
+  void ProcessEcho();
+
+  int32_t CalculateFIR(bool isLeft, uint8_t channel);
 
   int16_t GaussInterp(uint8_t channel);
 
@@ -94,8 +112,8 @@ private:
   uint8_t internalKON = 0; // Pooled every 2 samples
   uint8_t KOF = 0;         // Fade out channels
 
-  uint8_t FLG = 0; // Bit 7: Reset. Bit 6: Mute. Bit 5: Echo enable (0 =
-                   // Enable). Bit 4-0: Frequency for white noise
+  uint8_t FLG = 0xE0; // Bit 7: Reset. Bit 6: Mute. Bit 5: Echo enable (0 =
+                      // Enable). Bit 4-0: Frequency for white noise
 
   uint8_t ENDX = 0; // 1 bit per channel. If set BRR decoder reached last block
 
@@ -111,5 +129,5 @@ private:
 
   uint8_t ESA = 0; // Echo data start address
   uint8_t EDL = 0; // (only 4 lower bits) Echo delay size
-  uint8_t COEF[8]; // Echo FIR filter coefficients
+  int8_t COEF[8];  // Echo FIR filter coefficients
 };

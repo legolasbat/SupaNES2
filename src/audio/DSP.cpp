@@ -140,7 +140,7 @@ bool DSP::CounterPoll(unsigned int rate) {
 }
 
 void DSP::ReadBRR(uint8_t channel) {
-  voice &v = voices[channel];
+  Voice &v = voices[channel];
 
   uint8_t nextBrrData = memory->GetRAM(v.brrAddress + v.brrOffset + 1);
 
@@ -198,7 +198,7 @@ void DSP::ReadBRR(uint8_t channel) {
 }
 
 int16_t DSP::GaussInterp(uint8_t channel) {
-  voice &v = voices[channel];
+  Voice &v = voices[channel];
 
   uint8_t position = (v.bufferPositionInterp >> 12) + v.bufferOffset;
   uint8_t offset = (v.bufferPositionInterp >> 4) & 0xFF;
@@ -217,7 +217,7 @@ int16_t DSP::GaussInterp(uint8_t channel) {
 }
 
 void DSP::ProcessEnvelope(uint8_t channel) {
-  voice &v = voices[channel];
+  Voice &v = voices[channel];
 
   int envelope = v.envelope;
 
@@ -296,7 +296,7 @@ void DSP::ProcessEnvelope(uint8_t channel) {
 }
 
 void DSP::ProcessSample(uint8_t channel) {
-  voice &v = voices[channel];
+  Voice &v = voices[channel];
 
   // Step 1
   v._brrAddress = ((uint16_t)DIR << 8) + ((uint16_t)v.SRCN << 2);
@@ -388,6 +388,24 @@ void DSP::ProcessSample(uint8_t channel) {
   if (v.bufferPositionInterp > 0x7FFF)
     v.bufferPositionInterp = 0x7FFF;
 
+  // Set master output
+  int32_t l = masterOutput[0] + ((v.sample * v.VOLL) >> 6);
+  l = Clamp16(l);
+  int32_t r = masterOutput[1] + ((v.sample * v.VOLR) >> 6);
+  r = Clamp16(r);
+
+  masterOutput[0] = l;
+  masterOutput[1] = r;
+
+  if (EON & (1 << channel)) {
+    int32_t echoL = echoOutput[0] + ((v.sample * v.VOLL) >> 6);
+    echoL = Clamp16(echoL);
+    echoOutput[0] = echoL;
+    int32_t echoR = echoOutput[0] + ((v.sample * v.VOLR) >> 6);
+    echoR = Clamp16(echoR);
+    echoOutput[1] = echoR;
+  }
+
   // Step 5
   ENDX |= (looped << channel);
   if (v.keyOnDelay == 5) {
@@ -398,24 +416,119 @@ void DSP::ProcessSample(uint8_t channel) {
   v.OUTX = v.sample >> 8;
 }
 
+int32_t DSP::CalculateFIR(bool isLeft, uint8_t channel) {
+  int sample =
+      echo.history[isLeft ? 0 : 1][(echo.historyOffset + channel + 1) & 0x7];
+  return (sample * COEF[channel]) >> 6;
+}
+
+void DSP::ProcessEcho() {
+  echo.historyOffset++;
+  echo.historyOffset &= 0x7;
+
+  echo.address = (ESA << 8) + echo.offset;
+
+  // Read echo value from memory
+  {
+    uint16_t ramAddress = echo.address;
+    uint8_t lo = memory->GetRAM(ramAddress++);
+    uint8_t hi = memory->GetRAM(ramAddress++);
+
+    echo.history[0][echo.historyOffset] = (uint16_t)((hi << 8) | lo) >> 1;
+    lo = memory->GetRAM(ramAddress++);
+    hi = memory->GetRAM(ramAddress++);
+
+    echo.history[1][echo.historyOffset] = (uint16_t)((hi << 8) | lo) >> 1;
+  }
+
+  // Channel 0
+  echoInput[0] = CalculateFIR(true, 0);
+  echoInput[1] = CalculateFIR(false, 0);
+  // Channel 1
+  echoInput[0] += CalculateFIR(true, 1);
+  echoInput[1] += CalculateFIR(false, 1);
+  // Channel 2
+  echoInput[0] += CalculateFIR(true, 2);
+  echoInput[1] += CalculateFIR(false, 2);
+  // Channel 3
+  echoInput[0] += CalculateFIR(true, 3);
+  echoInput[1] += CalculateFIR(false, 3);
+  // Channel 4
+  echoInput[0] += CalculateFIR(true, 4);
+  echoInput[1] += CalculateFIR(false, 4);
+  // Channel 5
+  echoInput[0] += CalculateFIR(true, 5);
+  echoInput[1] += CalculateFIR(false, 5);
+  // Channel 6
+  echoInput[0] = (int16_t)(echoInput[0] + CalculateFIR(true, 6));
+  echoInput[1] = (int16_t)(echoInput[1] + CalculateFIR(false, 6));
+
+  // Channel 7
+  echoInput[0] = Clamp16(echoInput[0] + (int16_t)CalculateFIR(true, 7));
+  echoInput[1] = Clamp16(echoInput[1] + (int16_t)CalculateFIR(false, 7));
+
+  {
+    // Prepare output
+    int32_t left = ((int32_t)masterOutput[0] * MVOLL) >> 7;
+    int32_t right = ((int32_t)masterOutput[1] * MVOLR) >> 7;
+
+    int32_t leftEcho = (echoInput[0] * EVOLL) >> 7;
+    int32_t rightEcho = (echoInput[1] * EVOLR) >> 7;
+
+    masterOutput[0] = Clamp16(left + leftEcho);
+    masterOutput[1] = Clamp16(right + rightEcho);
+  }
+
+  {
+    // Feedback
+    int32_t l = echoOutput[0] + (int16_t)((echoInput[0] * EFB) >> 7);
+    int32_t r = echoOutput[1] + (int16_t)((echoInput[1] * EFB) >> 7);
+
+    echoOutput[0] = Clamp16(l);
+    echoOutput[1] = Clamp16(r);
+  }
+
+  if (echo.offset == 0)
+    echo.length = (uint16_t)(EDL & 0xF) << 11;
+
+  echo.offset += 4;
+  if (echo.offset >= echo.length)
+    echo.offset = 0;
+
+  // Write echo values to memory
+  if ((FLG & 0x20) == 0) {
+    uint16_t ramAddress = echo.address;
+    memory->WriteAPUMemory(ramAddress++, echoOutput[0] & 0xFF);
+    memory->WriteAPUMemory(ramAddress++, (echoOutput[0] >> 8) & 0xFF);
+    memory->WriteAPUMemory(ramAddress++, echoOutput[1] & 0xFF);
+    memory->WriteAPUMemory(ramAddress++, (echoOutput[1] >> 8) & 0xFF);
+  }
+  echoOutput[0] = 0;
+  echoOutput[1] = 0;
+}
+
 void DSP::Tick() {
   // Process Voices samples
-  if (step == 10 && enableVoice0) {
+  if (step == 0 && enableVoice0) {
+    masterOutput[0] = 0;
+    masterOutput[1] = 0;
     ProcessSample(0);
-  } else if (step == 11 && enableVoice1) {
+  } else if (step == 1 && enableVoice1) {
     ProcessSample(1);
-  } else if (step == 12 && enableVoice2) {
+  } else if (step == 2 && enableVoice2) {
     ProcessSample(2);
-  } else if (step == 13 && enableVoice3) {
+  } else if (step == 3 && enableVoice3) {
     ProcessSample(3);
-  } else if (step == 14 && enableVoice4) {
+  } else if (step == 4 && enableVoice4) {
     ProcessSample(4);
-  } else if (step == 15 && enableVoice5) {
+  } else if (step == 5 && enableVoice5) {
     ProcessSample(5);
-  } else if (step == 16 && enableVoice6) {
+  } else if (step == 6 && enableVoice6) {
     ProcessSample(6);
-  } else if (step == 17 && enableVoice7) {
+  } else if (step == 7 && enableVoice7) {
     ProcessSample(7);
+  } else if (step == 8) {
+    ProcessEcho();
   } else if (step == 20) {
     evenSample = !evenSample;
 
@@ -437,21 +550,15 @@ void DSP::Tick() {
   }
   // Update samples
   else if (step == 21) {
-    int32_t left = 0;
-    int32_t right = 0;
+    int16_t left = 0;
+    int16_t right = 0;
 
     if (!(FLG & 0xC0)) {
-      for (int i = 0; i < 8; i++) {
-        left += (voices[i].sample * voices[i].VOLL) >> 6;
-        left = Clamp16(left);
-        right += (voices[i].sample * voices[i].VOLR) >> 6;
-        right = Clamp16(right);
-      }
-      left = (left * MVOLL) >> 7;
-      right = (right * MVOLR) >> 7;
+      left = masterOutput[0];
+      right = masterOutput[1];
     }
-    samples[sampleIndex++] = Clamp16(left) ^ 0xFFFF;
-    samples[sampleIndex++] = Clamp16(right) ^ 0xFFFF;
+    samples[sampleIndex++] = left ^ 0xFFFF;
+    samples[sampleIndex++] = right ^ 0xFFFF;
   }
   // Output samples
   else if (step == 31) {
