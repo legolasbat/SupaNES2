@@ -33,7 +33,7 @@ Audio: SDL3
 - [x] Per-tile offset
 
 ### Audio
-- [ ] Echo
+- [x] Echo
 
 ### Input
 - [ ] Controller support
